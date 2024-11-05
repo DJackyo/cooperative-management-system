@@ -50,6 +50,8 @@ lerna-debug.log*
 .temp
 .tmp
 .history
+back/.history
+front/.history
 
 # Runtime data
 pids

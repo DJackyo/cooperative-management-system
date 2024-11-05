@@ -16,12 +16,14 @@ import {
 import { AttachMoney, CalendarToday, AccessTime } from "@mui/icons-material";
 import { mockCreditRequestData, mockCreditInfoData } from "@/mock/mockData";
 import dynamic from "next/dynamic";
-import CreditForm from "./components/CreditForm";
-import Chart from "react-apexcharts";
+// import CreditForm from "./components/CreditForm";
+// import Chart from "react-apexcharts";
 // import PaymentHistoryTable from "./components/PaymentHistoryTable";
 
 // Usar `dynamic` para cargar el componente de forma dinámica solo en el cliente.
+const CreditForm = dynamic(() => import("./components/CreditForm"), { ssr: false });
 const PaymentHistoryTable = dynamic(() => import("./components/PaymentHistoryTable"), { ssr: false });
+const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 // Define los tipos de datos de crédito
 interface CreditRequestData {
