@@ -16,9 +16,6 @@ import {
 import { AttachMoney, CalendarToday, AccessTime } from "@mui/icons-material";
 import { mockCreditRequestData, mockCreditInfoData } from "@/mock/mockData";
 import dynamic from "next/dynamic";
-// import CreditForm from "./components/CreditForm";
-// import Chart from "react-apexcharts";
-// import PaymentHistoryTable from "./components/PaymentHistoryTable";
 
 // Usar `dynamic` para cargar el componente de forma dinámica solo en el cliente.
 const CreditForm = dynamic(() => import("./components/CreditForm"), { ssr: false });
@@ -81,7 +78,7 @@ const CreditModule = () => {
   };
   // Configuración del gráfico
   const chartOptions = {
-    chart: { type: "pie" as const, toolbar: { show: false } },
+    chart: { type: "pie" as const, toolbar: { show: true } },
     labels: ["Pagado", "Pendiente"],
     colors: ["#008FFB", "#FF4560"],
     responsive: [{ breakpoint: 480, options: { chart: { width: 200 } } }],

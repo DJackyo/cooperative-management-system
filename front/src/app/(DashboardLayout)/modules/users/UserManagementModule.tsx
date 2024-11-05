@@ -25,23 +25,23 @@ import {
   updateUser,
   deleteUser,
 } from "@/services/userService"; // Importa el servicio
-import {
-  IconUsersGroup,
-} from "@tabler/icons-react";
+import { IconUsersGroup } from "@tabler/icons-react";
 import DashboardCard from "../../components/shared/DashboardCard";
 
 const UserManagementModule = () => {
   const [search, setSearch] = useState("");
   const [openModal, setOpenModal] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [formData, setFormData] = useState<Omit<User, "id" | "status"> & { identification?: string }>({
+  const [formData, setFormData] = useState<
+    Omit<User, "id" | "status"> & { identification?: string }
+  >({
     names: "",
     email: "",
     identification: "",
     contactData: "",
     locationData: "",
     role: "socio",
-});
+  });
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [activeUsersCount, setActiveUsersCount] = useState(0);
@@ -59,7 +59,7 @@ const UserManagementModule = () => {
   }, []);
 
   // Filtra la lista de usuarios según la búsqueda
-  const filteredUsers = users.filter(
+  const filteredUsers = users?.filter(
     (user: User) =>
       user.names.toLowerCase().includes(search.toLowerCase()) || // Asegúrate que la propiedad sea 'name'
       user.email.toLowerCase().includes(search.toLowerCase())
@@ -156,24 +156,36 @@ const UserManagementModule = () => {
           </Box>
         </DashboardCard>
       </Grid>
-      <Grid item xs={4}>
+      {/* <Grid item xs={4}>
         <DashboardCard title="">
           <Box padding={2}></Box>
         </DashboardCard>
-      </Grid>
-      <Grid item xs={4}>
+      </Grid> */}
+      <Grid item xs={8}>
         <DashboardCard>
-          <Box padding={2}>
-            <Button variant="contained" onClick={() => handleOpenModal()}>
+          <Box padding={3}>
+            {/* <Button variant="contained" onClick={() => handleOpenModal()}>
               Crear Usuario
-            </Button>
+            </Button> */}
           </Box>
         </DashboardCard>
       </Grid>
 
       {/* Tabla de Usuarios */}
       <Grid item xs={12}>
-        <DashboardCard title="Listado de usuarios">
+        <DashboardCard title="">
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Typography variant="h5" color="primary" gutterBottom>
+              Listado de usuarios
+            </Typography>
+            <Button variant="outlined" onClick={() => handleOpenModal()}>
+              Crear Usuario
+            </Button>
+          </Box>
           <TableContainer>
             <Table>
               <TableHead>

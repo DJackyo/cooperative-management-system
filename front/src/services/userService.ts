@@ -7,8 +7,10 @@ const mock = new MockAdapter(axios);
 
 // Mockear la respuesta de obtener usuarios
 mock.onGet('/api/users').reply(200, [
-    { id: 1, names: 'Juan Soto', email: 'juan@example.com', role: 'Socio', status: 'activo' },
-    { id: 2, names: 'Ana Perez', email: 'ana@example.com', role: 'Gestor', status: 'activo' },
+    { id: 1, names: 'Juan Soto', email: 'juan@example.com', role: 'Socio', status: 'activo', identification: '123456789', contactData: 'contactData', locationData: 'locationData' },
+    { id: 2, names: 'Ana Chan', email: 'ana@example.com', role: 'Socio', status: 'inactivo', identification: '223456789', contactData: 'contactData', locationData: 'locationData' },
+    { id: 3, names: 'María Perez', email: 'ana@example.com', role: 'Socio', status: 'activo', identification: '223456789', contactData: 'contactData', locationData: 'locationData' },
+    { id: 4, names: 'Pedro Fernandez', email: 'ana@example.com', role: 'Gestor', status: 'activo', identification: '223456789', contactData: 'contactData', locationData: 'locationData' },
 ]);
 
 // Mockear la respuesta al crear un usuario

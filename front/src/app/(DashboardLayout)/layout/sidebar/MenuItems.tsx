@@ -24,24 +24,13 @@ const Menuitems = [
   },
   {
     navlabel: true,
-    subheader: "Usuarios",
-  },
-  {
-    id: uniqueId(),
-    title: "Gestión de usuarios",
-    icon: IconUserCog,
-    href: "/modules/users",
-    roles: ["administrador"],
-  },
-  {
-    navlabel: true,
     subheader: "Ahorro",
   },
   {
     id: uniqueId(),
     title: "Gestión del ahorro",
     icon: IconAdjustmentsDollar,
-    href: "/utilities/typography",
+    href: "/modules/savings",
     roles: ["administrador", "gestorOperaciones"],
   },
   {
@@ -49,7 +38,7 @@ const Menuitems = [
     title: "Movimientos",
     icon: IconListDetails,
     href: "/modules/savings",
-    roles: ["socio", "administrador"],
+    roles: ["socio"],
   },
   {
     navlabel: true,
@@ -59,7 +48,7 @@ const Menuitems = [
     id: uniqueId(),
     title: "Gestión del crédito",
     icon: IconAdjustmentsDollar,
-    href: "/utilities/typography",
+    href: "/modules/credit",
     roles: ["administrador", "gestorOperaciones"],
   },
   {
@@ -67,7 +56,7 @@ const Menuitems = [
     title: "Movimientos",
     icon: IconListDetails,
     href: "/modules/credit",
-    roles: ["socio", "administrador"],
+    roles: ["socio"],
   },
   {
     navlabel: true,
@@ -76,18 +65,25 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
-    title: "Icons",
-    icon: IconMoodHappy,
-    href: "/icons",
+    title: "Gestión de usuarios",
+    icon: IconUserCog,
+    href: "/modules/users",
     roles: ["administrador"],
   },
-  {
-    id: uniqueId(),
-    title: "Sample Page",
-    icon: IconAperture,
-    href: "/sample-page",
-    roles: ["administrador"],
-  },
+  // {
+  //   id: uniqueId(),
+  //   title: "Icons",
+  //   icon: IconMoodHappy,
+  //   href: "/icons",
+  //   roles: ["administrador"],
+  // },
+  // {
+  //   id: uniqueId(),
+  //   title: "Sample Page",
+  //   icon: IconAperture,
+  //   href: "/sample-page",
+  //   roles: ["administrador"],
+  // },
 ];
 
 export default Menuitems;
