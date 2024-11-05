@@ -1,12 +1,16 @@
 // src/interfaces/User.ts
+export type Role = "socio" | "administrador" | "gestor";
+export type Status = "activo" | "inactivo";
 
 export interface User {
   id: number;
   names: string;
   email: string;
   identification: string;
-  contactData: string;
-  locationData: string;
-  role: "socio" | "administrador" | "gestor"; // Definir los roles específicos aquí
-  status: "activo" | "inactivo"; // Agregar estado también
+  contactData?: string;
+  locationData?: string;
+  password?: string;
+  phoneNumber?: string;
+  role: Role;
+  status?: Status;
 }

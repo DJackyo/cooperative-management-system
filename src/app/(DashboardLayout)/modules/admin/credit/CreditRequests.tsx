@@ -1,7 +1,5 @@
 import React, { useEffect, useState } from "react";
 import {
-  Card,
-  CardContent,
   Typography,
   Button,
   Table,
@@ -34,8 +32,8 @@ const CreditRequests = () => {
   const [filterName, setFilterName] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState(null);
-  const [paymentPlan, setPaymentPlan] = useState([]);
+  const [selectedRequest, setSelectedRequest]: any = useState(null);
+  const [paymentPlan, setPaymentPlan]: any = useState([]);
 
   useEffect(() => {
     const loadCreditRequests = async () => {
@@ -47,7 +45,7 @@ const CreditRequests = () => {
   }, []);
 
   useEffect(() => {
-    const filtered = creditRequests.filter((request) => {
+    const filtered = creditRequests.filter((request: any) => {
       return (
         (filterName
           ? request.name.toLowerCase().includes(filterName.toLowerCase())
@@ -59,8 +57,8 @@ const CreditRequests = () => {
 
   const handleApprove = async (id: number) => {
     await approveCreditRequest(id);
-    setFilteredRequests((prevRequests) =>
-      prevRequests.map((request) =>
+    setFilteredRequests((prevRequests: any) =>
+      prevRequests.map((request: any) =>
         request.id === id ? { ...request, status: "aprobado" } : request
       )
     );
@@ -68,14 +66,14 @@ const CreditRequests = () => {
 
   const handleReject = async (id: number) => {
     await rejectCreditRequest(id);
-    setFilteredRequests((prevRequests) =>
-      prevRequests.map((request) =>
+    setFilteredRequests((prevRequests: any) =>
+      prevRequests.map((request: any) =>
         request.id === id ? { ...request, status: "rechazado" } : request
       )
     );
   };
 
-  const handleViewPaymentPlan = async (request) => {
+  const handleViewPaymentPlan = async (request: any) => {
     try {
       const response = await fetchPaymentPlanByCreditId(request.id);
       console.log(response.data);
@@ -154,7 +152,7 @@ const CreditRequests = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredRequests.map((request) => (
+                {filteredRequests.map((request: any) => (
                   <TableRow key={request.id}>
                     <TableCell>{request.name}</TableCell>
                     <TableCell>{request.amountRequested}</TableCell>
@@ -267,7 +265,7 @@ const CreditRequests = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {paymentPlan.map((payment, index) => (
+                      {paymentPlan.map((payment: any, index: number) => (
                         <TableRow key={index}>
                           <TableCell>{index + 1}</TableCell>
                           <TableCell>{payment.amount}</TableCell>

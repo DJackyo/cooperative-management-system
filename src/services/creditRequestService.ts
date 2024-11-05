@@ -27,7 +27,7 @@ mock.onPost(/\/api\/credit-requests\/\d+\/reject/).reply((config) => {
 });
 
 // Mockear la respuesta al obtener el plan de pagos
-mock.onGet(/\/api\/credit-requests\/\d+\/payment-plan/).reply((config) => {
+mock.onGet(/\/api\/credit-requests\/\d+\/payment-plan/).reply((config:any) => {
     const creditId = config.url?.match(/\/(\d+)\/payment-plan/)[1];
     console.log("ID de crédito capturado:", creditId);
     // Simulación de un plan de pagos para el crédito específico

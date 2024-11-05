@@ -9,6 +9,7 @@ import {
   Button,
   Grid,
 } from "@mui/material";
+import { Role } from "@/interfaces/User";
 
 type UserModalProps = {
   open: boolean;
@@ -17,9 +18,9 @@ type UserModalProps = {
     names: string;
     email: string;
     identification: string;
-    contactData: string;
-    locationData: string;
-    role: string;
+    contactData?: string;
+    locationData?: string;
+    role: Role;
   };
   onChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

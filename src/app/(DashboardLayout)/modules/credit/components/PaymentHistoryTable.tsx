@@ -4,7 +4,7 @@ import { useState } from "react";
 
 const PaymentHistoryTable = () => {
   const [open, setOpen] = useState(false);
-  const [selectedRow, setSelectedRow] = useState(null);
+  const [selectedRow, setSelectedRow]: any = useState(null);
 
   const handleOpenModal = (row: any) => {
     setSelectedRow(row);

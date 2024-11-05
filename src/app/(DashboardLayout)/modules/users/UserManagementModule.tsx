@@ -2,8 +2,6 @@
 
 import React, { useState, useEffect } from "react";
 import {
-  Card,
-  CardContent,
   Typography,
   Grid,
   Button,
@@ -19,7 +17,7 @@ import {
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { User } from "@/interfaces/User";
+import { Role, User } from "@/interfaces/User";
 import UserModal from "./components/UserModal";
 import {
   fetchUsers,
@@ -28,9 +26,7 @@ import {
   deleteUser,
 } from "@/services/userService"; // Importa el servicio
 import {
-  IconClipboardList,
   IconUsersGroup,
-  IconUsersPlus,
 } from "@tabler/icons-react";
 import DashboardCard from "../../components/shared/DashboardCard";
 
@@ -38,14 +34,15 @@ const UserManagementModule = () => {
   const [search, setSearch] = useState("");
   const [openModal, setOpenModal] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [formData, setFormData] = useState<Omit<User, "id" | "status">>({
+  const [formData, setFormData] = useState<Omit<User, "id" | "status"> & { identification?: string }>({
     names: "",
     email: "",
     identification: "",
     contactData: "",
     locationData: "",
-    role: "",
-  });
+    role: "socio",
+});
+
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [activeUsersCount, setActiveUsersCount] = useState(0);
 
@@ -54,7 +51,7 @@ const UserManagementModule = () => {
       const response = await fetchUsers();
       setUsers(response.data);
       const count = response.data.filter(
-        (user) => user.status === "activo"
+        (user: User) => user.status === "activo"
       ).length;
       setActiveUsersCount(count);
     };
@@ -63,7 +60,7 @@ const UserManagementModule = () => {
 
   // Filtra la lista de usuarios según la búsqueda
   const filteredUsers = users.filter(
-    (user:User) =>
+    (user: User) =>
       user.names.toLowerCase().includes(search.toLowerCase()) || // Asegúrate que la propiedad sea 'name'
       user.email.toLowerCase().includes(search.toLowerCase())
   );
@@ -71,13 +68,14 @@ const UserManagementModule = () => {
   const handleOpenModal = (user?: User) => {
     if (user) {
       setEditingUser(user);
+      const role: Role = user.role?.toLowerCase() as Role;
       setFormData({
         names: user.names,
         email: user.email,
         identification: user.identification || "",
         contactData: user.contactData || "",
         locationData: user.locationData || "",
-        role: user.role.toLowerCase(),
+        role,
       });
     } else {
       setEditingUser(null);
@@ -87,7 +85,7 @@ const UserManagementModule = () => {
         identification: "",
         contactData: "",
         locationData: "",
-        role: "",
+        role: "socio",
       });
     }
     setOpenModal(true);
@@ -98,7 +96,9 @@ const UserManagementModule = () => {
     setEditingUser(null);
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
@@ -112,7 +112,7 @@ const UserManagementModule = () => {
         await createUser(formData); // Llama a la función del servicio
       }
       // Recargar usuarios
-      const usersData = await fetchUsers();
+      const usersData: any = await fetchUsers();
       setUsers(usersData);
       handleCloseModal();
     } catch (error) {
