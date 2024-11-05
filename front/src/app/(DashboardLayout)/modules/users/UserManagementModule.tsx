@@ -174,49 +174,51 @@ const UserManagementModule = () => {
       {/* Tabla de Usuarios */}
       <Grid item xs={12}>
         <DashboardCard title="">
-          <Box
-            display="flex"
-            justifyContent="space-between"
-            alignItems="center"
-          >
-            <Typography variant="h5" color="primary" gutterBottom>
-              Listado de usuarios
-            </Typography>
-            <Button variant="outlined" onClick={() => handleOpenModal()}>
-              Crear Usuario
-            </Button>
-          </Box>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Nombres</TableCell>
-                  <TableCell>Correo</TableCell>
-                  <TableCell>Rol</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell>Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.names}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.role}</TableCell>
-                    <TableCell>{user.status}</TableCell>
-                    <TableCell>
-                      <IconButton onClick={() => handleOpenModal(user)}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton onClick={() => handleDelete(user.id)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
+          <Box>
+            <Box
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
+            >
+              <Typography variant="h5" color="primary" gutterBottom>
+                Listado de usuarios
+              </Typography>
+              <Button variant="outlined" onClick={() => handleOpenModal()}>
+                Crear Usuario
+              </Button>
+            </Box>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Nombres</TableCell>
+                    <TableCell>Correo</TableCell>
+                    <TableCell>Rol</TableCell>
+                    <TableCell>Estado</TableCell>
+                    <TableCell>Acciones</TableCell>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>{user.names}</TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{user.role}</TableCell>
+                      <TableCell>{user.status}</TableCell>
+                      <TableCell>
+                        <IconButton onClick={() => handleOpenModal(user)}>
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton onClick={() => handleDelete(user.id)}>
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </Box>
         </DashboardCard>
       </Grid>
       <UserModal
