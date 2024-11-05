@@ -11,7 +11,7 @@ import {
   Paper,
   TextField,
   Grid,
-  Modal,
+  // Modal,
   Box,
   Tooltip,
 } from "@mui/material";
@@ -25,6 +25,11 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
+import dynamic from 'next/dynamic';
+
+const DynamicModal = dynamic(() => import('@mui/material/Modal'), {
+  ssr: false, // Desactiva el prerenderizado para este componente
+});
 
 const CreditRequests = () => {
   const [creditRequests, setCreditRequests] = useState([]);
@@ -211,7 +216,7 @@ const CreditRequests = () => {
         </DashboardCard>
       </Grid>
       {/* Modal para mostrar detalles de la solicitud */}
-      <Modal open={modalOpen} onClose={handleCloseModal}>
+      <DynamicModal open={modalOpen} onClose={handleCloseModal}>
         <Box
           sx={{
             position: "absolute",
@@ -289,7 +294,7 @@ const CreditRequests = () => {
             </>
           )}
         </Box>
-      </Modal>
+      </DynamicModal>
     </Grid>
   );
 };

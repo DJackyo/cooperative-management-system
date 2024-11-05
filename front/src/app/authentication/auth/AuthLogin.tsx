@@ -1,4 +1,3 @@
-// src/app/authentication/auth/AuthLogin.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -26,7 +25,7 @@ const AuthLogin = ({ title, subtitle, subtext }: loginType) => {
     if (authToken) {
       router.push("/"); // Redirige al dashboard si ya está autenticado
     }
-  }, []); // Se ejecuta solo una vez al montar el componente
+  }, [router]); // Se ejecuta solo una vez al montar el componente
 
   const handleLogin = async () => {
     try {
@@ -102,23 +101,6 @@ const AuthLogin = ({ title, subtitle, subtext }: loginType) => {
               {error}
             </Typography>
           )}
-          {/* <FormGroup>
-          <FormControlLabel
-            control={<Checkbox defaultChecked />}
-            label="Remeber this Device"
-          />
-        </FormGroup> */}
-          {/* <Typography
-          component={Link}
-          href="/"
-          fontWeight="500"
-          sx={{
-            textDecoration: "none",
-            color: "primary.main",
-          }}
-        >
-          Forgot Password ?
-        </Typography> */}
         </Stack>
       </Stack>
       <Box mt={3}>

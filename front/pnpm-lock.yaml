@@ -99,6 +99,9 @@ importers:
       '@types/lodash':
         specifier: 4.14.196
         version: 4.14.196
+      '@types/prop-types':
+        specifier: 15.7.13
+        version: 15.7.13
       axios-mock-adapter:
         specifier: 2.1.0
         version: 2.1.0(axios@1.7.7)
