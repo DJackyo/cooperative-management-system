@@ -32,7 +32,7 @@ const AuthLogin = ({ title, subtitle, subtext }: loginType) => {
       const user: User = await authService.login(email, password);
       setError("");
       if (user) {
-        console.log("Usuario autenticado:", user);
+        console.log("Usuario autenticado:", email);
         router.push("/");
       }
     } catch (err) {
@@ -49,71 +49,72 @@ const AuthLogin = ({ title, subtitle, subtext }: loginType) => {
       ) : null}
 
       {subtext}
-
-      <Stack>
-        <Box>
-          <Typography
-            variant="subtitle1"
-            fontWeight={600}
-            component="label"
-            htmlFor="username"
-            mb="5px"
-          >
-            Correo electrónico
-          </Typography>
-          <CustomTextField
-            variant="outlined"
-            fullWidth
-            value={email}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setEmail(e.target.value)
-            }
-          />
-        </Box>
-        <Box mt="25px">
-          <Typography
-            variant="subtitle1"
-            fontWeight={600}
-            component="label"
-            htmlFor="password"
-            mb="5px"
-          >
-            Contraseña
-          </Typography>
-          <CustomTextField
-            type="password"
-            variant="outlined"
-            fullWidth
-            value={password}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-              setPassword(e.target.value)
-            }
-          />
-        </Box>
-        <Stack
-          justifyContent="space-between"
-          direction="row"
-          alignItems="center"
-          my={2}
-        >
-          {error && ( // Condición para mostrar el mensaje de error
-            <Typography color="error" mt={2}>
-              {error}
+      <form>
+        <Stack>
+          <Box>
+            <Typography
+              variant="subtitle1"
+              fontWeight={600}
+              component="label"
+              htmlFor="username"
+              mb="5px"
+            >
+              Correo electrónico
             </Typography>
-          )}
+            <CustomTextField
+              variant="outlined"
+              fullWidth
+              value={email}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setEmail(e.target.value)
+              }
+            />
+          </Box>
+          <Box mt="25px">
+            <Typography
+              variant="subtitle1"
+              fontWeight={600}
+              component="label"
+              htmlFor="password"
+              mb="5px"
+            >
+              Contraseña
+            </Typography>
+            <CustomTextField
+              type="password"
+              variant="outlined"
+              fullWidth
+              value={password}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setPassword(e.target.value)
+              }
+            />
+          </Box>
+          <Stack
+            justifyContent="space-between"
+            direction="row"
+            alignItems="center"
+            my={2}
+          >
+            {error && ( // Condición para mostrar el mensaje de error
+              <Typography color="error" mt={2}>
+                {error}
+              </Typography>
+            )}
+          </Stack>
         </Stack>
-      </Stack>
-      <Box mt={3}>
-        <Button
-          color="primary"
-          variant="contained"
-          size="large"
-          fullWidth
-          onClick={handleLogin} // Ejecuta la función de login
-        >
-          Ingresar
-        </Button>
-      </Box>
+        <Box mt={3}>
+          <Button
+            color="primary"
+            variant="contained"
+            size="large"
+            fullWidth
+            onClick={handleLogin} // Ejecuta la función de login
+          >
+            Ingresar
+          </Button>
+        </Box>
+      </form>
       {subtitle}
     </>
   );

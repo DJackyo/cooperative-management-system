@@ -1,36 +1,21 @@
 // src/app/authentication/services/authService.ts
-import { User } from "@/interfaces/User";
-import { mockUsers } from "@/mock/mockUsers";
-import axiosClient from "@/services/axiosClient";
-
+import { axiosNoAuth } from "@/services/axiosClient";
 
 export const authService = {
-  async login(email: string, password: string): Promise<User> {
-    // Simulación de autenticación
-    const user = mockUsers.find(
-      (user) => user.email.toLowerCase() === email.toLowerCase() && user.password === password
-    );
 
-    if (user) {
-      localStorage.setItem("authToken", "mockedToken"); // Guarda un token mockeado
-      localStorage.setItem("userRole", user.role); // Guarda el rol del usuario
-      return user;
-    } else {
-      throw new Error("Correo o contraseña incorrectos");
+  async login(email: string, password: string) {
+    try {
+      const response = await axiosNoAuth.post("/auth/login", { email, password: btoa(password) });
+      if (response?.data) {
+        const user = response.data?.data;
+        this.saveToken(user.access_token);
+        localStorage.setItem("userRole", user.role);
+        return user.access_token;
+      }
+    } catch (error) {
+      throw new Error("Error en el inicio de sesión");
     }
   },
-
-  // async login(email: string, password: string) {
-  //     try {
-  //       const response = await axiosClient.post("/auth/login", { email, password });
-  //       const { token } = response.data;
-  //       localStorage.setItem("authToken", token); // Guarda el token en localStorage
-  //       localStorage.setItem("userRole", user.role);
-  //       return token;
-  //     } catch (error) {
-  //       throw new Error("Error en el inicio de sesión");
-  //     }
-  //   },
 
   saveToken(token: string) {
     localStorage.setItem("authToken", token);

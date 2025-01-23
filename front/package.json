@@ -1,5 +1,5 @@
 {
-    "name": "modernize-next-free",
+    "name": "cooperative-next",
     "version": "0.1.0",
     "private": true,
     "scripts": {
@@ -14,16 +14,16 @@
         "@emotion/react": "11.11.1",
         "@emotion/server": "11.11.0",
         "@emotion/styled": "11.11.0",
-        "@mui/icons-material": "5.15.15",
-        "@mui/lab": "5.0.0-alpha.170",
-        "@mui/material": "5.15.15",
-        "@mui/system": "6.1.6",
-        "@mui/x-data-grid": "7.22.1",
-        "@mui/x-date-pickers": "^5.x",
-        "@tabler/icons-react": "2.30.0",
+        "@mui/icons-material": "5.x",
+        "@mui/lab": "5.0.0-alpha.175",
+        "@mui/material": "5.x",
+        "@mui/system": "5.x",
+        "@mui/x-data-grid": "7.x",
+        "@mui/x-date-pickers": "5.x",
+        "@tabler/icons-react": "2.x",
         "@types/node": "20.4.5",
-        "@types/react": "18.2.18",
-        "@types/react-dom": "18.2.7",
+        "@types/react": "18.x",
+        "@types/react-dom": "18.x",
         "apexcharts": "3.41.1",
         "axios": "1.7.7",
         "date-fns": "^2.x",
@@ -32,16 +32,16 @@
         "lodash": "4.17.21",
         "next": "14.2.3",
         "prop-types": "15.8.1",
-        "react": "18.2.0",
+        "react": "18.x",
         "react-apexcharts": "1.4.1",
-        "react-dom": "18.2.0",
+        "react-dom": "18.x",
         "react-helmet-async": "1.3.0",
         "react-mui-sidebar": "^1.3.8",
         "typescript": "5.1.6"
     },
     "devDependencies": {
-        "@types/lodash": "4.14.196",
-        "@types/prop-types": "15.7.13",
+        "@types/lodash": "4.x",
+        "@types/prop-types": "15.x",
         "axios-mock-adapter": "2.1.0"
     }
 }

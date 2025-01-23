@@ -1,8 +1,14 @@
 // src/services/axiosClient.ts
 import axios from "axios";
+const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/';
+
+// Comprobar si la variable se carga correctamente
+if (!apiUrl) {
+  console.error("Error: REACT_APP_API_URL no está definida en el archivo .env");
+}
 
 const axiosClient = axios.create({
-  baseURL: "https://api.example.com", // Cambia esta URL a la de tu backend
+  baseURL: apiUrl,
   headers: {
     "Content-Type": "application/json",
   },
@@ -32,4 +38,12 @@ axiosClient.interceptors.response.use(
   }
 );
 
-export default axiosClient;
+// instancia separada sin interceptores
+const axiosNoAuth = axios.create({
+  baseURL: apiUrl,
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+export { axiosClient, axiosNoAuth };
