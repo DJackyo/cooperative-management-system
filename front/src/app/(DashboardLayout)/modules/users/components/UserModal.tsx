@@ -9,19 +9,12 @@ import {
   Button,
   Grid,
 } from "@mui/material";
-import { Role } from "@/interfaces/User";
+import { User } from "@/interfaces/User";
 
 type UserModalProps = {
   open: boolean;
   onClose: () => void;
-  formData: {
-    names: string;
-    email: string;
-    identification: string;
-    contactData?: string;
-    locationData?: string;
-    role: Role;
-  };
+  formData: Omit<User, "id" | "fechaRegistro" | "fechaModificacion">;
   onChange: (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => void;
@@ -50,18 +43,21 @@ const UserModal: React.FC<UserModalProps> = ({
         }}
       >
         <Typography variant="h6" gutterBottom>
-          {editingUser ? "Editar Usuario" : "Crear Usuario"}
+          {editingUser
+            ? "Editar Usuario " + formData.idAsociado.nombres
+            : "Crear Usuario"}
         </Typography>
         <Box component="form" noValidate autoComplete="off">
           <Grid container spacing={2}>
             <Grid item xs={6}>
               <TextField
                 fullWidth
-                label="Nombres"
+                label="Identificación"
                 margin="normal"
-                name="names" // Asegúrate de que el name coincida
-                value={formData.names}
+                name="identification"
+                value={formData.idAsociado.numeroDeIdentificacion}
                 onChange={onChange}
+                disabled={true}
               />
             </Grid>
             <Grid item xs={6}>
@@ -70,37 +66,7 @@ const UserModal: React.FC<UserModalProps> = ({
                 label="Correo Electrónico"
                 margin="normal"
                 name="email"
-                value={formData.email}
-                onChange={onChange}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Identificación"
-                margin="normal"
-                name="identification"
-                value={formData.identification}
-                onChange={onChange}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Datos de Contacto"
-                margin="normal"
-                name="contactData"
-                value={formData.contactData}
-                onChange={onChange}
-              />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField
-                fullWidth
-                label="Datos de Ubicación"
-                margin="normal"
-                name="locationData"
-                value={formData.locationData}
+                value={formData.correoElectronico}
                 onChange={onChange}
               />
             </Grid>
@@ -111,12 +77,12 @@ const UserModal: React.FC<UserModalProps> = ({
                 label="Rol"
                 margin="normal"
                 name="role"
-                value={formData.role}
+                value={formData.roles}
                 onChange={onChange}
               >
-                <MenuItem value="socio">Socio</MenuItem>
-                <MenuItem value="gestor">Gestor</MenuItem>
-                <MenuItem value="administrador">Administrador</MenuItem>
+                <MenuItem value="1">Socio</MenuItem>
+                <MenuItem value="3">Gestor</MenuItem>
+                <MenuItem value="2">Administrador</MenuItem>
               </TextField>
             </Grid>
           </Grid>

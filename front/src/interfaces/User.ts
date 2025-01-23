@@ -1,16 +1,27 @@
 // src/interfaces/User.ts
-export type Role = "socio" | "administrador" | "gestor";
-export type Status = "activo" | "inactivo";
+export interface Rol {
+  id: number;
+  nombre: string;
+}
+
+export interface Estado {
+  id: number;
+  estado: string;
+}
+
+export interface Asociado {
+  nombres: string;
+  numeroDeIdentificacion: string;
+  idEstado: Estado;
+}
 
 export interface User {
   id: number;
-  names: string;
-  email: string;
-  identification: string;
-  contactData?: string;
-  locationData?: string;
-  password?: string;
-  phoneNumber?: string;
-  role: Role;
-  status?: Status;
+  username: string | null;
+  correoElectronico: string | null;
+  contrasena: string | null;
+  fechaRegistro: string;
+  fechaModificacion: string;
+  roles: Rol[];
+  idAsociado: Asociado;
 }

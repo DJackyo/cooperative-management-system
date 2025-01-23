@@ -13,7 +13,7 @@ export const authService = {
         return user.access_token;
       }
     } catch (error) {
-      throw new Error("Error en el inicio de sesión");
+      throw new Error("Error", error!);
     }
   },
 

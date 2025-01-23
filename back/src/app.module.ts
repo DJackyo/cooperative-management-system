@@ -29,6 +29,7 @@ import { Roles } from './entities/entities/Roles';
 import { TiposIdentificacion } from './entities/entities/TiposIdentificacion';
 import { Usuarios } from './entities/entities/Usuarios';
 import { AsociadosModule } from './modules/asociados/asociados.module';
+import { UsuariosModule } from './modules/usuarios/usuarios.module';
 
 @Module({
   imports: [
@@ -39,12 +40,41 @@ import { AsociadosModule } from './modules/asociados/asociados.module';
       username: 'postgres',
       password: 'postgres',
       database: '_coop',
-      entities: [AportesAsociados, AprobacionPrestamos, AsocAsistenciaAsamblea, AsocContactos, AsocEconomicaSocial, Asociados, AsocInformacionFamiliar, AsocInformacionLaboral, AsocTiposFamiliares, AsocUbicaciones, EstadosAprobacion, EstadosAsociado, PresCancelaciones, PresCuotas, PresHistorialPrestamos, PresMetodosPago, PresPagos, Prestamos, PresTasasPrestamo, Roles, TiposIdentificacion, Usuarios], // Aquí agregas todas tus entidades
+      entities: [
+        AportesAsociados,
+        AprobacionPrestamos,
+        AsocAsistenciaAsamblea,
+        AsocContactos,
+        AsocEconomicaSocial,
+        Asociados,
+        AsocInformacionFamiliar,
+        AsocInformacionLaboral,
+        AsocTiposFamiliares,
+        AsocUbicaciones,
+        EstadosAprobacion,
+        EstadosAsociado,
+        PresCancelaciones,
+        PresCuotas,
+        PresHistorialPrestamos,
+        PresMetodosPago,
+        PresPagos,
+        Prestamos,
+        PresTasasPrestamo,
+        Roles,
+        TiposIdentificacion,
+        Usuarios,
+      ], // Aquí agregas todas tus entidades
       synchronize: false, // Este parámetro sincroniza las entidades con la base de datos. Solo para desarrollo.
       migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
     }),
-    UsersModule, CreditsModule, SavingsModule, AuthModule, AsociadosModule],
+    UsersModule,
+    CreditsModule,
+    SavingsModule,
+    AuthModule,
+    AsociadosModule,
+    UsuariosModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule { }
+export class AppModule {}

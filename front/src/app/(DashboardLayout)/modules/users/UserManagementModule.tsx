@@ -1,5 +1,3 @@
-// src/(DashboardLayout)/modules/users/UserManagementModule.tsx
-
 import React, { useState, useEffect } from "react";
 import {
   Typography,
@@ -14,79 +12,134 @@ import {
   TableHead,
   TableRow,
   Avatar,
+  TableSortLabel,
+  TablePagination,
+  TextField,
+  Select,
+  MenuItem,
+  InputLabel,
+  FormControl,
+  Pagination,
 } from "@mui/material";
+import Chip from "@mui/material/Chip";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { Role, User } from "@/interfaces/User";
+import { User } from "@/interfaces/User";
 import UserModal from "./components/UserModal";
-import {
-  fetchUsers,
-  createUser,
-  updateUser,
-  deleteUser,
-} from "@/services/userService"; // Importa el servicio
+import { userService } from "@/services/userService";
 import { IconUsersGroup } from "@tabler/icons-react";
 import DashboardCard from "../../components/shared/DashboardCard";
 
 const UserManagementModule = () => {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(""); // Estado para el filtro de búsqueda
   const [openModal, setOpenModal] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [formData, setFormData] = useState<
-    Omit<User, "id" | "status"> & { identification?: string }
-  >({
-    names: "",
-    email: "",
-    identification: "",
-    contactData: "",
-    locationData: "",
-    role: "socio",
-  });
+  const defaultData = {
+    username: "",
+    correoElectronico: "",
+    contrasena: "",
+    roles: [{ id: 1, nombre: "socio" }],
+    idAsociado: {
+      nombres: "",
+      numeroDeIdentificacion: "",
+      idEstado: { id: 1, estado: "activo" },
+    },
+  };
+  const [formData, setFormData] =
+    useState<Omit<User, "id" | "fechaRegistro" | "fechaModificacion">>(
+      defaultData
+    );
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [activeUsersCount, setActiveUsersCount] = useState(0);
 
+  const [order, setOrder] = useState<"asc" | "desc">("asc");
+  const [orderBy, setOrderBy] = useState<string>("idAsociado.nombres");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [filterState, setFilterState] = useState<string>(""); // Filtro por estado
+
   useEffect(() => {
     const loadUsers = async () => {
-      const response = await fetchUsers();
-      setUsers(response.data);
-      const count = response.data.filter(
-        (user: User) => user.status === "activo"
+      const response = await userService.fetchUsers();
+      setUsers(response);
+      const count = response.filter(
+        (user: User) => user.idAsociado?.idEstado.estado === "ACTIVO"
       ).length;
       setActiveUsersCount(count);
     };
     loadUsers();
   }, []);
 
-  // Filtra la lista de usuarios según la búsqueda
-  const filteredUsers = users?.filter(
-    (user: User) =>
-      user.names.toLowerCase().includes(search.toLowerCase()) || // Asegúrate que la propiedad sea 'name'
-      user.email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredUsers = users?.filter((user: User) => {
+    const matchesName = user.idAsociado.nombres
+      .toLowerCase()
+      .includes(search.toLowerCase()) || user.id.toString() == search;
+    const matchesState = filterState
+      ? user.idAsociado.idEstado.estado === filterState
+      : true;
+    return matchesName && matchesState;
+  });
+
+  const handleRequestSort = (property: string) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+
+  const sortedUsers = filteredUsers.sort((a: any, b: any) => {
+    let nameA = a.idAsociado?.nombres?.toLowerCase() || "";
+    let nameB = b.idAsociado?.nombres?.toLowerCase() || "";
+    if (orderBy == "id") {
+      nameA = a.id;
+      nameB = b.id;
+    }
+
+    if (nameA < nameB) {
+      return order === "asc" ? -1 : 1;
+    }
+    if (nameA > nameB) {
+      return order === "asc" ? 1 : -1;
+    }
+    return 0;
+  });
+
+  const handleChangePage = (
+    event: React.ChangeEvent<unknown>,
+    value: number
+  ) => {
+    setPage(value);
+  };
+
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0); // Volver a la primera página cuando cambies las filas por página
+  };
+
+  const statusColors: any = {
+    ACTIVO: "success",
+    RETIRADO: "default",
+    RSD: "info",
+    EXASOCIADO: "warning",
+    INACTIVO: "error",
+    EXCLUIDO: "error",
+  };
+
+  const getStatusColor = (estado: string) => {
+    return statusColors[estado] || "default";
+  };
 
   const handleOpenModal = (user?: User) => {
     if (user) {
       setEditingUser(user);
-      const role: Role = user.role?.toLowerCase() as Role;
       setFormData({
-        names: user.names,
-        email: user.email,
-        identification: user.identification || "",
-        contactData: user.contactData || "",
-        locationData: user.locationData || "",
-        role,
+        ...user,
       });
     } else {
       setEditingUser(null);
-      setFormData({
-        names: "",
-        email: "",
-        identification: "",
-        contactData: "",
-        locationData: "",
-        role: "socio",
-      });
+      setFormData(defaultData);
     }
     setOpenModal(true);
   };
@@ -106,28 +159,26 @@ const UserManagementModule = () => {
     try {
       if (editingUser) {
         // Actualizar usuario
-        await updateUser(editingUser.id, formData); // Llama a la función del servicio
+        // await userService.updateUser(editingUser.id, formData); // Llama a la función del servicio
       } else {
         // Crear usuario
-        await createUser(formData); // Llama a la función del servicio
+        // await userService.createUser(formData); // Llama a la función del servicio
       }
       // Recargar usuarios
-      const usersData: any = await fetchUsers();
+      const usersData: any = await userService.fetchUsers();
       setUsers(usersData);
       handleCloseModal();
     } catch (error) {
       console.error("Error al enviar la solicitud:", error);
-      // Manejar errores (puedes mostrar un mensaje al usuario)
     }
   };
 
   const handleDelete = async (id: number) => {
     try {
-      await deleteUser(id); // Llama a la función del servicio
+      await userService.deleteUser(id); // Llama a la función del servicio
       setUsers(users.filter((user) => user.id !== id)); // Actualiza el estado local
     } catch (error) {
       console.error("Error al eliminar el usuario:", error);
-      // Manejar errores (puedes mostrar un mensaje al usuario)
     }
   };
 
@@ -156,22 +207,57 @@ const UserManagementModule = () => {
           </Box>
         </DashboardCard>
       </Grid>
-      {/* <Grid item xs={4}>
+
+      <Grid item xs={12}>
         <DashboardCard title="">
-          <Box padding={2}></Box>
-        </DashboardCard>
-      </Grid> */}
-      <Grid item xs={8}>
-        <DashboardCard>
-          <Box padding={3}>
-            {/* <Button variant="contained" onClick={() => handleOpenModal()}>
-              Crear Usuario
-            </Button> */}
-          </Box>
+          <Grid container spacing={2} sx={{ marginBottom: 2 }}>
+            <Grid item xs={12}>
+              <Box
+                display="flex"
+                justifyContent="space-between"
+                alignItems="center"
+              >
+                <Typography variant="h5" color="primary" gutterBottom>
+                  Filtro
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              {/* Filtro por nombre */}
+              <TextField
+                label="Buscar por nombres o ID"
+                variant="outlined"
+                fullWidth
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </Grid>
+
+            <Grid item xs={12} sm={6}>
+              {/* Filtro por estado */}
+              <FormControl fullWidth>
+                <InputLabel id="estado-label">Filtrar por estado</InputLabel>
+                <Select
+                  labelId="estado-label"
+                  id="estado-select"
+                  value={filterState}
+                  label="Filtrar por estado"
+                  onChange={(e) => setFilterState(e.target.value)}
+                >
+                  <MenuItem value="">Todos</MenuItem>
+                  <MenuItem value="ACTIVO">Activo</MenuItem>
+                  <MenuItem value="INACTIVO">Inactivo</MenuItem>
+                  <MenuItem value="EXASOCIADO">Exasociado</MenuItem>
+                  <MenuItem value="RETIRADO">Retirado</MenuItem>
+                  <MenuItem value="RSD">RSD</MenuItem>
+                  <MenuItem value="EXCLUIDO">Excluido</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+          </Grid>
         </DashboardCard>
       </Grid>
 
-      {/* Tabla de Usuarios */}
       <Grid item xs={12}>
         <DashboardCard title="">
           <Box>
@@ -183,44 +269,112 @@ const UserManagementModule = () => {
               <Typography variant="h5" color="primary" gutterBottom>
                 Listado de usuarios
               </Typography>
-              <Button variant="outlined" onClick={() => handleOpenModal()}>
+              {/* <Button variant="outlined" onClick={() => handleOpenModal()}>
                 Crear Usuario
-              </Button>
+              </Button> */}
             </Box>
+
             <TableContainer>
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Nombres</TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={orderBy === "id"}
+                        direction={orderBy === "id" ? order : "asc"}
+                        onClick={() => handleRequestSort("id")}
+                      >
+                        ID
+                      </TableSortLabel>
+                    </TableCell>
+                    <TableCell>
+                      <TableSortLabel
+                        active={orderBy === "idAsociado.nombres"}
+                        direction={
+                          orderBy === "idAsociado.nombres" ? order : "asc"
+                        }
+                        onClick={() => handleRequestSort("idAsociado.nombres")}
+                      >
+                        Nombres
+                      </TableSortLabel>
+                    </TableCell>
                     <TableCell>Correo</TableCell>
                     <TableCell>Rol</TableCell>
                     <TableCell>Estado</TableCell>
-                    <TableCell>Acciones</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredUsers.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>{user.names}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>{user.role}</TableCell>
-                      <TableCell>{user.status}</TableCell>
-                      <TableCell>
-                        <IconButton onClick={() => handleOpenModal(user)}>
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton onClick={() => handleDelete(user.id)}>
-                          <DeleteIcon />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {sortedUsers
+                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    .map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>{user.id}</TableCell>
+                        <TableCell>
+                          {user.idAsociado
+                            ? user.idAsociado.nombres
+                            : "Sin asociado"}
+                        </TableCell>
+                        <TableCell>
+                          {user.correoElectronico || "No disponible"}
+                        </TableCell>
+                        <TableCell>
+                          {user.roles.length > 0
+                            ? user.roles
+                                .map(
+                                  (role) =>
+                                    role.nombre || "Nombre no disponible"
+                                )
+                                .join(", ")
+                            : "Sin rol"}
+                        </TableCell>
+                        <TableCell>
+                          {user.idAsociado ? (
+                            <Chip
+                              label={user.idAsociado.idEstado.estado}
+                              color={getStatusColor(
+                                user.idAsociado.idEstado.estado
+                              )}
+                              size="small"
+                            />
+                          ) : (
+                            "Sin estado"
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
                 </TableBody>
               </Table>
             </TableContainer>
+
+            {/* Paginación */}
+            <Box
+              display="flex"
+              alignItems="center"
+              justifyContent="space-between"
+            >
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25]}
+                component="div"
+                count={filteredUsers.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                labelRowsPerPage="Filas por página"
+              />
+              <Pagination
+                count={Math.ceil(filteredUsers.length / rowsPerPage)}
+                page={page}
+                onChange={handleChangePage}
+                color="primary"
+                shape="rounded"
+                siblingCount={1} // Número de páginas visibles a la izquierda y derecha del número actual
+              />
+            </Box>
           </Box>
         </DashboardCard>
       </Grid>
+
       <UserModal
         open={openModal}
         onClose={handleCloseModal}
