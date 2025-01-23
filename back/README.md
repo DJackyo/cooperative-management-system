@@ -97,3 +97,49 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+## Generar las entidades desde la base de datos:
+
+Una vez configurado TypeORM y el archivo ormconfig.json, puedes usar la CLI de TypeORM para generar las entidades a partir de la base de datos existente.
+
+Para generar las entidades, usa el siguiente comando:
+
+```bash
+  npx typeorm-model-generator -h localhost -d _coop -u postgres -p 5432 -x postgres -e postgres -o ./src/entities
+```
+
+Este comando utilizará el paquete typeorm-model-generator para generar las entidades basadas en la estructura de la base de datos de PostgreSQL.
+
+-h: Host de la base de datos.
+-d: Nombre de la base de datos.
+-u: Usuario de la base de datos.
+-p: Puerto de PostgreSQL (por defecto es 5432).
+-x: Contraseña del usuario.
+-e: Tipo de base de datos (en este caso, postgres).
+-o: El directorio de salida donde se generarán las entidades.
+
+## Generar una migración
+
+Cada vez que hagas cambios en las entidades (por ejemplo, agregar una nueva columna o cambiar el tipo de datos de una columna), debes generar una migración que capture esos cambios.
+
+Para generar una migración, puedes usar el siguiente comando de TypeORM CLI:
+
+```bash
+  npx typeorm migration:generate -n NombreDeLaMigracion
+```
+
+## Ejecutar las migraciones
+
+Una vez que hayas revisado y estés listo para aplicar la migración a la base de datos, ejecuta el siguiente comando para ejecutar las migraciones:
+
+```bash
+npx typeorm migration:run
+```
+
+## Revertir migraciones
+
+Si necesitas revertir una migración (por ejemplo, si cometiste un error y quieres deshacer los cambios), puedes usar el siguiente comando:
+
+```bash
+npx typeorm migration:revert
+```
