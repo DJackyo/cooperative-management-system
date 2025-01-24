@@ -143,3 +143,10 @@ Si necesitas revertir una migración (por ejemplo, si cometiste un error y quier
 ```bash
 npx typeorm migration:revert
 ```
+
+## Generating a new resource#
+To create a new resource, simply run the following command in the root directory of your project:
+
+```bash
+  $ nest g resource
+```

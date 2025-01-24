@@ -30,6 +30,7 @@ import { TiposIdentificacion } from './entities/entities/TiposIdentificacion';
 import { Usuarios } from './entities/entities/Usuarios';
 import { AsociadosModule } from './modules/asociados/asociados.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
+import { AportesAsociadosModule } from './modules/aportes-asociados/aportes-asociados.module';
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module';
     AuthModule,
     AsociadosModule,
     UsuariosModule,
+    AportesAsociadosModule,
   ],
   controllers: [AppController],
   providers: [AppService],
