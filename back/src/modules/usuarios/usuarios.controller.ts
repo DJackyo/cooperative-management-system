@@ -33,6 +33,7 @@ export class UsuariosController {
         nombre: role.nombre,
       })),
       idAsociado: {
+        id: usuario.id,
         nombres: [
           usuario.idAsociado.nombre1,
           usuario.idAsociado.nombre2,

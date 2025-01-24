@@ -19,19 +19,32 @@ import {
   MenuItem,
   InputLabel,
   FormControl,
-  Pagination,
+  ButtonGroup,
+  Menu,
+  Divider,
 } from "@mui/material";
 import Chip from "@mui/material/Chip";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
+
 import { User } from "@/interfaces/User";
-import UserModal from "./components/UserModal";
 import { userService } from "@/services/userService";
-import { IconUsersGroup } from "@tabler/icons-react";
+import UserModal from "./components/UserModal";
 import DashboardCard from "../../components/shared/DashboardCard";
+import { useRouter } from "next/navigation";
+
+import MoreVertIcon from "@mui/icons-material/MoreVert";
+import {
+  IconUsersGroup,
+  IconUserEdit,
+  IconUserCancel,
+  IconEditCircle,
+  IconEyeDollar,
+  IconCoins,
+} from "@tabler/icons-react";
 
 const UserManagementModule = () => {
-  const [search, setSearch] = useState(""); // Estado para el filtro de búsqueda
+  const router = useRouter();
+
+  const [search, setSearch] = useState("");
   const [openModal, setOpenModal] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const defaultData = {
@@ -43,12 +56,13 @@ const UserManagementModule = () => {
       nombres: "",
       numeroDeIdentificacion: "",
       idEstado: { id: 1, estado: "activo" },
+      id: 0,
     },
   };
   const [formData, setFormData] =
-    useState<Omit<User, "id" | "fechaRegistro" | "fechaModificacion">>(
-      defaultData
-    );
+    useState<
+      Omit<User, "id" | "fechaRegistro" | "fechaModificacion" | "idAsociado.id">
+    >(defaultData);
 
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [activeUsersCount, setActiveUsersCount] = useState(0);
@@ -57,7 +71,9 @@ const UserManagementModule = () => {
   const [orderBy, setOrderBy] = useState<string>("idAsociado.nombres");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [filterState, setFilterState] = useState<string>(""); // Filtro por estado
+  const [filterState, setFilterState] = useState<string>("ACTIVO");
+
+  const [anchorEl, setAnchorEl] = useState(null);
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -72,9 +88,9 @@ const UserManagementModule = () => {
   }, []);
 
   const filteredUsers = users?.filter((user: User) => {
-    const matchesName = user.idAsociado.nombres
-      .toLowerCase()
-      .includes(search.toLowerCase()) || user.id.toString() == search;
+    const matchesName =
+      user.idAsociado.nombres.toLowerCase().includes(search.toLowerCase()) ||
+      user.id.toString() == search;
     const matchesState = filterState
       ? user.idAsociado.idEstado.estado === filterState
       : true;
@@ -104,7 +120,7 @@ const UserManagementModule = () => {
     return 0;
   });
 
-  const handleChangePage = (
+  const handleChangePage: any = (
     event: React.ChangeEvent<unknown>,
     value: number
   ) => {
@@ -115,7 +131,7 @@ const UserManagementModule = () => {
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0); // Volver a la primera página cuando cambies las filas por página
+    setPage(0);
   };
 
   const statusColors: any = {
@@ -131,6 +147,16 @@ const UserManagementModule = () => {
     return statusColors[estado] || "default";
   };
 
+  const roleColors: any = {
+    SOCIO: "primary",
+    "GESTOR DE OPERACIONES": "warning",
+    ADMINISTRADOR: "success",
+  };
+
+  const getRoleColor = (role: string) => {
+    return roleColors[role] || "default";
+  };
+
   const handleOpenModal = (user?: User) => {
     if (user) {
       setEditingUser(user);
@@ -142,6 +168,12 @@ const UserManagementModule = () => {
       setFormData(defaultData);
     }
     setOpenModal(true);
+  };
+
+  const handleOpenAsociado = (user?: User) => {
+    if (user) {
+      console.log(user);
+    }
   };
 
   const handleCloseModal = () => {
@@ -173,12 +205,35 @@ const UserManagementModule = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDeactivate = async (user: User) => {
     try {
-      await userService.deleteUser(id); // Llama a la función del servicio
-      setUsers(users.filter((user) => user.id !== id)); // Actualiza el estado local
+      user.idAsociado.idEstado.id = 5;
+      await userService.deactivateUser(user.id, user);
+      setUsers(users.filter((user) => user.id !== user.id));
     } catch (error) {
       console.error("Error al eliminar el usuario:", error);
+    }
+  };
+
+  // Abrir el menú de opciones
+  const handleClick = (event: any) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  // Cerrar el menú de opciones
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleCreditsAsociado = (user?: User) => {
+    if (user) {
+      console.log(user);
+    }
+  };
+
+  const handleSavingsAsociado = (user?: User) => {
+    if (user) {
+      router.push(`/modules/savings?id=${user.idAsociado.id}`);
     }
   };
 
@@ -269,9 +324,9 @@ const UserManagementModule = () => {
               <Typography variant="h5" color="primary" gutterBottom>
                 Listado de usuarios
               </Typography>
-              {/* <Button variant="outlined" onClick={() => handleOpenModal()}>
-                Crear Usuario
-              </Button> */}
+              <Button variant="outlined" onClick={() => handleOpenModal()}>
+                Crear Asociado
+              </Button>
             </Box>
 
             <TableContainer>
@@ -301,6 +356,7 @@ const UserManagementModule = () => {
                     <TableCell>Correo</TableCell>
                     <TableCell>Rol</TableCell>
                     <TableCell>Estado</TableCell>
+                    <TableCell>Acciones</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -319,12 +375,15 @@ const UserManagementModule = () => {
                         </TableCell>
                         <TableCell>
                           {user.roles.length > 0
-                            ? user.roles
-                                .map(
-                                  (role) =>
-                                    role.nombre || "Nombre no disponible"
-                                )
-                                .join(", ")
+                            ? user.roles.map((role) => (
+                                <Chip
+                                  key={role.id}
+                                  label={role.nombre || "Nombre no disponible"}
+                                  style={{ margin: "2px" }}
+                                  size="small"
+                                  color={getRoleColor(role.nombre)}
+                                />
+                              ))
                             : "Sin rol"}
                         </TableCell>
                         <TableCell>
@@ -339,6 +398,56 @@ const UserManagementModule = () => {
                           ) : (
                             "Sin estado"
                           )}
+                        </TableCell>
+                        <TableCell>
+                          <ButtonGroup variant="outlined" size="small">
+                            <IconButton onClick={handleClick}>
+                              <MoreVertIcon />
+                            </IconButton>
+                          </ButtonGroup>
+                          <Menu
+                            anchorEl={anchorEl}
+                            open={Boolean(anchorEl)}
+                            onClose={handleClose}
+                          >
+                            <Typography
+                              variant="subtitle2"
+                              sx={{ padding: "8px 16px", fontWeight: "bold" }}
+                            >
+                              Acciones de Usuario
+                            </Typography>
+                            <MenuItem onClick={() => handleOpenModal(user)}>
+                              <IconUserEdit style={{ marginRight: "1rem" }} />
+                              Editar Usuario
+                            </MenuItem>
+                            <MenuItem onClick={() => handleDeactivate(user)}>
+                              <IconUserCancel style={{ marginRight: "1rem" }} />
+                              Inactivar Usuario
+                            </MenuItem>
+                            <Divider />
+                            <Typography
+                              variant="subtitle2"
+                              sx={{ padding: "8px 16px", fontWeight: "bold" }}
+                            >
+                              Acciones de Asociado
+                            </Typography>
+                            <MenuItem onClick={() => handleOpenAsociado(user)}>
+                              <IconEditCircle style={{ marginRight: "1rem" }} />
+                              Editar Asociado
+                            </MenuItem>
+                            <MenuItem
+                              onClick={() => handleCreditsAsociado(user)}
+                            >
+                              <IconEyeDollar style={{ marginRight: "1rem" }} />
+                              Préstamos Asociado
+                            </MenuItem>
+                            <MenuItem
+                              onClick={() => handleSavingsAsociado(user)}
+                            >
+                              <IconCoins style={{ marginRight: "1rem" }} />
+                              Ahorros Asociado
+                            </MenuItem>
+                          </Menu>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -361,14 +470,6 @@ const UserManagementModule = () => {
                 onPageChange={handleChangePage}
                 onRowsPerPageChange={handleChangeRowsPerPage}
                 labelRowsPerPage="Filas por página"
-              />
-              <Pagination
-                count={Math.ceil(filteredUsers.length / rowsPerPage)}
-                page={page}
-                onChange={handleChangePage}
-                color="primary"
-                shape="rounded"
-                siblingCount={1} // Número de páginas visibles a la izquierda y derecha del número actual
               />
             </Box>
           </Box>

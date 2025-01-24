@@ -10,6 +10,7 @@ export interface Estado {
 }
 
 export interface Asociado {
+  id: number;
   nombres: string;
   numeroDeIdentificacion: string;
   idEstado: Estado;

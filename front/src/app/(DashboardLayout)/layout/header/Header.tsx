@@ -26,6 +26,7 @@ const Header = ({toggleMobileSidebar}: ItemType) => {
     [theme.breakpoints.up('lg')]: {
       minHeight: '70px',
     },
+    borderBottom: '1px solid #dadde1',
   }));
   const ToolbarStyled = styled(Toolbar)(({ theme }) => ({
     width: '100%',
