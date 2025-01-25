@@ -15,7 +15,7 @@ export class AportesAsociados {
   fechaAporte: Date;
 
   @Column("numeric", { name: "monto", default: () => "0" })
-  monto: string;
+  monto: number;
 
   @Column("character varying", {
     name: "observaciones",

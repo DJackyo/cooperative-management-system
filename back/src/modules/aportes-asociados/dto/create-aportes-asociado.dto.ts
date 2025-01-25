@@ -8,8 +8,8 @@ export class CreateAportesAsociadosDto {
   fechaAporte: Date;
 
   @IsNotEmpty()
-  @IsString()
-  monto: string;
+  @IsNumber()
+  monto: number;
 
   @IsOptional()
   @IsString()

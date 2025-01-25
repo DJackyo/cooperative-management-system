@@ -1,6 +1,6 @@
 export class UpdateAportesAsociadosDto {
     fechaAporte: Date;
-    monto: string;
+    monto: number;
     observaciones: string | null;
     tipoAporte: string | null;
     estado: boolean | null;

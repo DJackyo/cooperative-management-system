@@ -77,7 +77,7 @@ const UserManagementModule = () => {
 
   useEffect(() => {
     const loadUsers = async () => {
-      const response = await userService.fetchUsers();
+      const response = await userService.fetchAll();
       setUsers(response);
       const count = response.filter(
         (user: User) => user.idAsociado?.idEstado.estado === "ACTIVO"
@@ -191,13 +191,13 @@ const UserManagementModule = () => {
     try {
       if (editingUser) {
         // Actualizar usuario
-        // await userService.updateUser(editingUser.id, formData); // Llama a la función del servicio
+        // await userService.update(editingUser.id, formData); // Llama a la función del servicio
       } else {
         // Crear usuario
-        // await userService.createUser(formData); // Llama a la función del servicio
+        // await userService.create(formData); // Llama a la función del servicio
       }
       // Recargar usuarios
-      const usersData: any = await userService.fetchUsers();
+      const usersData: any = await userService.fetchAll();
       setUsers(usersData);
       handleCloseModal();
     } catch (error) {
@@ -208,7 +208,7 @@ const UserManagementModule = () => {
   const handleDeactivate = async (user: User) => {
     try {
       user.idAsociado.idEstado.id = 5;
-      await userService.deactivateUser(user.id, user);
+      await userService.deactivate(user.id, user);
       setUsers(users.filter((user) => user.id !== user.id));
     } catch (error) {
       console.error("Error al eliminar el usuario:", error);
@@ -456,22 +456,17 @@ const UserManagementModule = () => {
             </TableContainer>
 
             {/* Paginación */}
-            <Box
-              display="flex"
-              alignItems="center"
-              justifyContent="space-between"
-            >
-              <TablePagination
-                rowsPerPageOptions={[5, 10, 25]}
-                component="div"
-                count={filteredUsers.length}
-                rowsPerPage={rowsPerPage}
-                page={page}
-                onPageChange={handleChangePage}
-                onRowsPerPageChange={handleChangeRowsPerPage}
-                labelRowsPerPage="Filas por página"
-              />
-            </Box>
+
+            <TablePagination
+              rowsPerPageOptions={[10, 25, 50]}
+              component="div"
+              count={filteredUsers.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Filas por página"
+            />
           </Box>
         </DashboardCard>
       </Grid>

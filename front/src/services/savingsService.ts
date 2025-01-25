@@ -1,10 +1,20 @@
-// src/services/userService.ts
-import { User } from "@/interfaces/User";
+// src/services/savingsService.ts
+import { Aporte } from "@/interfaces/Aporte";
 
 import { axiosClient } from "@/services/axiosClient";
-const baseURL = "/usuarios";
+const baseURL = "/aportes-asociados";
 
-export const userService = {
+export const savingsService = {
+  async fetchByFilters(filter:any) {
+    try {
+      const response = await axiosClient.post(baseURL + '/findWithFilters', filter);
+      if (response?.data) {
+        return response.data?.data;
+      }
+    } catch (error) {
+      throw new Error("Error", error!);
+    }
+  },
   async fetchAll() {
     try {
       const response = await axiosClient.get(baseURL);
@@ -15,9 +25,9 @@ export const userService = {
       throw new Error("Error", error!);
     }
   },
-  async create(user: Omit<User, "id" | "status">) {
+  async create(saving: Omit<Aporte, "id" | "status">) {
     try {
-      const response = await axiosClient.post(baseURL, user);
+      const response = await axiosClient.post(baseURL, saving);
       if (response?.data) {
         return response.data?.data;
       }
@@ -25,9 +35,9 @@ export const userService = {
       throw new Error("Error", error!);
     }
   },
-  async update(id: number, user: Omit<User, "id" | "status">) {
+  async update(id: number, saving: Omit<Aporte, "id" | "status">) {
     try {
-      const response = await axiosClient.put(`/${baseURL}/${id}`, user);
+      const response = await axiosClient.put(`/${baseURL}/${id}`, saving);
       if (response?.data) {
         return response.data?.data;
       }
@@ -35,9 +45,9 @@ export const userService = {
       throw new Error("Error", error!);
     }
   },
-  async deactivate(id: number, user: Omit<User, "id">) {
+  async deactivate(id: number, saving: Omit<Aporte, "id">) {
     try {
-      const response = await axiosClient.patch(`/${baseURL}/${id}`, user);
+      const response = await axiosClient.patch(`/${baseURL}/${id}`, saving);
       if (response?.data) {
         return response.data?.data;
       }
