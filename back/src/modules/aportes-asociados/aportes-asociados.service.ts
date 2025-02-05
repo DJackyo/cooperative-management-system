@@ -36,6 +36,8 @@ export class AportesAsociadosService {
       idAsociado: asociado, // Relacionar el objeto Asociado completo
     });
 
+    console.log(aporte)
+
     // Guardar el aporte
     return this.aportesAsociadosRepository.save(aporte);
   }

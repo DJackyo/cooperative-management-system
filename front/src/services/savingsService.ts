@@ -25,7 +25,7 @@ export const savingsService = {
       throw new Error("Error", error!);
     }
   },
-  async create(saving: Omit<Aporte, "id" | "status">) {
+  async create(saving: Omit<Aporte, "id" | "asociado">) {
     try {
       const response = await axiosClient.post(baseURL, saving);
       if (response?.data) {
@@ -35,7 +35,7 @@ export const savingsService = {
       throw new Error("Error", error!);
     }
   },
-  async update(id: number, saving: Omit<Aporte, "id" | "status">) {
+  async update(id: number, saving: Omit<Aporte, "id" | "asociado">) {
     try {
       const response = await axiosClient.put(`/${baseURL}/${id}`, saving);
       if (response?.data) {

@@ -6,13 +6,14 @@ export interface Aporte {
   fechaModificacion: string;
   fechaCreacion: string;
   tipoAporte: "MENSUAL" | "ANUAL" | "EXTRAORDINARIO";
-  estado: "Activo" | "Inactivo";
+  estado: boolean;
   metodoPago: "EFECTIVO" | "TRANSFERENCIA" | "TARJETA";
   comprobante: string | null;
   idUsuarioRegistro: number | null;
-  idAsociado: {
+  asociado: {
     id: number;
     nombres: string;
     numeroDeIdentificacion: string;
   };
+  idAsociado: number;
 }

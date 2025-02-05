@@ -9,7 +9,6 @@ import {
   Box,
   TextField,
   Button,
-  Modal,
   Table,
   TableBody,
   TableCell,
@@ -18,30 +17,28 @@ import {
   TableRow,
   TablePagination,
   Avatar,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { AttachMoney } from "@mui/icons-material";
 import { Aporte } from "@/interfaces/Aporte";
 import { savingsService } from "@/services/savingsService";
-import { Asociado } from "@/interfaces/User";
+import { Asociado, LoggedUser } from "@/interfaces/User";
 
-import { IconCoins } from "@tabler/icons-react";
+import {
+  IconCoins,
+  IconPencilDollar,
+  IconReceipt,
+  IconUserDollar,
+} from "@tabler/icons-react";
 import AporteModal from "./components/AporteModal";
+import { defaultLoggedUser, formatCurrency, formatDateWithoutTime } from "../../utilities/utils";
+import { authService } from "@/app/authentication/services/authService";
+import ReceiptModal from "./components/ReceiptModal";
+import { defaultAporteValue } from "../../utilities/AportesUtils";
 
-// Función para formatear la fecha sin la hora
-const formatDateWithoutTime = (date: string | Date) => {
-  return new Intl.DateTimeFormat("es-ES", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date(date));
-};
-
-// Función para formatear el monto
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("es-ES").format(amount);
-};
 // Agregar el tipo de las props
 interface SavingsModuleProps {
   id: number; // Aquí recibimos el id como prop
@@ -51,11 +48,19 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
-  const [openModal, setOpenModal] = useState(false);
+  const [openAporteModal, setOpenModal] = useState(false);
   const [selectedAporte, setSelectedAporte] = useState<Aporte | null>(null); // Estado para la fila seleccionada
 
   const [savings, setSavings] = useState<Aporte[]>([]);
-  const [userInfo, setUserInfo] = useState<Asociado>({});
+  const [userInfo, setUserInfo] = useState<Asociado>({
+    id: 0,
+    nombres: "",
+    numeroDeIdentificacion: "",
+    idEstado: {
+      id: 1,
+      estado: "",
+    },
+  });
 
   // Paginación
   const [page, setPage] = useState(0);
@@ -65,21 +70,39 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [orderBy, setOrderBy] = useState<string>("fechaAporte");
 
-  useEffect(() => {
-    const loadSavings = async () => {
-      // Asigna el valor de 'id' al filtro
-      const filter = {
-        idAsociadoId: id ? id : 0,
-      };
-      const response = await savingsService.fetchByFilters(filter);
-      setSavings(response);
-      if (response.length > 0) {
-        setUserInfo(response[0].idAsociado);
-      }
-      console.log(response);
+  // Estado para el usuario actual
+  const [currentUser, setCurrentUser] = useState<LoggedUser>(defaultLoggedUser);
+
+  // Estado para la fila seleccionada
+  const [selectedRow, setSelectedRow] = useState<any>(defaultAporteValue);
+  const [receiptModalOpen, setModalOpen] = useState(false);
+
+  const loadSavings = async () => {
+    // Asigna el valor de 'id' al filtro
+    const filter = {
+      idAsociadoId: id ? id : 0,
     };
-    loadSavings();
+    const response = await savingsService.fetchByFilters(filter);
+    setSavings(response);
+    if (response.length > 0) {
+      setUserInfo(response[0].idAsociado);
+    }
+    console.log(response);
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const hasSession = authService.isAuthenticated();
+      if (hasSession) {
+        const user = await authService.getCurrentUserData();
+        setCurrentUser(user);
+        console.log("currentUser->", currentUser);
+        loadSavings();
+      }
+    };
+    fetchData();
   }, [id]); // Vuelve a ejecutar si 'id' cambia
+
   const stableSort = (
     array: Aporte[],
     comparator: (a: Aporte, b: Aporte) => number
@@ -155,23 +178,49 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   };
 
   const handleCreateClick = () => {
-    setSelectedAporte(null); // Establecer el estado a null para crear un nuevo aporte
-    setOpenModal(true); // Abrir el modal
+    defaultAporteValue.asociado = userInfo;
+    defaultAporteValue.idUsuarioRegistro = currentUser.userId;
+    console.log("defaultAporteValue", defaultAporteValue, currentUser);
+    setSelectedAporte(defaultAporteValue);
+    setOpenModal(true);
   };
 
-  const handleEditClick = (aporte: Aporte) => {
-    console.log(aporte)
-    setSelectedAporte(aporte); // Establecer los datos del aporte cuando el usuario hace clic en una fila
-    setOpenModal(true); // Abrir el modal
+  const handleEditClick = (row: any) => {
+    console.log(row);
+    row.asociado = row.idAsociado;
+    row.idAsociado = row.asociado.id;
+    row.idUsuarioRegistro = currentUser.userId;
+    console.log(row);
+    setSelectedAporte(row);
+    setOpenModal(true);
   };
 
-  const handleModalClose = () => {
+  const handleAporteModalClose = () => {
     setOpenModal(false);
   };
 
-  const handleAporteSubmit = (aporte: Aporte) => {
+  const handleAporteSubmit = async (aporte: Aporte) => {
     console.log("Aporte registrado:", aporte);
-    // Aquí puedes realizar la lógica de guardar el aporte en el backend o en el estado
+    if (aporte.monto) {
+      aporte.idAsociado = aporte.asociado.id;
+      let saved = await savingsService.create(aporte);
+      if (saved) {
+        alert("registro almacenado!");
+        loadSavings();
+      }
+    }
+  };
+
+  const handleOpenReceiptModal = (row: any) => {
+    console.log(row);
+    row.asociado = row.idAsociado;
+    row.idAsociado = row.asociado.id;
+    setSelectedRow(row);
+    setModalOpen(true);
+  };
+
+  const handleCloseReceiptModal = () => {
+    setModalOpen(false); // Cerramos el modal
   };
 
   return (
@@ -329,6 +378,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   color="secondary"
                   onClick={handleCreateClick}
                   sx={{ mb: 2 }}
+                  startIcon={<IconUserDollar />}
                 >
                   Registrar Aporte
                 </Button>
@@ -369,12 +419,27 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                           </TableCell>
                         ))}
                         <TableCell>
-                          <Button
-                            onClick={() => handleEditClick(row)}
-                            color="primary"
-                          >
-                            Editar
-                          </Button>
+                          {/* Aquí mostramos solo el botón si currentUser tiene el rol "administrador" */}
+                          {currentUser?.role === "administrador" && (
+                            <Tooltip title="Editar" arrow>
+                              <IconButton
+                                onClick={() => handleEditClick(row)}
+                                color="primary"
+                                aria-label="Editar"
+                              >
+                                <IconPencilDollar />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          <Tooltip title="Ver recibo" arrow>
+                            <IconButton
+                              onClick={() => handleOpenReceiptModal(row)}
+                              color="secondary"
+                              aria-label="Ver recibo"
+                            >
+                              <IconReceipt />
+                            </IconButton>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -399,10 +464,16 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
 
       {/* Modal para subir soporte de pago */}
       <AporteModal
-        open={openModal}
-        onClose={handleModalClose}
+        open={openAporteModal}
+        onClose={handleAporteModalClose}
         onSubmit={handleAporteSubmit}
-        initialData={selectedAporte || null} 
+        initialData={selectedAporte || null}
+      />
+      {/* Modal de Recibo */}
+      <ReceiptModal
+        open={receiptModalOpen}
+        onClose={handleCloseReceiptModal}
+        data={{selectedRow, savings}}
       />
     </LocalizationProvider>
   );

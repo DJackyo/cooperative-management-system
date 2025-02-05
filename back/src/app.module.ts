@@ -67,6 +67,7 @@ import { AportesAsociadosModule } from './modules/aportes-asociados/aportes-asoc
       ], // Aquí agregas todas tus entidades
       synchronize: false, // Este parámetro sincroniza las entidades con la base de datos. Solo para desarrollo.
       migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
+      logging: true, // Habilita el logging de SQL
     }),
     UsersModule,
     CreditsModule,

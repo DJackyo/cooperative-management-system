@@ -1,3 +1,5 @@
+import { string } from "prop-types";
+
 // src/interfaces/User.ts
 export interface Rol {
   id: number;
@@ -25,4 +27,13 @@ export interface User {
   fechaModificacion: string;
   roles: Rol[];
   idAsociado: Asociado;
+}
+
+export interface LoggedUser {
+  email: string;
+  role: string;
+  userId: number;
+  username: string;
+  iat: number;
+  exp: number;
 }

@@ -10,23 +10,19 @@ import {
   InputLabel,
   FormControl,
   Grid,
+  InputAdornment,
+  OutlinedInput,
 } from "@mui/material";
 import { Aporte } from "@/interfaces/Aporte";
+import { formatDateToISO } from "@/app/(DashboardLayout)/utilities/utils";
+import { defaultAporteValue } from "@/app/(DashboardLayout)/utilities/AportesUtils";
 
 interface AporteModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (aporte: Aporte) => void;
-  initialData: Aporte | null; // Recibimos los datos iniciales
+  initialData: Aporte | null;
 }
-
-const formatDateToISO = (date: string | Date) => {
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0"); // Asegurar dos dígitos para el mes
-  const day = String(d.getDate()).padStart(2, "0"); // Asegurar dos dígitos para el día
-  return `${year}-${month}-${day}`;
-};
 
 const AporteModal: React.FC<AporteModalProps> = ({
   open,
@@ -34,27 +30,20 @@ const AporteModal: React.FC<AporteModalProps> = ({
   onSubmit,
   initialData,
 }) => {
-  const defaultValues: Aporte = {
-    id: 0,
-    fechaAporte: formatDateToISO(new Date()),
-    monto: 0,
-    observaciones: null,
-    fechaModificacion: "",
-    fechaCreacion: "",
-    tipoAporte: "MENSUAL",
-    estado: "Activo",
-    metodoPago: "EFECTIVO",
-    comprobante: null,
-    idUsuarioRegistro: null,
-    idAsociado: {
-      id: 0,
-      nombres: "",
-      numeroDeIdentificacion: "",
-    },
-  };
+  const defaultValues: Aporte = defaultAporteValue;
 
   const [aporte, setAporte] = useState<Aporte>(defaultValues);
   const [errors, setErrors] = useState<any>({});
+
+  // Array de métodos de pago disponibles
+  const paymentMethods = [
+    { value: "EFECTIVO", label: "Efectivo" },
+    { value: "TRANSFERENCIA", label: "Transferencia" },
+    { value: "TARJETA", label: "Tarjeta" },
+  ];
+
+  // Métodos de pago que requieren comprobante
+  const paymentMethodsWithComprobante = ["TRANSFERENCIA", "TARJETA"];
 
   useEffect(() => {
     if (initialData) {
@@ -69,7 +58,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
     }
   }, [initialData]);
 
-  const handleChange = (
+  const handleChange: any = (
     event: React.ChangeEvent<
       HTMLInputElement | { name?: string; value: unknown }
     >
@@ -109,6 +98,15 @@ const AporteModal: React.FC<AporteModalProps> = ({
       newErrors.metodoPago = "Debe seleccionar un método de pago.";
     }
 
+    // Validación para el campo comprobante solo si el metodoPago es 'TRANSFERENCIA' o 'TARJETA'
+    if (
+      paymentMethodsWithComprobante.includes(aporte.metodoPago) &&
+      !aporte.comprobante
+    ) {
+      newErrors.comprobante =
+        "El comprobante es obligatorio para este método de pago.";
+    }
+
     // Si hay errores, devolver false
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -118,11 +116,16 @@ const AporteModal: React.FC<AporteModalProps> = ({
   };
 
   const handleSubmit = () => {
-    // Validar el formulario antes de enviar
     if (validateForm()) {
       onSubmit(aporte);
-      onClose(); // Cerrar el modal
+      onClose();
+      setAporte(defaultValues);
     }
+  };
+
+  const handleCancel = () => {
+    onClose();
+    setAporte(defaultValues);
   };
 
   return (
@@ -153,7 +156,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
             <Grid item xs={12} md={6}>
               {/* Fecha de aporte */}
               <TextField
-                label="Fecha Aporte"
+                label="Fecha del Aporte"
                 type="date"
                 fullWidth
                 name="fechaAporte"
@@ -179,6 +182,11 @@ const AporteModal: React.FC<AporteModalProps> = ({
                 sx={{ mt: 2 }}
                 error={!!errors.monto}
                 helperText={errors.monto}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">$</InputAdornment>
+                  ),
+                }}
               />
             </Grid>
 
@@ -196,7 +204,9 @@ const AporteModal: React.FC<AporteModalProps> = ({
                   <MenuItem value="ANUAL">Anual</MenuItem>
                   <MenuItem value="EXTRAORDINARIO">Extraordinario</MenuItem>
                 </Select>
-                {errors.tipoAporte && <Typography color="error">{errors.tipoAporte}</Typography>}
+                {errors.tipoAporte && (
+                  <Typography color="error">{errors.tipoAporte}</Typography>
+                )}
               </FormControl>
             </Grid>
 
@@ -210,25 +220,34 @@ const AporteModal: React.FC<AporteModalProps> = ({
                   value={aporte.metodoPago}
                   onChange={handleChange}
                 >
-                  <MenuItem value="EFECTIVO">Efectivo</MenuItem>
-                  <MenuItem value="TRANSFERENCIA">Transferencia</MenuItem>
-                  <MenuItem value="TARJETA">Tarjeta</MenuItem>
+                  {/* Mapeo dinámico de los métodos de pago */}
+                  {paymentMethods.map((method) => (
+                    <MenuItem key={method.value} value={method.value}>
+                      {method.label}
+                    </MenuItem>
+                  ))}
                 </Select>
-                {errors.metodoPago && <Typography color="error">{errors.metodoPago}</Typography>}
+                {errors.metodoPago && (
+                  <Typography color="error">{errors.metodoPago}</Typography>
+                )}
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={12}>
-              {/* Comprobante */}
-              <TextField
-                label="Comprobante"
-                type="file"
-                fullWidth
-                name="comprobante"
-                onChange={handleChange}
-                sx={{ mt: 2 }}
-              />
-            </Grid>
+            {/* Comprobante solo si es Transferencia o Tarjeta */}
+            {paymentMethodsWithComprobante.includes(aporte.metodoPago) && (
+              <Grid item xs={12} md={12}>
+                <TextField
+                  label="Comprobante"
+                  type="file"
+                  fullWidth
+                  name="comprobante"
+                  onChange={handleChange}
+                  sx={{ mt: 2 }}
+                  error={!!errors.comprobante}
+                  helperText={errors.comprobante}
+                />
+              </Grid>
+            )}
 
             <Grid item xs={12} md={12}>
               {/* Observaciones */}
@@ -245,7 +264,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
 
           {/* Botones de acción */}
           <Box display="flex" justifyContent="space-between" sx={{ mt: 3 }}>
-            <Button variant="outlined" color="secondary" onClick={onClose}>
+            <Button variant="outlined" color="secondary" onClick={handleCancel}>
               Cancelar
             </Button>
             <Button variant="contained" color="primary" onClick={handleSubmit}>
