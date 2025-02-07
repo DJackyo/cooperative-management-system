@@ -1,5 +1,5 @@
 // src/modules/credit/CreditModule.tsx
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -12,59 +12,117 @@ import {
   DialogTitle,
   Box,
   Skeleton,
+  IconButton,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  Tooltip,
 } from "@mui/material";
-import { AttachMoney, CalendarToday, AccessTime } from "@mui/icons-material";
-import { mockCreditRequestData, mockCreditInfoData } from "@/mock/mockData";
 import dynamic from "next/dynamic";
+import UserCard from "../../utilities/UserCard";
+import { Asociado, LoggedUser } from "@/interfaces/User";
+import { Prestamo } from "@/interfaces/Prestamo";
+import { authService } from "@/app/authentication/services/authService";
+import {
+  defaultLoggedUser,
+  formatCurrency,
+  formatDateWithoutTime,
+  getComparator,
+} from "../../utilities/utils";
+import {
+  IconEyeDollar,
+  IconPencilDollar,
+  IconReceipt,
+} from "@tabler/icons-react";
+import { creditsService } from "@/services/creditRequestService";
+import { useRouter } from "next/navigation";
 
 // Usar `dynamic` para cargar el componente de forma dinámica solo en el cliente.
-const CreditForm = dynamic(() => import("./components/CreditForm"), { ssr: false });
-const PaymentHistoryTable = dynamic(() => import("./components/PaymentHistoryTable"), { ssr: false });
-const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
+const CreditForm = dynamic(() => import("./components/CreditForm"), {
+  ssr: false,
+});
 
-// Define los tipos de datos de crédito
-interface CreditRequestData {
-  amountRequested: number;
-  requestDate: string;
-  termRequested: number;
+interface CreditModuleProps {
+  userId: number;
 }
 
-interface CreditInfoData {
-  outstandingBalance: number;
-  dueDate: string;
-  remainingTerm: number;
-}
+const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
+  const router = useRouter();
 
-const CreditModule = () => {
   const [openRequestModal, setOpenRequestModal] = useState(false);
   const [openModifyModal, setOpenModifyModal] = useState(false);
-  // Estados para los datos simulados, permitiendo el tipo null como valor inicial
-  const [creditRequestData, setCreditRequestData] =
-    useState<CreditRequestData | null>(null);
-  const [creditInfoData, setCreditInfoData] = useState<CreditInfoData | null>(
+  const [userInfo, setUserInfo] = useState<Asociado>({
+    id: 0,
+    nombres: "",
+    numeroDeIdentificacion: "",
+    idEstado: {
+      id: 1,
+      estado: "",
+    },
+  });
+
+  const [credits, setSavings] = useState<Prestamo[]>([]);
+  const [selectedPrestamo, setSelectedPrestamo] = useState<Prestamo | null>(
     null
   );
 
+  // Estado para el usuario actual
+  const [currentUser, setCurrentUser] = useState<LoggedUser>(defaultLoggedUser);
+
+  // Paginación
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
+  // Ordenación
+  const [order, setOrder] = useState<"asc" | "desc">("desc");
+  const [orderBy, setOrderBy] = useState<string>("fechaPrestamo");
+
+  const loadCredits = useCallback(async () => {
+    const response = await creditsService.fetchByUser(userId);
+    setSavings(response);
+    if (response.length > 0) {
+      setUserInfo(response[0].idAsociado);
+    }
+    console.log(response);
+  }, [userId]);
+
   useEffect(() => {
-    // Simular la carga de datos con un retardo
-    setTimeout(() => {
-      setCreditRequestData(mockCreditRequestData);
-      setCreditInfoData(mockCreditInfoData);
-    }, 2000); // 2 segundos de retardo
-  }, []);
+    const fetchData = async () => {
+      const hasSession = authService.isAuthenticated();
+      if (hasSession) {
+        const user = await authService.getCurrentUserData();
+        setCurrentUser(user);
+        console.log("currentUser->", user);
+        loadCredits();
+      }
+    };
+    fetchData();
+  }, [userId, loadCredits]);
 
   const handleOpenRequestModal = () => setOpenRequestModal(true);
   const handleCloseRequestModal = () => setOpenRequestModal(false);
 
-  const handleOpenModifyModal = () => setOpenModifyModal(true);
   const handleCloseModifyModal = () => setOpenModifyModal(false);
 
-  const handleRequestSubmit = (formData: {
+  const handleRequestSubmit = async (formData: {
     amount?: string;
     term?: string;
     reason?: string;
   }) => {
     console.log("Solicitud de crédito:", formData);
+    let credito: any = formData;
+    if (credito.monto) {
+      credito.idAsociado = userInfo;
+      let saved = await creditsService.create(credito);
+      if (saved) {
+        alert("registro almacenado!");
+        loadCredits();
+      }
+    }
     handleCloseRequestModal();
   };
 
@@ -76,108 +134,104 @@ const CreditModule = () => {
     console.log("Modificación de crédito:", formData);
     handleCloseModifyModal();
   };
-  // Configuración del gráfico
-  const chartOptions = {
-    chart: { type: "pie" as const, toolbar: { show: true } },
-    labels: ["Pagado", "Pendiente"],
-    colors: ["#008FFB", "#FF4560"],
-    responsive: [{ breakpoint: 480, options: { chart: { width: 200 } } }],
+  // Definir las columnas
+  const columns = [
+    { field: "id", headerName: "ID", width: 70 },
+    { field: "fechaCredito", headerName: "Fecha crédito", width: 150 },
+    { field: "monto", headerName: "Monto", width: 150 },
+    { field: "plazoMeses", headerName: "Plazo meses", width: 130 },
+    { field: "tasa", headerName: "Tasa", width: 130 },
+    { field: "cuotaMensual", headerName: "Cuota mensual", width: 130 },
+    { field: "estado", headerName: "Estado", width: 130 },
+  ];
+  // Cambiar el orden cuando el encabezado es clickeado
+  const handleRequestSort = (property: string) => {
+    const isAsc = orderBy === property && order === "asc";
+    setOrder(isAsc ? "desc" : "asc");
+    setOrderBy(property);
+  };
+  const stableSort = (
+    array: Prestamo[],
+    comparator: (a: Prestamo, b: Prestamo) => number
+  ) => {
+    const stabilizedThis = array.map(
+      (el, index) => [el, index] as [Prestamo, number]
+    );
+    stabilizedThis.sort((a, b) => {
+      const order = comparator(a[0], b[0]);
+      if (order !== 0) return order;
+      return a[1] - b[1];
+    });
+    return stabilizedThis.map((el) => el[0]);
   };
 
-  const series = [400, 100]; // Datos del gráfico: Pagado y Pendiente
+  const sortedTransactions = stableSort(credits, getComparator(order, orderBy));
+
+  // Filtrar transacciones por fechas
+  const filteredTransactions = sortedTransactions.filter(() => {
+    // const transactionDate = new Date(transaction.fechaPrestamo);
+    // if (startDate && transactionDate < startDate) return false;
+    // if (endDate && transactionDate > endDate) return false;
+    return true;
+  });
+  // Obtener las filas actuales según la paginación
+  const paginatedRows = filteredTransactions.slice(
+    page * pageSize,
+    page * pageSize + pageSize
+  );
+
+  const handleEditClick = (row: any) => {
+    console.log(row);
+    setSelectedPrestamo(row);
+    setOpenModifyModal(true);
+  };
+
+  const handleOpenDetail = (row: any) => {
+    console.log(row);
+    if (row) {
+      router.push(`/modules/credit/user?userId=${userId}`);
+    }
+  };
+
+  // Manejo de la paginación
+  const handlePageChange = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePageSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPageSize(parseInt(event.target.value, 10));
+    setPage(0); // Volver a la primera página cuando cambie el número de filas por página
+  };
 
   return (
     <Grid container spacing={3}>
       {/* Información de la Solicitud */}
-      <Grid item xs={12} md={4}>
-        <Card variant="outlined" sx={{ boxShadow: 3 }}>
-          <CardContent>
-            <Typography variant="h5" color="primary" gutterBottom>
-              Información de la Solicitud
-            </Typography>
-            <Suspense fallback={<Skeleton variant="text" width="100%" />}>
-              {creditRequestData ? (
-                <>
-                  <Typography variant="h6" display="flex" alignItems="center">
-                    <AttachMoney sx={{ mr: 1 }} /> Monto Solicitado: $
-                    {creditRequestData.amountRequested.toLocaleString()}
-                  </Typography>
-                  <Typography display="flex" alignItems="center">
-                    <CalendarToday sx={{ mr: 1 }} /> Fecha de Solicitud:{" "}
-                    {creditRequestData.requestDate}
-                  </Typography>
-                  <Typography display="flex" alignItems="center">
-                    <AccessTime sx={{ mr: 1 }} /> Plazo Solicitado:{" "}
-                    {creditRequestData.termRequested} meses
-                  </Typography>
-                </>
-              ) : (
-                <Skeleton variant="text" width="100%" height={50} />
-              )}
-            </Suspense>
-          </CardContent>
-        </Card>
-      </Grid>
-
-      {/* Información del Crédito */}
-      <Grid item xs={12} md={4}>
-        <Card variant="outlined" sx={{ boxShadow: 3 }}>
-          <CardContent>
-            <Typography variant="h5" color="primary" gutterBottom>
-              Información del Crédito
-            </Typography>
-            <Suspense fallback={<Skeleton variant="text" width="100%" />}>
-              {creditInfoData ? (
-                <>
-                  <Typography variant="h6" display="flex" alignItems="center">
-                    <AttachMoney sx={{ mr: 1 }} /> Saldo Pendiente: $
-                    {creditInfoData.outstandingBalance.toLocaleString()}
-                  </Typography>
-                  <Typography display="flex" alignItems="center">
-                    <CalendarToday sx={{ mr: 1 }} /> Fecha de Vencimiento:{" "}
-                    {creditInfoData.dueDate}
-                  </Typography>
-                  <Typography display="flex" alignItems="center">
-                    <AccessTime sx={{ mr: 1 }} /> Plazo Restante:{" "}
-                    {creditInfoData.remainingTerm} meses
-                  </Typography>
-                </>
-              ) : (
-                <Skeleton variant="text" width="100%" height={50} />
-              )}
-            </Suspense>
-          </CardContent>
-        </Card>
+      <Grid item xs={12} md={8}>
+        <UserCard id={userId} userInfo={userInfo} />
       </Grid>
 
       <Grid item xs={12} md={4}>
         <Card variant="outlined" sx={{ boxShadow: 3 }}>
           <CardContent>
             <Typography variant="h5" color="primary" gutterBottom>
-              Gestión de créditos
+              Gestión de préstamos
             </Typography>
             {/* Botones para abrir formulario en modal */}
             <Suspense fallback={<Skeleton variant="text" width="100%" />}>
-              {creditInfoData ? (
-                <>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleOpenRequestModal}
-                  >
-                    Solicitar crédito
-                  </Button>
-                </>
-              ) : (
-                <Skeleton variant="text" width="100%" height={50} />
-              )}
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleOpenRequestModal}
+              >
+                Solicitar crédito
+              </Button>
             </Suspense>
           </CardContent>
         </Card>
       </Grid>
 
-      {/* Historial de pagos */}
-      <Grid item xs={12} md={8}>
+      {/* Historial de Préstamos */}
+      <Grid item xs={12} md={12}>
         <Card variant="outlined" sx={{ boxShadow: 3 }}>
           <CardContent>
             <Box
@@ -186,56 +240,101 @@ const CreditModule = () => {
               alignItems="center"
             >
               <Typography variant="h5" color="primary" gutterBottom>
-                Historial de Pagos
+                Historial de Préstamos
               </Typography>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={handleOpenModifyModal}
-              >
-                Modificar crédito
-              </Button>
             </Box>
             <Suspense
               fallback={
                 <Skeleton variant="rectangular" width="100%" height={300} />
               }
             >
-              <div style={{ height: 300, width: "100%" }}>
-                <PaymentHistoryTable />
-              </div>
-            </Suspense>
-          </CardContent>
-        </Card>
-      </Grid>
-      {/* Gráfico de Pagos */}
-      <Grid item xs={12} md={4}>
-        <Card variant="outlined" sx={{ boxShadow: 3 }}>
-          <CardContent>
-            <Typography variant="h5" color="primary" gutterBottom>
-              Estado de Pagos
-            </Typography>
-            <Suspense
-              fallback={
-                <Skeleton variant="circular" width={100} height={100} />
-              }
-            >
-              <Chart
-                options={chartOptions}
-                series={series}
-                type="pie"
-                width="100%"
+              {/* Tabla */}
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      {columns.map((column) => (
+                        <TableCell
+                          key={column.field}
+                          style={{ width: column.width }}
+                          onClick={() =>
+                            column.field === "fechaCredito" &&
+                            handleRequestSort(column.field)
+                          }
+                        >
+                          {column.headerName}
+                        </TableCell>
+                      ))}
+                      <TableCell>Acción</TableCell>
+                    </TableRow>
+                  </TableHead>
+
+                  {/* Cuerpo de la tabla */}
+                  <TableBody>
+                    {paginatedRows.map((row: any) => (
+                      <TableRow key={row.id}>
+                        {columns.map((column) => (
+                          <TableCell key={column.field}>
+                            {column.field === "fechaCredito"
+                              ? formatDateWithoutTime(row[column.field])
+                              : column.field === "monto" ||
+                                column.field === "cuotaMensual"
+                              ? '$' + formatCurrency(row[column.field])
+                              : row[column.field]}
+                          </TableCell>
+                        ))}
+                        <TableCell>
+                          {/* Aquí mostramos solo el botón si currentUser tiene el rol "administrador" */}
+                          {currentUser?.role === "administrador" && (
+                            <Tooltip title="Editar" arrow>
+                              <IconButton
+                                onClick={() => handleEditClick(row)}
+                                color="primary"
+                                aria-label="Editar"
+                              >
+                                <IconPencilDollar />
+                              </IconButton>
+                            </Tooltip>
+                          )}
+                          <Tooltip title="Ver préstamo" arrow>
+                            <IconButton
+                              onClick={() => handleOpenDetail(row)}
+                              color="secondary"
+                              aria-label="Ver préstamo"
+                            >
+                              <IconEyeDollar />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              {/* Paginación */}
+              <TablePagination
+                rowsPerPageOptions={[10, 25, 50]}
+                component="div"
+                count={filteredTransactions.length}
+                rowsPerPage={pageSize}
+                page={page}
+                onPageChange={handlePageChange}
+                onRowsPerPageChange={handlePageSizeChange}
               />
             </Suspense>
-            <Typography variant="body2" mt={2}>
-              Pagado: $400, Pendiente: $100
-            </Typography>
           </CardContent>
         </Card>
       </Grid>
-      {/* Modal para Solicitud de Crédito */}
-      <Dialog open={openRequestModal} onClose={handleCloseRequestModal}>
-        <DialogTitle>Solicitud de Crédito</DialogTitle>
+
+      {/* Modal para Solicitud de Préstamo */}
+      <Dialog
+        open={openRequestModal}
+        onClose={handleCloseRequestModal}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle> </DialogTitle>
         <DialogContent>
           <CreditForm type="request" onSubmit={handleRequestSubmit} />
         </DialogContent>
@@ -246,9 +345,9 @@ const CreditModule = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Modal para Modificación de Crédito */}
+      {/* Modal para Modificación de Préstamo */}
       <Dialog open={openModifyModal} onClose={handleCloseModifyModal}>
-        <DialogTitle>Modificación de Crédito</DialogTitle>
+        <DialogTitle>Modificación de Préstamo</DialogTitle>
         <DialogContent>
           <CreditForm type="modify" onSubmit={handleModifySubmit} />
         </DialogContent>

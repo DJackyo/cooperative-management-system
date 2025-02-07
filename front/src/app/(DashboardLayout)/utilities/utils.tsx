@@ -10,11 +10,16 @@ export const formatDateToISO = (date: string | Date) => {
 };
 // Función para formatear la fecha sin la hora
 export const formatDateWithoutTime = (date: string | Date) => {
+  const d = new Date(date);
+  if (isNaN(d.getTime())) {
+    console.error("Fecha inválida:", date);
+    return "";
+  }
   return new Intl.DateTimeFormat("es-ES", {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date(date));
+  }).format(d);
 };
 
 // Función para formatear el monto
@@ -24,9 +29,10 @@ export const formatCurrency = (amount: number) => {
 
 export const getComparator = (order: "asc" | "desc", orderBy: string) => {
   return order === "desc"
-    ? (a: Aporte, b: Aporte) => (a[orderBy] < b[orderBy] ? 1 : -1)
-    : (a: Aporte, b: Aporte) => (a[orderBy] < b[orderBy] ? -1 : 1);
+    ? (a: any, b: any) => (a[orderBy] < b[orderBy] ? 1 : -1)
+    : (a: any, b: any) => (a[orderBy] < b[orderBy] ? -1 : 1);
 };
+
 export const defaultLoggedUser: LoggedUser = {
   email: "",
   role: "",
@@ -147,7 +153,7 @@ export function numeroALetras(
   // Aquí corregimos la parte de "ciento veintiún mil" si el número tiene un "1" antes del "mil"
   let result = (millonesStr + milesStr + centenasStr + decimalesStr).trim();
   if (mostrarComplemento) {
-    result += ' Pesos Moneda Corriente'
+    result += " Pesos Moneda Corriente";
   }
   return result
     .replace("uno mil", "un mil")

@@ -69,6 +69,7 @@ export class PrestamosService {
       },
       relations: [
         'idTasa',
+        'idAsociado',
         // 'presCancelaciones',
         // 'presCuotas',
         // 'presPagos',

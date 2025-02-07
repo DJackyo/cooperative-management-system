@@ -21,7 +21,6 @@ import {
   FormControl,
   ButtonGroup,
   Menu,
-  Divider,
 } from "@mui/material";
 import Chip from "@mui/material/Chip";
 
@@ -31,7 +30,6 @@ import UserModal from "./components/UserModal";
 import DashboardCard from "../../components/shared/DashboardCard";
 import { useRouter } from "next/navigation";
 
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import {
   IconUsersGroup,
   IconUserEdit,
@@ -41,7 +39,6 @@ import {
   IconCoins,
   IconUserCog,
   IconUserDollar,
-  IconFolderDollar,
   IconPigMoney,
   IconDeviceIpadHorizontalDollar,
 } from "@tabler/icons-react";

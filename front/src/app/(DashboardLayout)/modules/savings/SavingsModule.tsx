@@ -45,6 +45,7 @@ import { authService } from "@/app/authentication/services/authService";
 import ReceiptModal from "./components/ReceiptModal";
 import { defaultAporteValue } from "../../utilities/AportesUtils";
 import { IconUser } from "@tabler/icons-react";
+import UserCard from "../../utilities/UserCard";
 
 // Agregar el tipo de las props
 interface SavingsModuleProps {
@@ -228,57 +229,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Grid container spacing={3}>
         <Grid item xs={12} md={8}>
-          <Card variant="outlined" sx={{ boxShadow: 3 }}>
-            <CardContent>
-              <Box
-                display="flex"
-                sx={{
-                  display: "flex",
-                  justifyContent: "start",
-                  alignItems: "center",
-                  marginRight: 2,
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 40,
-                    marginRight: 2,
-                  }}
-                >
-                  <Avatar
-                    sx={{
-                      bgcolor: "#e3f2fd",
-                      width: 36,
-                      height: 36,
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      marginRight: 2,
-                    }}
-                  >
-                    <Typography variant="h5" color="primary.main">
-                      <IconUser />
-                    </Typography>
-                  </Avatar>
-                </Box>
-                <Box>
-                  <Typography
-                    variant="h6"
-                    sx={{ marginTop: 0.5, marginBottom: 1 }}
-                  >
-                    {id} - {userInfo.nombres}
-                  </Typography>
-                  <Typography
-                    variant="subtitle2"
-                    color="textSecondary"
-                    sx={{ marginTop: 0.5 }}
-                  >
-                    {userInfo.numeroDeIdentificacion}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
+          <UserCard id={id} userInfo={userInfo} />
         </Grid>
         <Grid item xs={12} md={4}>
           <Card variant="outlined" sx={{ boxShadow: 3 }}>
