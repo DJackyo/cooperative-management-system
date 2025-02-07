@@ -1,7 +1,5 @@
-import { useMediaQuery, Box, Drawer, Typography, Button } from "@mui/material";
+import { useMediaQuery, Box, Drawer } from "@mui/material";
 import SidebarItems from "./SidebarItems";
-import { Upgrade } from "./Updrade";
-import { Sidebar } from "react-mui-sidebar";
 import Logo from "../shared/logo/Logo";
 
 interface ItemType {
@@ -17,7 +15,7 @@ const MSidebar = ({
 }: ItemType) => {
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up("lg"));
 
-  const sidebarWidth = "270px";
+  const sidebarWidth = "235px";
 
   // Custom CSS for short scrollbar
   const scrollbarStyles = {
@@ -52,30 +50,18 @@ const MSidebar = ({
             },
           }}
         >
-          {/* ------------------------------------------- */}
           {/* Sidebar Box */}
-          {/* ------------------------------------------- */}
           <Box
             sx={{
               height: "100%",
             }}
           >
-            <Sidebar
-              width={"270px"}
-              collapsewidth="80px"
-              open={isSidebarOpen}
-              themeColor="#5d87ff"
-              themeSecondaryColor="#49beff"
-              showProfile={false}
-            >
-              <Box display="flex" alignItems="center" width={"80%"}>
-                <Logo width={100} height={50} padding="10px" />
-              </Box>
-              <Box>
-                <SidebarItems />
-                {/* <Upgrade /> */}
-              </Box>
-            </Sidebar>
+            <Box display="flex" alignItems="center" width={"80%"}>
+              <Logo width={100} height={50} padding="10px" />
+            </Box>
+            <Box>
+              <SidebarItems />
+            </Box>
           </Box>
         </Drawer>
       </Box>
@@ -96,20 +82,8 @@ const MSidebar = ({
       }}
     >
       <Box px={2}>
-        <Sidebar
-          width={"270px"}
-          collapsewidth="80px"
-          isCollapse={false}
-          mode="light"
-          direction="ltr"
-          themeColor="#5d87ff"
-          themeSecondaryColor="#49beff"
-          showProfile={false}
-        >
-          <Logo />
-          <SidebarItems />
-          {/* <Upgrade /> */}
-        </Sidebar>
+        <Logo width={100} height={50} padding="10px" />
+        <SidebarItems />
       </Box>
     </Drawer>
   );

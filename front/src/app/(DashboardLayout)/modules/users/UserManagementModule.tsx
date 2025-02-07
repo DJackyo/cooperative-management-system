@@ -25,7 +25,7 @@ import {
 } from "@mui/material";
 import Chip from "@mui/material/Chip";
 
-import { User } from "@/interfaces/User";
+import { LoggedUser, User } from "@/interfaces/User";
 import { userService } from "@/services/userService";
 import UserModal from "./components/UserModal";
 import DashboardCard from "../../components/shared/DashboardCard";
@@ -39,7 +39,18 @@ import {
   IconEditCircle,
   IconEyeDollar,
   IconCoins,
+  IconUserCog,
+  IconUserDollar,
+  IconFolderDollar,
+  IconPigMoney,
+  IconDeviceIpadHorizontalDollar,
 } from "@tabler/icons-react";
+import { authService } from "@/app/authentication/services/authService";
+import { defaultAporteValue } from "../../utilities/AportesUtils";
+import { defaultLoggedUser } from "../../utilities/utils";
+import { Aporte } from "@/interfaces/Aporte";
+import AporteModal from "../savings/components/AporteModal";
+import { savingsService } from "@/services/savingsService";
 
 const UserManagementModule = () => {
   const router = useRouter();
@@ -73,17 +84,31 @@ const UserManagementModule = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [filterState, setFilterState] = useState<string>("ACTIVO");
 
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [anchorElUser, setAnchorElUser] = useState(null);
+  const [anchorElLoans, setAnchorElLoans] = useState(null);
+  const [anchorElSavings, setAnchorElSavings] = useState(null);
+  // Estado para el usuario actual
+  const [currentUser, setCurrentUser] = useState<LoggedUser>(defaultLoggedUser);
+  //Aporte
+  const [selectedAporte, setSelectedAporte] = useState<Aporte | null>(null); // Estado para la fila seleccionada
+  const [openAporteModal, setOpenAporteModal] = useState(false);
 
   useEffect(() => {
     const loadUsers = async () => {
-      const response = await userService.fetchAll();
-      setUsers(response);
-      const count = response.filter(
-        (user: User) => user.idAsociado?.idEstado.estado === "ACTIVO"
-      ).length;
-      setActiveUsersCount(count);
+      const hasSession = authService.isAuthenticated();
+      if (hasSession) {
+        const response = await userService.fetchAll();
+        setUsers(response);
+        const count = response.filter(
+          (user: User) => user.idAsociado?.idEstado.estado === "ACTIVO"
+        ).length;
+        setActiveUsersCount(count);
+        const user = await authService.getCurrentUserData();
+        setCurrentUser(user);
+        console.log("currentUser->", user);
+      }
     };
+
     loadUsers();
   }, []);
 
@@ -215,19 +240,21 @@ const UserManagementModule = () => {
     }
   };
 
-  // Abrir el menú de opciones
-  const handleClick = (event: any) => {
-    setAnchorEl(event.currentTarget);
-  };
+  const handleClickUser = (event: any) => setAnchorElUser(event.currentTarget);
+  const handleClickLoans = (event: any) =>
+    setAnchorElLoans(event.currentTarget);
+  const handleClickSavings = (event: any) =>
+    setAnchorElSavings(event.currentTarget);
 
-  // Cerrar el menú de opciones
   const handleClose = () => {
-    setAnchorEl(null);
+    setAnchorElUser(null);
+    setAnchorElLoans(null);
+    setAnchorElSavings(null);
   };
 
   const handleCreditsAsociado = (user?: User) => {
     if (user) {
-      console.log(user);
+      router.push(`/modules/credit?userId=${user.idAsociado.id}`);
     }
   };
 
@@ -236,6 +263,30 @@ const UserManagementModule = () => {
       router.push(`/modules/savings?id=${user.idAsociado.id}`);
     }
   };
+
+  const handleCreateAporteClick = (userInfo: any) => {
+    defaultAporteValue.asociado = userInfo;
+    defaultAporteValue.idUsuarioRegistro = currentUser.userId;
+    console.log("defaultAporteValue", defaultAporteValue, currentUser);
+    setSelectedAporte(defaultAporteValue);
+    setOpenAporteModal(true);
+  };
+
+  const handleAporteModalClose = () => {
+    setOpenAporteModal(false);
+  };
+
+  const handleAporteSubmit = async (aporte: Aporte) => {
+    console.log("Aporte registrado:", aporte);
+    if (aporte.monto) {
+      aporte.idAsociado = aporte.asociado?.id;
+      let saved = await savingsService.create(aporte);
+      if (saved) {
+        alert("registro almacenado!");
+      }
+    }
+  };
+
 
   return (
     <Grid container spacing={3}>
@@ -400,54 +451,123 @@ const UserManagementModule = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          <ButtonGroup variant="outlined" size="small">
-                            <IconButton onClick={handleClick}>
-                              <MoreVertIcon />
-                            </IconButton>
-                          </ButtonGroup>
-                          <Menu
-                            anchorEl={anchorEl}
-                            open={Boolean(anchorEl)}
-                            onClose={handleClose}
+                          <Box
+                            sx={{
+                              width: 123, 
+                            }}
                           >
-                            <Typography
-                              variant="subtitle2"
-                              sx={{ padding: "8px 16px", fontWeight: "bold" }}
+                            {/* Botón para acciones de Usuario */}
+                            <ButtonGroup variant="outlined" size="small">
+                              <IconButton onClick={handleClickUser}>
+                                <IconUserCog />
+                              </IconButton>
+                            </ButtonGroup>
+                            <Menu
+                              anchorEl={anchorElUser}
+                              open={Boolean(anchorElUser)}
+                              onClose={handleClose}
+                              sx={{
+                                boxShadow:
+                                  "rgba(0, 0, 0, 0.07) 0px 4px 10px -2px, rgba(0, 0, 0, 0.04) 0px 6px 12px -4px !important",
+                              }}
+                              elevation={1}
                             >
-                              Acciones de Usuario
-                            </Typography>
-                            <MenuItem onClick={() => handleOpenModal(user)}>
-                              <IconUserEdit style={{ marginRight: "1rem" }} />
-                              Editar Usuario
-                            </MenuItem>
-                            <MenuItem onClick={() => handleDeactivate(user)}>
-                              <IconUserCancel style={{ marginRight: "1rem" }} />
-                              Inactivar Usuario
-                            </MenuItem>
-                            <Divider />
-                            <Typography
-                              variant="subtitle2"
-                              sx={{ padding: "8px 16px", fontWeight: "bold" }}
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ padding: "8px 16px", fontWeight: "bold" }}
+                              >
+                                Usuario
+                              </Typography>
+                              <MenuItem onClick={() => handleOpenModal(user)}>
+                                <IconUserEdit style={{ marginRight: "1rem" }} />
+                                Editar Usuario
+                              </MenuItem>
+                              <MenuItem onClick={() => handleDeactivate(user)}>
+                                <IconUserCancel
+                                  style={{ marginRight: "1rem" }}
+                                />
+                                Inactivar Usuario
+                              </MenuItem>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ padding: "8px 16px", fontWeight: "bold" }}
+                              >
+                                Asociado
+                              </Typography>
+                              <MenuItem
+                                onClick={() => handleOpenAsociado(user)}
+                              >
+                                <IconEditCircle
+                                  style={{ marginRight: "1rem" }}
+                                />
+                                Editar Asociado
+                              </MenuItem>
+                            </Menu>
+
+                            {/* Botón para acciones de Préstamos */}
+                            <ButtonGroup variant="outlined" size="small">
+                              <IconButton onClick={handleClickLoans}>
+                                <IconDeviceIpadHorizontalDollar />
+                              </IconButton>
+                            </ButtonGroup>
+                            <Menu
+                              anchorEl={anchorElLoans}
+                              open={Boolean(anchorElLoans)}
+                              onClose={handleClose}
+                              elevation={1}
                             >
-                              Acciones de Asociado
-                            </Typography>
-                            <MenuItem onClick={() => handleOpenAsociado(user)}>
-                              <IconEditCircle style={{ marginRight: "1rem" }} />
-                              Editar Asociado
-                            </MenuItem>
-                            <MenuItem
-                              onClick={() => handleCreditsAsociado(user)}
+                              <Typography
+                                variant="subtitle2"
+                                sx={{ padding: "8px 16px", fontWeight: "bold" }}
+                              >
+                                Préstamos
+                              </Typography>
+                              <MenuItem
+                                onClick={() => handleCreditsAsociado(user)}
+                              >
+                                <IconEditCircle
+                                  style={{ marginRight: "1rem" }}
+                                />
+                                Crear Préstamo
+                              </MenuItem>
+                              <MenuItem
+                                onClick={() => handleCreditsAsociado(user)}
+                              >
+                                <IconEyeDollar
+                                  style={{ marginRight: "1rem" }}
+                                />
+                                Ver Préstamos
+                              </MenuItem>
+                            </Menu>
+
+                            {/* Botón para acciones de Ahorros */}
+                            <ButtonGroup variant="outlined" size="small">
+                              <IconButton onClick={handleClickSavings}>
+                                <IconPigMoney />
+                              </IconButton>
+                            </ButtonGroup>
+                            <Menu
+                              anchorEl={anchorElSavings}
+                              open={Boolean(anchorElSavings)}
+                              onClose={handleClose}
+                              elevation={1}
                             >
-                              <IconEyeDollar style={{ marginRight: "1rem" }} />
-                              Préstamos Asociado
-                            </MenuItem>
-                            <MenuItem
-                              onClick={() => handleSavingsAsociado(user)}
-                            >
-                              <IconCoins style={{ marginRight: "1rem" }} />
-                              Ahorros Asociado
-                            </MenuItem>
-                          </Menu>
+                              <MenuItem
+                                onClick={() => handleSavingsAsociado(user)}
+                              >
+                                <IconCoins style={{ marginRight: "1rem" }} />
+                                Ver aportes
+                              </MenuItem>
+                              <MenuItem
+                                onClick={() => handleCreateAporteClick(user)}
+                              >
+                                <IconUserDollar
+                                  style={{ marginRight: "1rem" }}
+                                />
+                                Crear aporte
+                              </MenuItem>
+                            </Menu>
+                          </Box>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -478,6 +598,13 @@ const UserManagementModule = () => {
         onChange={handleChange}
         onSubmit={handleSubmit}
         editingUser={editingUser !== null}
+      />
+      {/* Modal para subir soporte de pago */}
+      <AporteModal
+        open={openAporteModal}
+        onClose={handleAporteModalClose}
+        onSubmit={handleAporteSubmit}
+        initialData={selectedAporte || null}
       />
     </Grid>
   );

@@ -130,12 +130,24 @@ const baselightTheme = createTheme({
           boxShadow:
             "rgb(145 158 171 / 30%) 0px 0px 2px 0px, rgb(145 158 171 / 12%) 0px 12px 24px -4px !important",
         },
+        ".MuiPaper-root.MuiPaper-elevation.MuiPaper-elevation1": {
+          boxShadow:
+            "rgb(59 86 132 / 7%) 0px 2px 10px -4px, rgba(0, 0, 0, 0.04) 0px 2px 11px -5px !important",
+        },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
           borderRadius: "7px",
+        },
+      },
+    },
+    MuiMenu: {
+      styleOverrides: {
+        paper: {
+          boxShadow:
+            "rgba(0, 0, 0, 0.07) 0px 4px 10px -2px, rgba(0, 0, 0, 0.04) 0px 6px 12px -4px !important",
         },
       },
     },

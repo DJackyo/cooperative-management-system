@@ -1,6 +1,6 @@
 // src/modules/savings/SavingsModule.tsx
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -32,12 +32,19 @@ import {
   IconPencilDollar,
   IconReceipt,
   IconUserDollar,
+  IconUserExclamation,
 } from "@tabler/icons-react";
 import AporteModal from "./components/AporteModal";
-import { defaultLoggedUser, formatCurrency, formatDateWithoutTime } from "../../utilities/utils";
+import {
+  defaultLoggedUser,
+  formatCurrency,
+  formatDateWithoutTime,
+  getComparator,
+} from "../../utilities/utils";
 import { authService } from "@/app/authentication/services/authService";
 import ReceiptModal from "./components/ReceiptModal";
 import { defaultAporteValue } from "../../utilities/AportesUtils";
+import { IconUser } from "@tabler/icons-react";
 
 // Agregar el tipo de las props
 interface SavingsModuleProps {
@@ -48,7 +55,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
-  const [openAporteModal, setOpenModal] = useState(false);
+  const [openAporteModal, setOpenAporteModal] = useState(false);
   const [selectedAporte, setSelectedAporte] = useState<Aporte | null>(null); // Estado para la fila seleccionada
 
   const [savings, setSavings] = useState<Aporte[]>([]);
@@ -77,7 +84,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const [selectedRow, setSelectedRow] = useState<any>(defaultAporteValue);
   const [receiptModalOpen, setModalOpen] = useState(false);
 
-  const loadSavings = async () => {
+  const loadSavings = useCallback(async () => {
     // Asigna el valor de 'id' al filtro
     const filter = {
       idAsociadoId: id ? id : 0,
@@ -88,7 +95,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
       setUserInfo(response[0].idAsociado);
     }
     console.log(response);
-  };
+  }, [id]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -96,12 +103,12 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
       if (hasSession) {
         const user = await authService.getCurrentUserData();
         setCurrentUser(user);
-        console.log("currentUser->", currentUser);
+        console.log("currentUser->", user);
         loadSavings();
       }
     };
     fetchData();
-  }, [id]); // Vuelve a ejecutar si 'id' cambia
+  }, [id, loadSavings]); // Vuelve a ejecutar si 'id' cambia
 
   const stableSort = (
     array: Aporte[],
@@ -116,12 +123,6 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
       return a[1] - b[1];
     });
     return stabilizedThis.map((el) => el[0]);
-  };
-
-  const getComparator = (order: "asc" | "desc", orderBy: string) => {
-    return order === "desc"
-      ? (a: Aporte, b: Aporte) => (a[orderBy] < b[orderBy] ? 1 : -1)
-      : (a: Aporte, b: Aporte) => (a[orderBy] < b[orderBy] ? -1 : 1);
   };
 
   const sortedTransactions = stableSort(savings, getComparator(order, orderBy));
@@ -177,32 +178,32 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     setOrderBy(property);
   };
 
-  const handleCreateClick = () => {
+  const handleCreateAporteClick = () => {
     defaultAporteValue.asociado = userInfo;
     defaultAporteValue.idUsuarioRegistro = currentUser.userId;
     console.log("defaultAporteValue", defaultAporteValue, currentUser);
     setSelectedAporte(defaultAporteValue);
-    setOpenModal(true);
+    setOpenAporteModal(true);
   };
 
   const handleEditClick = (row: any) => {
     console.log(row);
     row.asociado = row.idAsociado;
-    row.idAsociado = row.asociado.id;
+    row.idAsociado = row.asociado?.id;
     row.idUsuarioRegistro = currentUser.userId;
     console.log(row);
     setSelectedAporte(row);
-    setOpenModal(true);
+    setOpenAporteModal(true);
   };
 
   const handleAporteModalClose = () => {
-    setOpenModal(false);
+    setOpenAporteModal(false);
   };
 
   const handleAporteSubmit = async (aporte: Aporte) => {
     console.log("Aporte registrado:", aporte);
     if (aporte.monto) {
-      aporte.idAsociado = aporte.asociado.id;
+      aporte.idAsociado = aporte.asociado?.id;
       let saved = await savingsService.create(aporte);
       if (saved) {
         alert("registro almacenado!");
@@ -256,7 +257,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                     }}
                   >
                     <Typography variant="h5" color="primary.main">
-                      {id}
+                      <IconUser />
                     </Typography>
                   </Avatar>
                 </Box>
@@ -265,7 +266,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                     variant="h6"
                     sx={{ marginTop: 0.5, marginBottom: 1 }}
                   >
-                    {userInfo.nombres}
+                    {id} - {userInfo.nombres}
                   </Typography>
                   <Typography
                     variant="subtitle2"
@@ -376,7 +377,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                 <Button
                   variant="outlined"
                   color="secondary"
-                  onClick={handleCreateClick}
+                  onClick={handleCreateAporteClick}
                   sx={{ mb: 2 }}
                   startIcon={<IconUserDollar />}
                 >
@@ -473,7 +474,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
       <ReceiptModal
         open={receiptModalOpen}
         onClose={handleCloseReceiptModal}
-        data={{selectedRow, savings}}
+        data={{ selectedRow, savings }}
       />
     </LocalizationProvider>
   );

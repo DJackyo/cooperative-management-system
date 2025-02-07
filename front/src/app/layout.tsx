@@ -9,7 +9,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="es">
+      <head> 
+        <link
+          href="https://fonts.googleapis.com/css2?family=Mouse+Memoirs:wght@400&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body>
         <ThemeProvider theme={baselightTheme}>
           {/* CssBaseline kickstart an elegant, consistent, and simple baseline to build upon. */}

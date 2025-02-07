@@ -15,7 +15,7 @@ import {
 } from "@mui/material";
 import { Aporte } from "@/interfaces/Aporte";
 import { formatDateToISO } from "@/app/(DashboardLayout)/utilities/utils";
-import { defaultAporteValue } from "@/app/(DashboardLayout)/utilities/AportesUtils";
+import { defaultAporteValue as defaultValues } from "@/app/(DashboardLayout)/utilities/AportesUtils";
 
 interface AporteModalProps {
   open: boolean;
@@ -30,8 +30,6 @@ const AporteModal: React.FC<AporteModalProps> = ({
   onSubmit,
   initialData,
 }) => {
-  const defaultValues: Aporte = defaultAporteValue;
-
   const [aporte, setAporte] = useState<Aporte>(defaultValues);
   const [errors, setErrors] = useState<any>({});
 

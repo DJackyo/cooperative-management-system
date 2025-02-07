@@ -1,5 +1,5 @@
 "use client";
-import { styled, Container, Box } from "@mui/material";
+import { styled, Container, Box, Menu, MenuItem } from "@mui/material";
 import React, { useState } from "react";
 import Header from "@/app/(DashboardLayout)/layout/header/Header";
 import Sidebar from "@/app/(DashboardLayout)/layout/sidebar/Sidebar";
@@ -40,6 +40,7 @@ export default function RootLayout({
         isMobileSidebarOpen={isMobileSidebarOpen}
         onSidebarClose={() => setMobileSidebarOpen(false)}
       />
+
       {/* ------------------------------------------- */}
       {/* Main Wrapper */}
       {/* ------------------------------------------- */}

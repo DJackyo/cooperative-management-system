@@ -18,6 +18,7 @@ import {
 } from "@/app/(DashboardLayout)/utilities/utils";
 import { logoBase64 } from "@/app/(DashboardLayout)/utilities/logoBase64";
 import { obtenerInformacionAportes } from "@/app/(DashboardLayout)/utilities/AportesUtils";
+import { IconPrinter } from "@tabler/icons-react";
 
 interface ReceiptModalProps {
   open: boolean;
@@ -29,7 +30,9 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
   const [fechaAporte, setFechaAporte] = useState<string>("fechaAporte");
   const [anyoAporte, setAnyoAporte] = useState<number>(0);
 
-  if (!data) return null;
+  // Asegúrate de no llamar hooks condicionalmente
+  if (!data) return null; // Este return debe ir después de que los hooks se hayan llamado
+
   const { selectedRow, savings } = data;
 
   const getMonthYear = (fechaAporte: string) => {
@@ -49,13 +52,13 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
     setAnyoAporte(fecha.getFullYear());
   };
 
+  // El useEffect debe ser siempre ejecutado, aunque `data` esté vacío
   useEffect(() => {
-    const fetchData = async () => {
+    if (selectedRow && selectedRow.fechaAporte) {
       getMonthYear(selectedRow.fechaAporte);
       getYear(selectedRow.fechaAporte);
-    };
-    fetchData();
-  });
+    }
+  }, [selectedRow]);
 
   let estadoAportes = obtenerInformacionAportes(
     savings,
@@ -122,11 +125,13 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
         .MuiGrid-grid-md-6 {
             max-width: 50%;
             width: 49%;
-            display: inline-block;
+            display: inline-block;            
         }
-
+        .MuiGrid-grid-md-6:nth-last-of-type(1) {
+            float:right ;
+        }
         .MuiGrid-grid-md-6:nth-last-of-type(2) {
-            float: right;
+            float: left;
         }
         .header {
             display: flex;
@@ -342,7 +347,10 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
                   </TableRow>
                   <TableRow>
                     <TableCell align="center">
-                      <strong>TOTAL RECIBIDO {fechaAporte}</strong>
+                      <strong>
+                        TOTAL RECIBIDO <br></br>
+                        {fechaAporte}
+                      </strong>
                     </TableCell>
                     <TableCell align="center">
                       <strong>${formatCurrency(selectedRow.monto)}</strong>
@@ -370,6 +378,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
             variant="contained"
             onClick={handlePrint}
             sx={{ mt: 2 }}
+            startIcon={<IconPrinter />}
           >
             Imprimir
           </Button>

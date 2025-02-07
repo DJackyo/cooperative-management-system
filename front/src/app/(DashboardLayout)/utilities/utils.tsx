@@ -22,6 +22,11 @@ export const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat("es-ES").format(amount);
 };
 
+export const getComparator = (order: "asc" | "desc", orderBy: string) => {
+  return order === "desc"
+    ? (a: Aporte, b: Aporte) => (a[orderBy] < b[orderBy] ? 1 : -1)
+    : (a: Aporte, b: Aporte) => (a[orderBy] < b[orderBy] ? -1 : 1);
+};
 export const defaultLoggedUser: LoggedUser = {
   email: "",
   role: "",
