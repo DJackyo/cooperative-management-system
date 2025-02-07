@@ -3,8 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
-import { CreditsModule } from './credits/credits.module';
-import { SavingsModule } from './savings/savings.module';
 import { AuthModule } from './auth/auth.module';
 import { AportesAsociados } from './entities/entities/AportesAsociados';
 import { AprobacionPrestamos } from './entities/entities/AprobacionPrestamos';
@@ -31,6 +29,7 @@ import { Usuarios } from './entities/entities/Usuarios';
 import { AsociadosModule } from './modules/asociados/asociados.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { AportesAsociadosModule } from './modules/aportes-asociados/aportes-asociados.module';
+import { PrestamosModule } from './modules/prestamos/prestamos.module';
 
 @Module({
   imports: [
@@ -70,12 +69,11 @@ import { AportesAsociadosModule } from './modules/aportes-asociados/aportes-asoc
       logging: true, // Habilita el logging de SQL
     }),
     UsersModule,
-    CreditsModule,
-    SavingsModule,
     AuthModule,
     AsociadosModule,
     UsuariosModule,
     AportesAsociadosModule,
+    PrestamosModule
   ],
   controllers: [AppController],
   providers: [AppService],
