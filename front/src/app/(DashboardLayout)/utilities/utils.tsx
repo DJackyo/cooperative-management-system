@@ -22,9 +22,26 @@ export const formatDateWithoutTime = (date: string | Date) => {
   }).format(d);
 };
 
+export const formatNameDate = (date: Date) => {
+  const options: Intl.DateTimeFormatOptions = {
+    day: "2-digit", // Formato para el día con 2 dígitos
+    month: "short", // Mes abreviado
+    year: "numeric", // Año en formato numérico
+  };
+
+  return new Intl.DateTimeFormat("es-ES", options).format(date);
+};
+
 // Función para formatear el monto
-export const formatCurrency = (amount: number) => {
+export const formatCurrency = (amount: any) => {
   return new Intl.NumberFormat("es-ES").format(amount);
+};
+
+export const formatCurrencyFixed = (amount: any) => {
+  const value = parseInt(amount);
+  if (!isNaN(value)) {
+    return new Intl.NumberFormat("es-ES").format(value);
+  }
 };
 
 export const getComparator = (order: "asc" | "desc", orderBy: string) => {

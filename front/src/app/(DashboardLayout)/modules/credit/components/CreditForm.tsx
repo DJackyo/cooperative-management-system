@@ -18,6 +18,7 @@ import { DatePicker } from "@mui/x-date-pickers";
 import { authService } from "@/app/authentication/services/authService";
 import { creditsService } from "@/services/creditRequestService";
 import { formatCurrency } from "@/app/(DashboardLayout)/utilities/utils";
+import PaymentPlan from "./PaymentPlan";
 
 interface CreditFormProps {
   onSubmit: (data: any) => void;
@@ -26,7 +27,7 @@ interface CreditFormProps {
 
 const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
   const estadosPrestamo = [
-    { value: "SOLICITADO", label: "Solicitado" },
+    { value: "SOLICITADO", label: "Solicitar" },
     { value: "APROBADO", label: "Aprobado" },
     { value: "RECHAZADO", label: "Rechazado" },
   ];
@@ -46,7 +47,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
     monto: "",
     plazoMeses: "",
     cuotaMensual: "",
-    tasaInteres: "0.0140",
+    tasa: "0.0140",
     estado: "SOLICITADO",
     observaciones: "",
     idTasa: 1,
@@ -62,23 +63,23 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
         const user = await authService.getCurrentUserData();
         console.log("currentUser->", user);
         loadTasas();
+        if (existingData) {
+          setFormData({
+            fechaCredito: existingData.fechaCredito || null,
+            fechaVencimiento: existingData.fechaVencimiento || null,
+            monto: existingData.monto,
+            plazoMeses: existingData.plazoMeses,
+            cuotaMensual: existingData.cuotaMensual,
+            tasa: existingData.tasa,
+            estado: existingData.estado || "SOLICITADO",
+            observaciones: existingData.observaciones,
+            idTasa: existingData.idTasa?.id,
+          });
+        }
       }
     };
     fetchData();
-    if (existingData) {
-      setFormData({
-        fechaCredito: existingData.fechaCredito || null,
-        fechaVencimiento: existingData.fechaVencimiento || null,
-        monto: existingData.monto,
-        plazoMeses: existingData.plazoMeses,
-        cuotaMensual: existingData.cuotaMensual,
-        tasaInteres: existingData.tasaInteres,
-        estado: existingData.estado || "SOLICITADO",
-        observaciones: existingData.observaciones,
-        idTasa: existingData.idTasa,
-      });
-    }
-  }, [existingData]);
+  }, [existingData, formData.monto, formData.plazoMeses, formData.fechaCredito]);
 
   useEffect(() => {
     // Recalcular cuota mensual y fecha vencimiento si el monto, plazo o tasa cambian
@@ -96,13 +97,13 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
     console.log(name, value);
 
     if (name === "tasaInteres") {
-      setTasaInteresMensual(parseFloat(value));      
+      setTasaInteresMensual(parseFloat(value));
     }
   };
 
   const setIdTasa = (value: string) => {
     const tasaFiltrada = tasas.find((tasa) => tasa.tasa === value);
-    const idTasa = tasaFiltrada ? tasaFiltrada.id : null;
+    const idTasa = tasaFiltrada ? tasaFiltrada.id : 1;
     console.log(idTasa);
     formData.idTasa = idTasa;
   };
@@ -110,7 +111,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
   const calculateCuotaMensual = () => {
     const monto = parseFloat(formData.monto);
     const plazoMeses = parseInt(formData.plazoMeses);
-    setIdTasa(formData.tasaInteres);
+    setIdTasa(formData.tasa);
     if (monto > 0 && plazoMeses > 0 && tasaInteresMensual > 0) {
       const cuota =
         (monto *
@@ -119,7 +120,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
         (Math.pow(1 + tasaInteresMensual, plazoMeses) - 1);
       setFormData((prevData) => ({
         ...prevData,
-        cuotaMensual: cuota.toFixed(2),
+        cuotaMensual: cuota.toFixed(0),
       }));
     }
   };
@@ -131,12 +132,20 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
     if (!fechaCredito || !plazoMeses) return;
     const vencimiento = new Date(fechaCredito);
     vencimiento.setMonth(vencimiento.getMonth() + parseInt(plazoMeses));
-    setFormData((prevData) => ({ ...prevData, fechaVencimiento: vencimiento }));
+    setFormData((prevData: any) => ({
+      ...prevData,
+      fechaVencimiento: vencimiento,
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit(formData);
+  };
+
+  const isFormComplete = () => {
+    // Verifica si los campos obligatorios están completos (sin contar las observaciones)
+    return formData.monto && formData.plazoMeses && formData.tasa && formData.fechaCredito;
   };
 
   return (
@@ -148,7 +157,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
         <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
           <Grid container spacing={2}>
             {/* Columna 3 */}
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={3}>
               <TextField
                 label="Monto"
                 name="monto"
@@ -162,7 +171,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
             </Grid>
 
             {/* Columna 1 */}
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={3}>
               <FormControl fullWidth>
                 <InputLabel id="plazo-label">Plazo (Meses)</InputLabel>
                 <Select
@@ -183,12 +192,12 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
             </Grid>
 
             {/* Columna 2 */}
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={3}>
               <FormControl fullWidth>
                 <InputLabel id="tasa-label">Tasa de Interés</InputLabel>
                 <Select
                   labelId="tasa-label"
-                  value={formData.tasaInteres}
+                  value={formData.tasa}
                   name="tasaInteres"
                   onChange={handleChange}
                   label="Tasa de Interés"
@@ -204,7 +213,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
             </Grid>
 
             {/* Columna 3 */}
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={3}>
               <TextField
                 label="Cuota Mensual"
                 name="cuotaMensual"
@@ -215,28 +224,30 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
             </Grid>
 
             {/* Estado */}
-            <Grid item xs={12} sm={4}>
-              <FormControl fullWidth>
-                <InputLabel id="estado-label">Estado</InputLabel>
-                <Select
-                  labelId="estado-label"
-                  value={formData.estado}
-                  name="estado"
-                  onChange={handleChange}
-                  label="Estado"
-                >
-                  {estadosPrestamo.map((estado) => (
-                    <MenuItem key={estado.value} value={estado.value}>
-                      {estado.label}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+            {formData.estado !== "SOLICITADO" && (
+              <Grid item xs={12} sm={3}>
+                <FormControl fullWidth>
+                  <InputLabel id="estado-label">Estado</InputLabel>
+                  <Select
+                    labelId="estado-label"
+                    value={formData.estado}
+                    name="estado"
+                    onChange={handleChange}
+                    label="Estado"
+                  >
+                    {estadosPrestamo.map((estado) => (
+                      <MenuItem key={estado.value} value={estado.value}>
+                        {estado.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+            )}
 
             {/* Fecha Crédito */}
-            <Grid item xs={12} sm={4}></Grid>
-            <Grid item xs={12} sm={4}>
+            {/* <Grid item xs={12} sm={3}></Grid> */}
+            <Grid item xs={12} sm={3}>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DatePicker
                   label="Fecha del Crédito"
@@ -252,7 +263,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
             </Grid>
 
             {/* Fecha Vencimiento */}
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={3}>
               <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <DatePicker
                   label="Fecha del Vencimiento"
@@ -265,7 +276,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
             </Grid>
 
             {/* Observaciones */}
-            <Grid item xs={12}>
+            <Grid item xs={12} sm={6}>
               <TextField
                 label="Observaciones"
                 name="observaciones"
@@ -273,9 +284,18 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, existingData }) => {
                 onChange={handleChange}
                 fullWidth
                 multiline
-                rows={4}
+                rows={1}
               />
             </Grid>
+            {/* Mostrar el Plan de Pagos solo si el formulario está completo */}
+            {isFormComplete() && (
+              <PaymentPlan
+                monto={parseFloat(formData.monto)}
+                tasaInteres={parseFloat(formData.tasa)}
+                plazoMeses={parseInt(formData.plazoMeses)}
+                fechaCredito={formData.fechaCredito}
+              />
+            )}
 
             {/* Botón de Enviar */}
             <Grid item xs={9}></Grid>

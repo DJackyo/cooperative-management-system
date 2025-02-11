@@ -279,7 +279,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                               ? formatDateWithoutTime(row[column.field])
                               : column.field === "monto" ||
                                 column.field === "cuotaMensual"
-                              ? '$' + formatCurrency(row[column.field])
+                              ? "$" + formatCurrency(row[column.field])
                               : row[column.field]}
                           </TableCell>
                         ))}
@@ -346,10 +346,19 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       </Dialog>
 
       {/* Modal para Modificación de Préstamo */}
-      <Dialog open={openModifyModal} onClose={handleCloseModifyModal}>
-        <DialogTitle>Modificación de Préstamo</DialogTitle>
+      <Dialog
+        open={openModifyModal}
+        onClose={handleCloseModifyModal}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle></DialogTitle>
         <DialogContent>
-          <CreditForm type="modify" onSubmit={handleModifySubmit} />
+          <CreditForm
+            type="modify"
+            existingData={selectedPrestamo}
+            onSubmit={handleModifySubmit}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseModifyModal} color="secondary">
