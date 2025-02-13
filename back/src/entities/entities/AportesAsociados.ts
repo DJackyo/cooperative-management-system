@@ -14,7 +14,7 @@ export class AportesAsociados {
   @Column("timestamp without time zone", { name: "fecha_aporte" })
   fechaAporte: Date;
 
-  @Column("numeric", { name: "monto", default: () => "0" })
+  @Column("numeric", { name: "monto", default: () => 0 })
   monto: number;
 
   @Column("character varying", {

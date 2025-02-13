@@ -7,7 +7,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { AprobacionPrestamos } from "./AprobacionPrestamos";
+import { PresAprobacionPrestamos } from "./PresAprobacionPrestamos";
 import { PresCancelaciones } from "./PresCancelaciones";
 import { PresCuotas } from "./PresCuotas";
 import { PresHistorialPrestamos } from "./PresHistorialPrestamos";
@@ -69,10 +69,10 @@ export class Prestamos {
   fechaActualizacion: Date | null;
 
   @OneToMany(
-    () => AprobacionPrestamos,
-    (aprobacionPrestamos) => aprobacionPrestamos.idPrestamo
+    () => PresAprobacionPrestamos,
+    (PresAprobacionPrestamos) => PresAprobacionPrestamos.idPrestamo
   )
-  aprobacionPrestamos: AprobacionPrestamos[];
+  PresAprobacionPrestamos: PresAprobacionPrestamos[];
 
   @OneToMany(
     () => PresCancelaciones,

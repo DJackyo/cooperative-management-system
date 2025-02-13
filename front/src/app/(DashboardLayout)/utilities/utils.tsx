@@ -1,4 +1,3 @@
-import { Aporte } from "@/interfaces/Aporte";
 import { LoggedUser } from "@/interfaces/User";
 
 export const formatDateToISO = (date: string | Date) => {
@@ -22,14 +21,22 @@ export const formatDateWithoutTime = (date: string | Date) => {
   }).format(d);
 };
 
-export const formatNameDate = (date: Date) => {
+export const formatNameDate = (date: string | Date) => {
+  const d = new Date(date);
+  if (isNaN(d.getTime())) {
+    console.error("Fecha inválida:", date);
+    return "";
+  }
   const options: Intl.DateTimeFormatOptions = {
     day: "2-digit", // Formato para el día con 2 dígitos
     month: "short", // Mes abreviado
     year: "numeric", // Año en formato numérico
   };
 
-  return new Intl.DateTimeFormat("es-ES", options).format(date);
+  return new Intl.DateTimeFormat("es-ES", options)
+    .format(d)
+    .toString()
+    .toLocaleUpperCase();
 };
 
 // Función para formatear el monto
@@ -38,10 +45,16 @@ export const formatCurrency = (amount: any) => {
 };
 
 export const formatCurrencyFixed = (amount: any) => {
-  const value = parseInt(amount);
+  let value: any = parseFloat(amount);
+  const formateador = new Intl.NumberFormat("es-CO", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
   if (!isNaN(value)) {
-    return new Intl.NumberFormat("es-ES").format(value);
+    value = (value).toFixed(0);
+    return formateador.format(value);
   }
+  // return amount;
 };
 
 export const getComparator = (order: "asc" | "desc", orderBy: string) => {
@@ -176,4 +189,20 @@ export function numeroALetras(
     .replace("uno mil", "un mil")
     .replace("ciento uno", "ciento un")
     .toLocaleUpperCase();
+}
+
+export function redondearHaciaArriba(
+  numero: number,
+  decimales: number = 10
+): number {
+  const factor = Math.pow(10, decimales);
+  return Math.ceil(numero * factor) / factor;
+}
+
+export function redondearHaciaAbajo(
+  numero: number,
+  decimales: number = 10
+): number {
+  const factor = Math.pow(10, decimales);
+  return Math.floor(numero * factor) / factor;
 }

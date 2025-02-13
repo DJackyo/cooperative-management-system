@@ -5,7 +5,7 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { AportesAsociados } from './entities/entities/AportesAsociados';
-import { AprobacionPrestamos } from './entities/entities/AprobacionPrestamos';
+import { PresAprobacionPrestamos } from './entities/entities/PresAprobacionPrestamos';
 import { AsocAsistenciaAsamblea } from './entities/entities/AsocAsistenciaAsamblea';
 import { AsocContactos } from './entities/entities/AsocContactos';
 import { AsocEconomicaSocial } from './entities/entities/AsocEconomicaSocial';
@@ -30,9 +30,11 @@ import { AsociadosModule } from './modules/asociados/asociados.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { AportesAsociadosModule } from './modules/aportes-asociados/aportes-asociados.module';
 import { PrestamosModule } from './modules/prestamos/prestamos.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
@@ -42,7 +44,7 @@ import { PrestamosModule } from './modules/prestamos/prestamos.module';
       database: '_coop',
       entities: [
         AportesAsociados,
-        AprobacionPrestamos,
+        PresAprobacionPrestamos,
         AsocAsistenciaAsamblea,
         AsocContactos,
         AsocEconomicaSocial,
@@ -73,7 +75,7 @@ import { PrestamosModule } from './modules/prestamos/prestamos.module';
     AsociadosModule,
     UsuariosModule,
     AportesAsociadosModule,
-    PrestamosModule
+    PrestamosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -5,7 +5,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { AprobacionPrestamos } from "./AprobacionPrestamos";
+import { PresAprobacionPrestamos } from "./PresAprobacionPrestamos";
 
 @Index("estados_aprobacion_pkey", ["id"], { unique: true })
 @Index("estados_aprobacion_nombre_estado_key", ["nombreEstado"], {
@@ -24,8 +24,8 @@ export class EstadosAprobacion {
   nombreEstado: string;
 
   @OneToMany(
-    () => AprobacionPrestamos,
-    (aprobacionPrestamos) => aprobacionPrestamos.idEstadoAprobacion
+    () => PresAprobacionPrestamos,
+    (PresAprobacionPrestamos) => PresAprobacionPrestamos.idEstadoAprobacion
   )
-  aprobacionPrestamos: AprobacionPrestamos[];
+  PresAprobacionPrestamos: PresAprobacionPrestamos[];
 }

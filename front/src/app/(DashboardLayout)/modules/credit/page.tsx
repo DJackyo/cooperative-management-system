@@ -13,7 +13,7 @@ const CreditPage = () => {
   const id = searchParams.get("userId"); // Obtener el parámetro "id" de la URL
 
   // Lógica condicional antes del retorno
-  if (!id || parseInt(id) <= 0) {
+  if (!id || parseInt(id) < 0) {
     return (
       <Card
         variant="outlined"

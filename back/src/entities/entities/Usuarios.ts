@@ -8,7 +8,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { AprobacionPrestamos } from "./AprobacionPrestamos";
+import { PresAprobacionPrestamos } from "./PresAprobacionPrestamos";
 import { Roles } from "./Roles";
 import { Asociados } from "./Asociados";
 
@@ -58,10 +58,10 @@ export class Usuarios {
   fechaModificacion: Date | null;
 
   @OneToMany(
-    () => AprobacionPrestamos,
-    (aprobacionPrestamos) => aprobacionPrestamos.usuarioRevisor
+    () => PresAprobacionPrestamos,
+    (PresAprobacionPrestamos) => PresAprobacionPrestamos.usuarioRevisor
   )
-  aprobacionPrestamos: AprobacionPrestamos[];
+  PresAprobacionPrestamos: PresAprobacionPrestamos[];
 
   @ManyToMany(() => Roles, (roles) => roles.usuarios)
   roles: Roles[];

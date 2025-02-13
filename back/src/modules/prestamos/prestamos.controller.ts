@@ -7,11 +7,14 @@ import {
   Param,
   Delete,
   Put,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { PrestamosService } from './prestamos.service';
 import { PrestamoDto } from './dto/prestamo.dto';
 import { UpdatePrestamoDto } from './dto/update-prestamo.dto';
 import { TasasService } from './services/tasas.service';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('prestamos')
 export class PrestamosController {
@@ -27,6 +30,17 @@ export class PrestamosController {
     return prestamos.map((prestamo) => ({
       ...prestamo,
       tasa: prestamo.idTasa?.tasa,
+      idAsociado: {
+        id: prestamo.idAsociado.id,
+        nombres: [
+          prestamo.idAsociado.nombre1,
+          prestamo.idAsociado.nombre2,
+          prestamo.idAsociado.apellido1,
+          prestamo.idAsociado.apellido2,
+        ].join(' '),
+        numeroDeIdentificacion: prestamo.idAsociado.numeroDeIdentificacion,
+        idEstado: prestamo.idAsociado.idEstado,
+      },
     }));
   }
 
@@ -78,4 +92,15 @@ export class PrestamosController {
     }));
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Patch('approve/:id')
+  async updatePrestamoStatus(
+    @Param('id') id: number,
+    @Body() updatePrestamoDto: UpdatePrestamoDto,
+    @Request() req,
+  ) {
+    const usuarioRevisor = req.user;
+    // console.log('updatePrestamoStatus', usuarioRevisor)
+    return this.prestamosService.updateStatus(id, updatePrestamoDto, usuarioRevisor);
+  }
 }

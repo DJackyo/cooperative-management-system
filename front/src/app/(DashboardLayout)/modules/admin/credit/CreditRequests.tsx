@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Typography,
   Button,
@@ -15,79 +15,81 @@ import {
   Box,
   Tooltip,
 } from "@mui/material";
-import {
-  fetchCreditRequests,
-  approveCreditRequest,
-  rejectCreditRequest,
-  fetchPaymentPlanByCreditId,
-} from "@/services/creditRequestService";
+// import {
+//   fetchCredits,
+//   approveCreditRequest,
+//   rejectCreditRequest,
+//   fetchPaymentPlanByCreditId,
+// } from "@/services/creditRequestService";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
-import dynamic from 'next/dynamic';
+import dynamic from "next/dynamic";
+import { Asociado } from "@/interfaces/User";
+import { creditsService } from "@/services/creditRequestService";
 
-const DynamicModal = dynamic(() => import('@mui/material/Modal'), {
+const DynamicModal = dynamic(() => import("@mui/material/Modal"), {
   ssr: false, // Desactiva el prerenderizado para este componente
 });
 
-const CreditRequests = () => {
-  const [creditRequests, setCreditRequests] = useState([]);
+const Credits = () => {
+  const [credits, setCredits] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [filterName, setFilterName] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedRequest, setSelectedRequest]: any = useState(null);
   const [paymentPlan, setPaymentPlan]: any = useState([]);
+  const [userInfo, setUserInfo] = useState<Asociado>({
+    id: 0,
+    nombres: "",
+    numeroDeIdentificacion: "",
+    idEstado: {
+      id: 1,
+      estado: "",
+    },
+  });
 
-  useEffect(() => {
-    const loadCreditRequests = async () => {
-      const response = await fetchCreditRequests();
-      setCreditRequests(response.data);
-      setFilteredRequests(response.data);
-    };
-    loadCreditRequests();
+  const loadCredits = useCallback(async () => {
+    const response = await creditsService.fetchAll();
+    setCredits(response);
+    setFilteredRequests(response);
+    console.log(response);
   }, []);
 
   useEffect(() => {
-    const filtered = creditRequests.filter((request: any) => {
-      return (
-        (filterName
-          ? request.name.toLowerCase().includes(filterName.toLowerCase())
-          : true) && (filterStatus ? request.status === filterStatus : true)
-      );
-    });
-    setFilteredRequests(filtered);
-  }, [filterName, filterStatus, creditRequests]);
+    loadCredits();
+  }, [loadCredits]);
 
   const handleApprove = async (id: number) => {
-    await approveCreditRequest(id);
-    setFilteredRequests((prevRequests: any) =>
-      prevRequests.map((request: any) =>
-        request.id === id ? { ...request, status: "aprobado" } : request
-      )
-    );
+    // await approveCreditRequest(id);
+    // setFilteredRequests((prevRequests: any) =>
+    //   prevRequests.map((request: any) =>
+    //     request.id === id ? { ...request, status: "aprobado" } : request
+    //   )
+    // );
   };
 
   const handleReject = async (id: number) => {
-    await rejectCreditRequest(id);
-    setFilteredRequests((prevRequests: any) =>
-      prevRequests.map((request: any) =>
-        request.id === id ? { ...request, status: "rechazado" } : request
-      )
-    );
+    // await rejectCreditRequest(id);
+    // setFilteredRequests((prevRequests: any) =>
+    //   prevRequests.map((request: any) =>
+    //     request.id === id ? { ...request, status: "rechazado" } : request
+    //   )
+    // );
   };
 
   const handleViewPaymentPlan = async (request: any) => {
-    try {
-      const response = await fetchPaymentPlanByCreditId(request.id);
-      console.log(response.data);
-      setSelectedRequest(request);
-      setPaymentPlan(response.data.paymentPlan); // Asegúrate de que esta ruta es correcta
-      setModalOpen(true); // Abre el modal
-    } catch (error) {
-      console.error("Error al obtener el plan de pagos:", error);
-    }
+    // try {
+    //   const response = await fetchPaymentPlanByCreditId(request.id);
+    //   console.log(response.data);
+    //   setSelectedRequest(request);
+    //   setPaymentPlan(response.data.paymentPlan); // Asegúrate de que esta ruta es correcta
+    //   setModalOpen(true); // Abre el modal
+    // } catch (error) {
+    //   console.error("Error al obtener el plan de pagos:", error);
+    // }
   };
 
   const handleCloseModal = () => {
@@ -299,4 +301,4 @@ const CreditRequests = () => {
   );
 };
 
-export default CreditRequests;
+export default Credits;

@@ -56,7 +56,7 @@ const Header = ({toggleMobileSidebar}: ItemType) => {
         </IconButton>
 
 
-        <IconButton
+        {/* <IconButton
           size="large"
           aria-label="show 11 new notifications"
           color="inherit"
@@ -67,7 +67,7 @@ const Header = ({toggleMobileSidebar}: ItemType) => {
             <IconBellRinging size="21" stroke="1.5" />
           </Badge>
 
-        </IconButton>
+        </IconButton> */}
         <Box flexGrow={1} />
         <Stack spacing={1} direction="row" alignItems="center">
           <Button variant="contained" onClick={handleLogout} disableElevation color="primary" >

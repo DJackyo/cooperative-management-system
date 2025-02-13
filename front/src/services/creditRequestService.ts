@@ -39,9 +39,9 @@ export const creditsService = {
       throw new Error("Error", error!);
     }
   },
-  async create(saving: Omit<Prestamo, "id">) {
+  async create(credit: Omit<Prestamo, "id">) {
     try {
-      const response = await axiosClient.post(baseURL, saving);
+      const response = await axiosClient.post(baseURL, credit);
       if (response?.data) {
         return response.data?.data;
       }
@@ -49,9 +49,9 @@ export const creditsService = {
       throw new Error("Error", error!);
     }
   },
-  async update(id: number, saving: Omit<Prestamo, "id">) {
+  async update(id: number, credit: Omit<Prestamo, "id">) {
     try {
-      const response = await axiosClient.put(`/${baseURL}/${id}`, saving);
+      const response = await axiosClient.put(`/${baseURL}/${id}`, credit);
       if (response?.data) {
         return response.data?.data;
       }
@@ -59,9 +59,9 @@ export const creditsService = {
       throw new Error("Error", error!);
     }
   },
-  async deactivate(id: number, saving: Omit<Prestamo, "id">) {
+  async deactivate(id: number, credit: Omit<Prestamo, "id">) {
     try {
-      const response = await axiosClient.patch(`/${baseURL}/${id}`, saving);
+      const response = await axiosClient.patch(`/${baseURL}/${id}`, credit);
       if (response?.data) {
         return response.data?.data;
       }
@@ -82,6 +82,19 @@ export const creditsService = {
   async getTasas() {
     try {
       const response = await axiosClient.get(tasasURL);
+      if (response?.data) {
+        return response.data?.data;
+      }
+    } catch (error) {
+      throw new Error("Error", error!);
+    }
+  },
+  async approveCredit(id: number, credit: Omit<Prestamo, "id">) {
+    try {
+      const response = await axiosClient.patch(
+        `${baseURL + "/approve"}/${id}`,
+        credit
+      );
       if (response?.data) {
         return response.data?.data;
       }

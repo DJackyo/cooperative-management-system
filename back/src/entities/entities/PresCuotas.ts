@@ -24,7 +24,7 @@ export class PresCuotas {
   fechaVencimiento: Date | null;
 
   @Column("numeric", { name: "monto" })
-  monto: string;
+  monto: string | number;
 
   @Column("character varying", { name: "estado", nullable: true, length: 50 })
   estado: string | null;

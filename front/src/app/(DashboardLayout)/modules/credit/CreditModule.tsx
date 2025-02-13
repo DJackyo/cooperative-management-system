@@ -30,16 +30,21 @@ import { authService } from "@/app/authentication/services/authService";
 import {
   defaultLoggedUser,
   formatCurrency,
+  formatCurrencyFixed,
   formatDateWithoutTime,
+  formatNameDate,
   getComparator,
+  numeroALetras,
 } from "../../utilities/utils";
 import {
+  IconChecks,
   IconEyeDollar,
   IconPencilDollar,
-  IconReceipt,
+  IconX,
 } from "@tabler/icons-react";
 import { creditsService } from "@/services/creditRequestService";
 import { useRouter } from "next/navigation";
+import { Check } from "@mui/icons-material";
 
 // Usar `dynamic` para cargar el componente de forma dinámica solo en el cliente.
 const CreditForm = dynamic(() => import("./components/CreditForm"), {
@@ -55,6 +60,8 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
   const [openRequestModal, setOpenRequestModal] = useState(false);
   const [openModifyModal, setOpenModifyModal] = useState(false);
+  const [openApproveModal, setOpenApproveModal] = useState(false);
+
   const [userInfo, setUserInfo] = useState<Asociado>({
     id: 0,
     nombres: "",
@@ -65,7 +72,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     },
   });
 
-  const [credits, setSavings] = useState<Prestamo[]>([]);
+  const [credits, setCredits] = useState<Prestamo[]>([]);
   const [selectedPrestamo, setSelectedPrestamo] = useState<Prestamo | null>(
     null
   );
@@ -81,14 +88,30 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [orderBy, setOrderBy] = useState<string>("fechaPrestamo");
 
+  const [tasas, setTasas] = useState<any[]>([]);
+
+  const customRoles = ["administrador", "gestor"];
+
   const loadCredits = useCallback(async () => {
-    const response = await creditsService.fetchByUser(userId);
-    setSavings(response);
+    let response;
+    if (userId === 0) {
+      response = await creditsService.fetchAll();
+    } else {
+      response = await creditsService.fetchByUser(userId);
+    }
+    setCredits(response);
     if (response.length > 0) {
       setUserInfo(response[0].idAsociado);
     }
     console.log(response);
   }, [userId]);
+
+  const loadTasas = useCallback(async () => {
+    if (tasas.length === 0) {
+      const response = await creditsService.getTasas();
+      setTasas(response);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -97,16 +120,18 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         const user = await authService.getCurrentUserData();
         setCurrentUser(user);
         console.log("currentUser->", user);
+        loadTasas();
         loadCredits();
       }
     };
     fetchData();
-  }, [userId, loadCredits]);
+  }, [userId, loadCredits, loadTasas]);
 
   const handleOpenRequestModal = () => setOpenRequestModal(true);
   const handleCloseRequestModal = () => setOpenRequestModal(false);
 
   const handleCloseModifyModal = () => setOpenModifyModal(false);
+  const handleCloseApproveModal = () => setOpenApproveModal(false);
 
   const handleRequestSubmit = async (formData: {
     amount?: string;
@@ -135,15 +160,25 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     handleCloseModifyModal();
   };
   // Definir las columnas
-  const columns = [
+  let columns = [
     { field: "id", headerName: "ID", width: 70 },
     { field: "fechaCredito", headerName: "Fecha crédito", width: 150 },
+    { field: "idAsociado", headerName: "Asociado", width: 150 },
     { field: "monto", headerName: "Monto", width: 150 },
     { field: "plazoMeses", headerName: "Plazo meses", width: 130 },
     { field: "tasa", headerName: "Tasa", width: 130 },
     { field: "cuotaMensual", headerName: "Cuota mensual", width: 130 },
     { field: "estado", headerName: "Estado", width: 130 },
   ];
+
+  // Condición para mostrar u ocultar la columna 'idAsociado' según 'userId'
+  const filteredColumns =
+    userId === 0
+      ? columns
+      : columns.filter((column) => column.field !== "idAsociado");
+
+  console.log("filteredColumns->", filteredColumns);
+
   // Cambiar el orden cuando el encabezado es clickeado
   const handleRequestSort = (property: string) => {
     const isAsc = orderBy === property && order === "asc";
@@ -203,31 +238,51 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     setPage(0); // Volver a la primera página cuando cambie el número de filas por página
   };
 
+  const handleApproveClick = (row: any) => {
+    console.log(row);
+    setSelectedPrestamo(row);
+    setOpenApproveModal(true);
+  };
+
+  const handleApproveCredit = async () => {
+    console.log(selectedPrestamo);
+    if (selectedPrestamo) {
+      selectedPrestamo.estado = "APROBADO";
+      const rs = await creditsService.approveCredit(
+        selectedPrestamo.id,
+        selectedPrestamo
+      );
+      console.log(rs);
+    }
+  };
+
   return (
     <Grid container spacing={3}>
       {/* Información de la Solicitud */}
       <Grid item xs={12} md={8}>
-        <UserCard id={userId} userInfo={userInfo} />
+        {userId > 0 && <UserCard id={userId} userInfo={userInfo} />}
       </Grid>
 
       <Grid item xs={12} md={4}>
-        <Card variant="outlined" sx={{ boxShadow: 3 }}>
-          <CardContent>
-            <Typography variant="h5" color="primary" gutterBottom>
-              Gestión de préstamos
-            </Typography>
-            {/* Botones para abrir formulario en modal */}
-            <Suspense fallback={<Skeleton variant="text" width="100%" />}>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleOpenRequestModal}
-              >
-                Solicitar crédito
-              </Button>
-            </Suspense>
-          </CardContent>
-        </Card>
+        {userId > 0 && (
+          <Card variant="outlined" sx={{ boxShadow: 3 }}>
+            <CardContent>
+              <Typography variant="h5" color="primary" gutterBottom>
+                Gestión de préstamos
+              </Typography>
+              {/* Botones para abrir formulario en modal */}
+              <Suspense fallback={<Skeleton variant="text" width="100%" />}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleOpenRequestModal}
+                >
+                  Solicitar crédito
+                </Button>
+              </Suspense>
+            </CardContent>
+          </Card>
+        )}
       </Grid>
 
       {/* Historial de Préstamos */}
@@ -253,7 +308,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                 <Table>
                   <TableHead>
                     <TableRow>
-                      {columns.map((column) => (
+                      {filteredColumns.map((column) => (
                         <TableCell
                           key={column.field}
                           style={{ width: column.width }}
@@ -273,38 +328,60 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                   <TableBody>
                     {paginatedRows.map((row: any) => (
                       <TableRow key={row.id}>
-                        {columns.map((column) => (
+                        {filteredColumns.map((column) => (
                           <TableCell key={column.field}>
-                            {column.field === "fechaCredito"
-                              ? formatDateWithoutTime(row[column.field])
-                              : column.field === "monto" ||
-                                column.field === "cuotaMensual"
-                              ? "$" + formatCurrency(row[column.field])
-                              : row[column.field]}
-                          </TableCell>
+                          {column.field === "fechaCredito"
+                            ? formatDateWithoutTime(row[column.field])
+                            : column.field === "monto" ||
+                              column.field === "cuotaMensual"
+                            ? "$" + formatCurrency(row[column.field])
+                            : column.field === "idAsociado"
+                            ? row[column.field] && row[column.field].nombres 
+                            : row[column.field]}
+                        </TableCell>
                         ))}
                         <TableCell>
-                          {/* Aquí mostramos solo el botón si currentUser tiene el rol "administrador" */}
-                          {currentUser?.role === "administrador" && (
-                            <Tooltip title="Editar" arrow>
-                              <IconButton
-                                onClick={() => handleEditClick(row)}
-                                color="primary"
-                                aria-label="Editar"
-                              >
-                                <IconPencilDollar />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          <Tooltip title="Ver préstamo" arrow>
-                            <IconButton
-                              onClick={() => handleOpenDetail(row)}
-                              color="secondary"
-                              aria-label="Ver préstamo"
-                            >
-                              <IconEyeDollar />
-                            </IconButton>
-                          </Tooltip>
+                          <Box
+                            sx={{
+                              width: 123,
+                            }}
+                          >
+                            {customRoles.includes(currentUser?.role) && (
+                              <Tooltip title="Editar" arrow>
+                                <IconButton
+                                  onClick={() => handleEditClick(row)}
+                                  color="info"
+                                  aria-label="Editar"
+                                >
+                                  <IconPencilDollar />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {customRoles.includes(currentUser?.role) &&
+                              row["estado"] === "SOLICITADO" && (
+                                <Tooltip title="Aprobar" arrow>
+                                  <IconButton
+                                    onClick={() => handleApproveClick(row)}
+                                    color="success"
+                                    aria-label="Aprobar"
+                                  >
+                                    <IconChecks />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            {customRoles.includes(currentUser?.role) &&
+                              row["estado"] !== "SOLICITADO" && (
+                                <Tooltip title="Ver préstamo" arrow>
+                                  <IconButton
+                                    onClick={() => handleOpenDetail(row)}
+                                    color="secondary"
+                                    aria-label="Ver préstamo"
+                                  >
+                                    <IconEyeDollar />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                          </Box>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -336,10 +413,14 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       >
         <DialogTitle> </DialogTitle>
         <DialogContent>
-          <CreditForm type="request" onSubmit={handleRequestSubmit} />
+          <CreditForm tasas={tasas} onSubmit={handleRequestSubmit} />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseRequestModal} color="secondary">
+          <Button
+            onClick={handleCloseRequestModal}
+            color="secondary"
+            variant="outlined"
+          >
             Cancelar
           </Button>
         </DialogActions>
@@ -355,13 +436,100 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         <DialogTitle></DialogTitle>
         <DialogContent>
           <CreditForm
-            type="modify"
+            tasas={tasas}
             existingData={selectedPrestamo}
             onSubmit={handleModifySubmit}
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseModifyModal} color="secondary">
+          <Button
+            onClick={handleCloseModifyModal}
+            color="secondary"
+            variant="outlined"
+          >
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal para Aprobación de Préstamo */}
+      <Dialog
+        open={openApproveModal}
+        onClose={handleCloseApproveModal}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle></DialogTitle>
+
+        <DialogContent>
+          <Box sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
+              ¿Desea proceder con la aprobación del crédito bajo los siguientes
+              términos?
+            </Typography>
+
+            <Grid container spacing={2}>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="textPrimary">
+                  <strong>PRÉSTAMO POR: </strong> $
+                  {formatCurrencyFixed(selectedPrestamo?.monto)} (
+                  {numeroALetras(selectedPrestamo?.monto, true)})
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="textPrimary">
+                  <strong>MESES: </strong>
+                  {selectedPrestamo?.plazoMeses}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="textPrimary">
+                  <strong>TASA:</strong>{" "}
+                  {(selectedPrestamo?.idTasa.tasa * 100).toFixed(2)}%
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="textPrimary">
+                  <strong>CUOTA MENSUAL:</strong> $
+                  {formatCurrencyFixed(selectedPrestamo?.cuotaMensual)} (
+                  {numeroALetras(selectedPrestamo?.cuotaMensual, true)})
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="textPrimary">
+                  <strong>FECHA DE INICIO:</strong>{" "}
+                  {formatNameDate(selectedPrestamo?.fechaCredito)}
+                </Typography>
+              </Grid>
+
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="textPrimary">
+                  <strong>FECHA DE FINALIZACIÓN:</strong>{" "}
+                  {formatNameDate(selectedPrestamo?.fechaVencimiento)}
+                </Typography>
+              </Grid>
+            </Grid>
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ justifyContent: "flex-end", p: 3 }}>
+          <Button
+            onClick={handleApproveCredit}
+            color="primary"
+            variant="contained"
+          >
+            <Check />
+            Aprobar Crédito
+          </Button>
+          <Button
+            onClick={handleCloseApproveModal}
+            color="secondary"
+            variant="outlined"
+          >
+            <IconX />
             Cancelar
           </Button>
         </DialogActions>

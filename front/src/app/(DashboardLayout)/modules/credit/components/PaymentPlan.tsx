@@ -12,6 +12,8 @@ import {
   formatCurrencyFixed,
   formatDateToISO,
   formatNameDate,
+  redondearHaciaAbajo,
+  redondearHaciaArriba,
 } from "@/app/(DashboardLayout)/utilities/utils";
 
 interface PaymentPlanProps {
@@ -36,8 +38,7 @@ const PaymentPlan: React.FC<PaymentPlanProps> = ({
     (Math.pow(1 + tasaMensual, plazoMeses) - 1);
 
   // Redondear la cuota mensual a dos decimales
-  const cuotaMensualRedondeada =
-    Math.round(cuotaMensual.toFixed(0) * 100) / 100;
+  const cuotaMensualRedondeada = (cuotaMensual * 100) / 100;
 
   // Generar el plan de pagos
   const pagos = [];
@@ -47,7 +48,7 @@ const PaymentPlan: React.FC<PaymentPlanProps> = ({
   pagos.push({
     cuota: 0,
     vencimiento: new Date(fechaVencimiento),
-    saldoCapital: saldoCapital.toFixed(0),
+    saldoCapital: saldoCapital,
     proteccionCartera: "",
     abonoCapital: "",
     intereses: "",
@@ -60,11 +61,12 @@ const PaymentPlan: React.FC<PaymentPlanProps> = ({
   let totalTotalCuota = 0;
 
   for (let i = 1; i <= plazoMeses; i++) {
-    const intereses = saldoCapital * tasaMensual;
-    const abonoCapital = cuotaMensualRedondeada - intereses;
-    const totalCuota = cuotaMensualRedondeada; // Total de la cuota no cambia, es constante
-    const proteccionCartera =
-      saldoCapitalTmp.toFixed(0) * porcentajeProteccionCartera;
+    const intereses = redondearHaciaAbajo(saldoCapital * tasaMensual);
+    const abonoCapital = redondearHaciaArriba(
+      cuotaMensualRedondeada - intereses
+    );
+    const totalCuota = cuotaMensualRedondeada;
+    const proteccionCartera = saldoCapitalTmp * porcentajeProteccionCartera;
     saldoCapital -= abonoCapital;
 
     // Incrementamos un mes a la fecha de vencimiento
@@ -73,27 +75,29 @@ const PaymentPlan: React.FC<PaymentPlanProps> = ({
     pagos.push({
       cuota: i,
       vencimiento: new Date(fechaVencimiento),
-      saldoCapital: saldoCapital.toFixed(0),
+      saldoCapital: saldoCapital,
       proteccionCartera,
-      abonoCapital: abonoCapital.toFixed(0),
-      intereses: intereses.toFixed(0),
-      totalCuota: totalCuota.toFixed(0),
+      abonoCapital: abonoCapital,
+      intereses: intereses,
+      totalCuota: totalCuota,
     });
 
     saldoCapitalTmp -= abonoCapital;
 
     // Sumamos los valores para la fila final
-
     totalProteccionCartera += proteccionCartera;
-    totalAbonoCapital += parseFloat(abonoCapital.toFixed(0));
-    totalIntereses += parseFloat(intereses.toFixed(0));
-    totalTotalCuota += parseFloat(totalCuota.toFixed(0));
+    totalAbonoCapital += abonoCapital;
+    totalIntereses += intereses;
+    totalTotalCuota += totalCuota;
   }
 
   return (
     <Box sx={{ p: 2 }}>
       <Typography variant="h6" gutterBottom>
-        Plan de Pagos
+        TABLA DE AMORTIZACION CUOTA FIJA CREDITO
+      </Typography>
+      <Typography variant="subtitle1">
+        POR $ {formatCurrencyFixed(monto)} A {plazoMeses} MESES
       </Typography>
       <Table
         size="small"
@@ -104,13 +108,16 @@ const PaymentPlan: React.FC<PaymentPlanProps> = ({
             paddingLeft: 1.3,
             paddingRight: 1.3,
           },
+          mt: 2,
         }}
       >
         <TableHead>
-          <TableRow sx={{
+          <TableRow
+            sx={{
               fontWeight: "bolder",
               backgroundColor: "#f0f0f0",
-            }}>
+            }}
+          >
             <TableCell sx={{ fontWeight: "bolder" }}>Cuota</TableCell>
             <TableCell sx={{ fontWeight: "bolder" }}>Vencimiento</TableCell>
             <TableCell sx={{ fontWeight: "bolder" }}>Saldo Capital</TableCell>
@@ -135,9 +142,18 @@ const PaymentPlan: React.FC<PaymentPlanProps> = ({
             >
               <TableCell>{pago.cuota}</TableCell>
               <TableCell>{formatNameDate(pago.vencimiento)}</TableCell>
-              <TableCell sx={{ textAlign: "right" }}>
-                {pago.saldoCapital > 0 &&
+              <TableCell
+                sx={{
+                  textAlign: "right",
+                  ...(pago.saldoCapital.toFixed(0) <= 0 && {
+                    fontWeight: "bolder",
+                    backgroundColor: "#f0f0f0",
+                  }),
+                }}
+              >
+                {pago.saldoCapital.toFixed(0) > 0 &&
                   formatCurrencyFixed(pago.saldoCapital)}
+                {pago.saldoCapital.toFixed(0) <= 0 && "Cancelado"}
               </TableCell>
               <TableCell sx={{ textAlign: "right" }}>
                 {formatCurrencyFixed(pago.proteccionCartera)}
@@ -164,16 +180,16 @@ const PaymentPlan: React.FC<PaymentPlanProps> = ({
               Total
             </TableCell>
             <TableCell sx={{ textAlign: "right", fontWeight: "bolder" }}>
-              {formatCurrencyFixed(totalProteccionCartera.toFixed(0))}
+              {formatCurrencyFixed(totalProteccionCartera)}
             </TableCell>
             <TableCell sx={{ textAlign: "right", fontWeight: "bolder" }}>
-              {formatCurrencyFixed(totalAbonoCapital.toFixed(0))}
+              {formatCurrencyFixed(totalAbonoCapital)}
             </TableCell>
             <TableCell sx={{ textAlign: "right", fontWeight: "bolder" }}>
-              {formatCurrencyFixed(totalIntereses.toFixed(0))}
+              {formatCurrencyFixed(totalIntereses)}
             </TableCell>
             <TableCell sx={{ textAlign: "right", fontWeight: "bolder" }}>
-              {formatCurrencyFixed(totalTotalCuota.toFixed(0))}
+              {formatCurrencyFixed(totalTotalCuota)}
             </TableCell>
           </TableRow>
         </TableBody>

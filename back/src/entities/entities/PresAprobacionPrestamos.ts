@@ -11,8 +11,8 @@ import { Prestamos } from "./Prestamos";
 import { Usuarios } from "./Usuarios";
 
 @Index("aprobacion_prestamos_pkey", ["id"], { unique: true })
-@Entity("aprobacion_prestamos", { schema: "public" })
-export class AprobacionPrestamos {
+@Entity("pres_aprobacion_prestamos", { schema: "public" })
+export class PresAprobacionPrestamos {
   @PrimaryGeneratedColumn({ type: "integer", name: "id" })
   id: number;
 
@@ -35,16 +35,16 @@ export class AprobacionPrestamos {
 
   @ManyToOne(
     () => EstadosAprobacion,
-    (estadosAprobacion) => estadosAprobacion.aprobacionPrestamos
+    (estadosAprobacion) => estadosAprobacion.PresAprobacionPrestamos
   )
   @JoinColumn([{ name: "id_estado_aprobacion", referencedColumnName: "id" }])
   idEstadoAprobacion: EstadosAprobacion;
 
-  @ManyToOne(() => Prestamos, (prestamos) => prestamos.aprobacionPrestamos)
+  @ManyToOne(() => Prestamos, (prestamos) => prestamos.PresAprobacionPrestamos)
   @JoinColumn([{ name: "id_prestamo", referencedColumnName: "id" }])
   idPrestamo: Prestamos;
 
-  @ManyToOne(() => Usuarios, (usuarios) => usuarios.aprobacionPrestamos)
+  @ManyToOne(() => Usuarios, (usuarios) => usuarios.PresAprobacionPrestamos)
   @JoinColumn([{ name: "usuario_revisor", referencedColumnName: "id" }])
   usuarioRevisor: Usuarios;
 }
