@@ -7,7 +7,6 @@ import { useSearchParams } from "next/navigation";
 import CreditModule from "./CreditModule";
 
 const CreditPage = () => {
-  // return <CreditModule />;
   // Obtener los parámetros de la URL
   const searchParams = useSearchParams();
   const id = searchParams.get("userId"); // Obtener el parámetro "id" de la URL

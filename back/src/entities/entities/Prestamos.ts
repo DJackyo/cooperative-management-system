@@ -11,7 +11,6 @@ import { PresAprobacionPrestamos } from "./PresAprobacionPrestamos";
 import { PresCancelaciones } from "./PresCancelaciones";
 import { PresCuotas } from "./PresCuotas";
 import { PresHistorialPrestamos } from "./PresHistorialPrestamos";
-import { PresPagos } from "./PresPagos";
 import { Asociados } from "./Asociados";
 import { PresTasasPrestamo } from "./PresTasasPrestamo";
 
@@ -70,9 +69,9 @@ export class Prestamos {
 
   @OneToMany(
     () => PresAprobacionPrestamos,
-    (PresAprobacionPrestamos) => PresAprobacionPrestamos.idPrestamo
+    (presAprobacionPrestamos) => presAprobacionPrestamos.idPrestamo
   )
-  PresAprobacionPrestamos: PresAprobacionPrestamos[];
+  presAprobacionPrestamos: PresAprobacionPrestamos[];
 
   @OneToMany(
     () => PresCancelaciones,
@@ -88,9 +87,6 @@ export class Prestamos {
     (presHistorialPrestamos) => presHistorialPrestamos.idPrestamo
   )
   presHistorialPrestamos: PresHistorialPrestamos[];
-
-  @OneToMany(() => PresPagos, (presPagos) => presPagos.idPrestamo)
-  presPagos: PresPagos[];
 
   @ManyToOne(() => Asociados, (asociados) => asociados.prestamos)
   @JoinColumn([{ name: "id_asociado", referencedColumnName: "id" }])

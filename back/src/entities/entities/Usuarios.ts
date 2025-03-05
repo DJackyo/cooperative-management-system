@@ -59,9 +59,9 @@ export class Usuarios {
 
   @OneToMany(
     () => PresAprobacionPrestamos,
-    (PresAprobacionPrestamos) => PresAprobacionPrestamos.usuarioRevisor
+    (presAprobacionPrestamos) => presAprobacionPrestamos.usuarioRevisor
   )
-  PresAprobacionPrestamos: PresAprobacionPrestamos[];
+  presAprobacionPrestamos: PresAprobacionPrestamos[];
 
   @ManyToMany(() => Roles, (roles) => roles.usuarios)
   roles: Roles[];

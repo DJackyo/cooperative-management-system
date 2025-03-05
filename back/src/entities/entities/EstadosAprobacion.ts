@@ -25,7 +25,7 @@ export class EstadosAprobacion {
 
   @OneToMany(
     () => PresAprobacionPrestamos,
-    (PresAprobacionPrestamos) => PresAprobacionPrestamos.idEstadoAprobacion
+    (presAprobacionPrestamos) => presAprobacionPrestamos.idEstadoAprobacion
   )
-  PresAprobacionPrestamos: PresAprobacionPrestamos[];
+  presAprobacionPrestamos: PresAprobacionPrestamos[];
 }

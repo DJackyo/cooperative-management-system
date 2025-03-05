@@ -21,6 +21,7 @@ import {
   TablePagination,
   TableRow,
   Tooltip,
+  Chip,
 } from "@mui/material";
 import dynamic from "next/dynamic";
 import UserCard from "../../utilities/UserCard";
@@ -30,11 +31,9 @@ import { authService } from "@/app/authentication/services/authService";
 import {
   defaultLoggedUser,
   formatCurrency,
-  formatCurrencyFixed,
+  formatDateTime,
   formatDateWithoutTime,
-  formatNameDate,
   getComparator,
-  numeroALetras,
 } from "../../utilities/utils";
 import {
   IconChecks,
@@ -44,7 +43,7 @@ import {
 } from "@tabler/icons-react";
 import { creditsService } from "@/services/creditRequestService";
 import { useRouter } from "next/navigation";
-import { Check } from "@mui/icons-material";
+import Swal from "sweetalert2";
 
 // Usar `dynamic` para cargar el componente de forma dinámica solo en el cliente.
 const CreditForm = dynamic(() => import("./components/CreditForm"), {
@@ -113,52 +112,21 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     }
   }, []);
 
+  const fetchData = async () => {
+    const hasSession = authService.isAuthenticated();
+    if (hasSession) {
+      const user = await authService.getCurrentUserData();
+      setCurrentUser(user);
+      console.log("currentUser->", user);
+      loadTasas();
+      loadCredits();
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      const hasSession = authService.isAuthenticated();
-      if (hasSession) {
-        const user = await authService.getCurrentUserData();
-        setCurrentUser(user);
-        console.log("currentUser->", user);
-        loadTasas();
-        loadCredits();
-      }
-    };
     fetchData();
   }, [userId, loadCredits, loadTasas]);
 
-  const handleOpenRequestModal = () => setOpenRequestModal(true);
-  const handleCloseRequestModal = () => setOpenRequestModal(false);
-
-  const handleCloseModifyModal = () => setOpenModifyModal(false);
-  const handleCloseApproveModal = () => setOpenApproveModal(false);
-
-  const handleRequestSubmit = async (formData: {
-    amount?: string;
-    term?: string;
-    reason?: string;
-  }) => {
-    console.log("Solicitud de crédito:", formData);
-    let credito: any = formData;
-    if (credito.monto) {
-      credito.idAsociado = userInfo;
-      let saved = await creditsService.create(credito);
-      if (saved) {
-        alert("registro almacenado!");
-        loadCredits();
-      }
-    }
-    handleCloseRequestModal();
-  };
-
-  const handleModifySubmit = (formData: {
-    amount?: string;
-    term?: string;
-    reason?: string;
-  }) => {
-    console.log("Modificación de crédito:", formData);
-    handleCloseModifyModal();
-  };
   // Definir las columnas
   let columns = [
     { field: "id", headerName: "ID", width: 70 },
@@ -177,7 +145,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       ? columns
       : columns.filter((column) => column.field !== "idAsociado");
 
-  console.log("filteredColumns->", filteredColumns);
+  // console.log("filteredColumns->", filteredColumns);
 
   // Cambiar el orden cuando el encabezado es clickeado
   const handleRequestSort = (property: string) => {
@@ -215,8 +183,13 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     page * pageSize + pageSize
   );
 
+  const handleOpenRequestModal = () => setOpenRequestModal(true);
+  const handleCloseRequestModal = () => setOpenRequestModal(false);
+
+  const handleCloseModifyModal = () => setOpenModifyModal(false);
+  const handleCloseApproveModal = () => setOpenApproveModal(false);
+
   const handleEditClick = (row: any) => {
-    console.log(row);
     setSelectedPrestamo(row);
     setOpenModifyModal(true);
   };
@@ -224,7 +197,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const handleOpenDetail = (row: any) => {
     console.log(row);
     if (row) {
-      router.push(`/modules/credit/user?userId=${userId}`);
+      router.push(`/modules/credit/user?userId=${userId}&creditId=${row.id}`);
     }
   };
 
@@ -239,21 +212,97 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   };
 
   const handleApproveClick = (row: any) => {
-    console.log(row);
+    // console.log(row);
     setSelectedPrestamo(row);
     setOpenApproveModal(true);
   };
 
-  const handleApproveCredit = async () => {
-    console.log(selectedPrestamo);
-    if (selectedPrestamo) {
-      selectedPrestamo.estado = "APROBADO";
-      const rs = await creditsService.approveCredit(
-        selectedPrestamo.id,
-        selectedPrestamo
-      );
-      console.log(rs);
+  const handleRequestSubmit = async (formData: {
+    amount?: string;
+    term?: string;
+    reason?: string;
+  }) => {
+    // console.log("Solicitud de crédito:", formData);
+    let credito: any = formData;
+    if (credito.monto) {
+      credito.idAsociado = userInfo;
+      let saved = await creditsService.create(credito);
+      if (saved) {
+        showMessage("Crédito Almacenado");
+        loadCredits();
+      }
     }
+    handleCloseRequestModal();
+  };
+
+  const handleModifySubmit = async (formData: any) => {
+    // console.log("Modificación de crédito:", formData);
+    if (selectedPrestamo) {
+      let saved = await creditsService.update(selectedPrestamo.id, formData);
+      if (saved) {
+        showMessage("Crédito Editado");
+      }
+      handleCloseModifyModal();
+    }
+  };
+
+  const handleApproveCredit = async (formData: any) => {
+    if (formData) {
+      formData.estado = "APROBADO";
+      formData.fechaCredito = formatDateTime(formData.fechaCredito);
+      formData.fechaVencimiento = formatDateTime(formData.fechaVencimiento);
+      formData.fechaActualizacion = formatDateTime(new Date());
+      console.log(formData);
+      const rs = await creditsService.approveCredit(
+        selectedPrestamo!.id,
+        formData
+      );
+      if (rs) {
+        showMessage("Crédito Aprobado");
+      }
+      setOpenApproveModal(false);
+      setSelectedPrestamo(null);
+    }
+  };
+
+  const showMessage = (title: string) => {
+    Swal.fire({
+      title,
+      text: " ",
+      icon: "info",
+      confirmButtonText: "Aceptar",
+    }).then(() => {
+      loadCredits();
+    });
+  };
+  // Función para determinar el color del estado
+  const getEstadoChip = (estado: string) => {
+    const estadoConfig: Record<
+      string,
+      { label: string; color: "success" | "warning" | "error" | "info" }
+    > = {
+      APROBADO: { label: "Aprobado", color: "success" },
+      SOLICITADO: { label: "Solicitado", color: "warning" },
+      RECHAZADO: { label: "Rechazado", color: "error" },
+    };
+
+    return (
+      <Chip
+        label={estadoConfig[estado]?.label ?? "Desconocido"}
+        color={estadoConfig[estado]?.color ?? "info"}
+        variant="outlined"
+      />
+    );
+  };
+
+  // Objeto de mapeo para formatear los valores de la tabla
+  const formatRules: Record<string, (value: any) => React.ReactNode> = {
+    fechaCredito: (value) => formatDateWithoutTime(value),
+    monto: (value) => "$" + formatCurrency(value),
+    cuotaMensual: (value) => "$" + formatCurrency(value),
+    idAsociado: (value) => value?.nombres ?? "N/A",
+    tasa: (value) => (value * 100).toFixed(2) + "%",
+    estado: (value) => getEstadoChip(value),
   };
 
   return (
@@ -330,15 +379,10 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                       <TableRow key={row.id}>
                         {filteredColumns.map((column) => (
                           <TableCell key={column.field}>
-                          {column.field === "fechaCredito"
-                            ? formatDateWithoutTime(row[column.field])
-                            : column.field === "monto" ||
-                              column.field === "cuotaMensual"
-                            ? "$" + formatCurrency(row[column.field])
-                            : column.field === "idAsociado"
-                            ? row[column.field] && row[column.field].nombres 
-                            : row[column.field]}
-                        </TableCell>
+                            {formatRules[column.field]
+                              ? formatRules[column.field](row[column.field])
+                              : row[column.field]}
+                          </TableCell>
                         ))}
                         <TableCell>
                           <Box
@@ -374,7 +418,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                                 <Tooltip title="Ver préstamo" arrow>
                                   <IconButton
                                     onClick={() => handleOpenDetail(row)}
-                                    color="secondary"
+                                    color="warning"
                                     aria-label="Ver préstamo"
                                   >
                                     <IconEyeDollar />
@@ -413,7 +457,11 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       >
         <DialogTitle> </DialogTitle>
         <DialogContent>
-          <CreditForm tasas={tasas} onSubmit={handleRequestSubmit} />
+          <CreditForm
+            mode="create"
+            tasas={tasas}
+            onSubmit={handleRequestSubmit}
+          />
         </DialogContent>
         <DialogActions>
           <Button
@@ -436,6 +484,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         <DialogTitle></DialogTitle>
         <DialogContent>
           <CreditForm
+            mode="edit"
             tasas={tasas}
             existingData={selectedPrestamo}
             onSubmit={handleModifySubmit}
@@ -462,68 +511,15 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         <DialogTitle></DialogTitle>
 
         <DialogContent>
-          <Box sx={{ p: 2 }}>
-            <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-              ¿Desea proceder con la aprobación del crédito bajo los siguientes
-              términos?
-            </Typography>
-
-            <Grid container spacing={2}>
-              <Grid item xs={12}>
-                <Typography variant="subtitle1" color="textPrimary">
-                  <strong>PRÉSTAMO POR: </strong> $
-                  {formatCurrencyFixed(selectedPrestamo?.monto)} (
-                  {numeroALetras(selectedPrestamo?.monto, true)})
-                </Typography>
-              </Grid>
-              <Grid item xs={12}>
-                <Typography variant="subtitle1" color="textPrimary">
-                  <strong>MESES: </strong>
-                  {selectedPrestamo?.plazoMeses}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Typography variant="subtitle1" color="textPrimary">
-                  <strong>TASA:</strong>{" "}
-                  {(selectedPrestamo?.idTasa.tasa * 100).toFixed(2)}%
-                </Typography>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Typography variant="subtitle1" color="textPrimary">
-                  <strong>CUOTA MENSUAL:</strong> $
-                  {formatCurrencyFixed(selectedPrestamo?.cuotaMensual)} (
-                  {numeroALetras(selectedPrestamo?.cuotaMensual, true)})
-                </Typography>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Typography variant="subtitle1" color="textPrimary">
-                  <strong>FECHA DE INICIO:</strong>{" "}
-                  {formatNameDate(selectedPrestamo?.fechaCredito)}
-                </Typography>
-              </Grid>
-
-              <Grid item xs={12}>
-                <Typography variant="subtitle1" color="textPrimary">
-                  <strong>FECHA DE FINALIZACIÓN:</strong>{" "}
-                  {formatNameDate(selectedPrestamo?.fechaVencimiento)}
-                </Typography>
-              </Grid>
-            </Grid>
-          </Box>
+          <CreditForm
+            mode="approve"
+            tasas={tasas}
+            existingData={selectedPrestamo}
+            onSubmit={handleApproveCredit}
+          />
         </DialogContent>
 
         <DialogActions sx={{ justifyContent: "flex-end", p: 3 }}>
-          <Button
-            onClick={handleApproveCredit}
-            color="primary"
-            variant="contained"
-          >
-            <Check />
-            Aprobar Crédito
-          </Button>
           <Button
             onClick={handleCloseApproveModal}
             color="secondary"

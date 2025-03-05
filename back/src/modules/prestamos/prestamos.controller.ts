@@ -101,6 +101,15 @@ export class PrestamosController {
   ) {
     const usuarioRevisor = req.user;
     // console.log('updatePrestamoStatus', usuarioRevisor)
-    return this.prestamosService.updateStatus(id, updatePrestamoDto, usuarioRevisor);
+    return this.prestamosService.updateStatus(
+      id,
+      updatePrestamoDto,
+      usuarioRevisor,
+    );
+  }
+
+  @Post('findWithFilters')
+  async findWithFilters(@Body() filter: { userId?: number, creditId?: number }) {
+    return this.prestamosService.findWithFilters(filter);
   }
 }

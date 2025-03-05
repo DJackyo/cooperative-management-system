@@ -78,7 +78,7 @@ export class PrestamosService {
     // Encontramos todos los préstamos que pertenecen al usuario con idAsociado
     const prestamos = await this.prestamosRepository.find({
       where: {
-        idAsociado: { id }, // Referencia explícita al campo `id` dentro de la entidad `Asociados`
+        idAsociado: { id }, // Referencia explícita al campo `id` dentro de la entidad `Prestamos`
       },
       relations: [
         'idTasa',
@@ -138,6 +138,11 @@ export class PrestamosService {
 
       // Actualizar el estado del préstamo
       prestamo.estado = updatePrestamoDto.estado;
+      prestamo.fechaCredito = updatePrestamoDto.fechaCredito;
+      prestamo.fechaVencimiento = updatePrestamoDto.fechaVencimiento;
+      prestamo.fechaDesembolso = updatePrestamoDto.fechaDesembolso;
+      prestamo.fechaActualizacion = updatePrestamoDto.fechaActualizacion;
+
       if (updatePrestamoDto.observaciones) {
         prestamo.observaciones = updatePrestamoDto.observaciones;
       }
@@ -211,5 +216,49 @@ export class PrestamosService {
     const vencimiento = new Date(fechaCredito);
     vencimiento.setMonth(vencimiento.getMonth() + cuotaNumero); // Sumamos el número de meses
     return vencimiento;
+  }
+
+  // Método para obtener los registros filtrados con salida personalizada
+  async findWithFilters(filter: {
+    userId?: number;
+    creditId?: number;
+  }): Promise<any> {
+    const queryBuilder =
+      this.prestamosRepository.createQueryBuilder('prestamos');
+
+    if (filter.userId && filter.creditId) {
+      queryBuilder
+        .leftJoinAndSelect('prestamos.idAsociado', 'asociados')
+        .leftJoinAndSelect('prestamos.presCuotas', 'cuotas') // 🔹 Relación con PresCuotas
+        .leftJoinAndSelect('cuotas.presPagos', 'pagos') // 🔹 Relación entre cuotas y pagos
+        .where('asociados.id = :userId AND prestamos.id = :creditId', {
+          userId: filter.userId,
+          creditId: filter.creditId,
+        });
+    }
+
+    // Obtener los datos de la base de datos
+    const prestamos = await queryBuilder.getMany();
+
+    // Personalizar la respuesta antes de enviarla
+    return prestamos.map((data) => ({
+      ...data,
+      estado: data.estado ? 'Activo' : 'Inactivo',
+      idAsociado: {
+        id: data.idAsociado.id,
+        nombres: [
+          data.idAsociado.nombre1,
+          data.idAsociado.nombre2,
+          data.idAsociado.apellido1,
+          data.idAsociado.apellido2,
+        ].join(' '),
+        numeroDeIdentificacion: data.idAsociado.numeroDeIdentificacion,
+        idEstado: data.idAsociado.idEstado,
+      },
+      presCuotas: data.presCuotas.map((cuota) => ({
+        ...cuota,
+        pagado: cuota.presPagos.length > 0, // 🔹 Se marca como pagado si tiene pagos asociados
+      })),
+    }));
   }
 }

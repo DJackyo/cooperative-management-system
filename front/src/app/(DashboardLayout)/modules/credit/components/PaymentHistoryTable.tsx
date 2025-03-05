@@ -1,8 +1,18 @@
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle } from "@mui/material";
+import {
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+} from "@mui/material";
 import { useState } from "react";
 
-const PaymentHistoryTable = () => {
+interface PaymentHistoryProps {
+  presCuotas: [];
+}
+
+const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({ presCuotas }) => {
   const [open, setOpen] = useState(false);
   const [selectedRow, setSelectedRow]: any = useState(null);
 
@@ -17,46 +27,44 @@ const PaymentHistoryTable = () => {
   };
 
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 70 },
-    { field: "date", headerName: "Fecha de Pago", width: 180 },
-    { field: "amount", headerName: "Monto", width: 150 },
-    { field: "status", headerName: "Estado", width: 130 },
+    { field: "numeroCuota", headerName: "# Cuota", width: 50 },
+    {
+      field: "fechaVencimiento",
+      headerName: "Fecha de Vencimiento",
+      width: 180,
+    },
+    { field: "presPagos.diaDePago", headerName: "Fecha de Pago", width: 180 },
+    { field: "monto", headerName: "Monto", width: 150 },
+    { field: "estado", headerName: "Estado", width: 130 },
     {
       field: "actions",
       headerName: "Acciones",
       width: 150,
-      renderCell: (params) => (
-        params.row.status !== "Pagado" ? (
+      renderCell: (params) =>
+        params.row.estado == "PENDIENTE" ? (
           <Button
             variant="contained"
             color="primary"
             onClick={() => handleOpenModal(params.row)}
+            size="small"
           >
             Registrar Pago
           </Button>
-        ) : null
-      ),
+        ) : null,
     },
-  ];
-
-  const rows = [
-    { id: 1, date: "2024-11-01", amount: "$100", status: "Pagado" },
-    { id: 2, date: "2024-12-01", amount: "$100", status: "Pendiente" },
-    { id: 3, date: "2025-01-01", amount: "$100", status: "Pendiente" },
-    { id: 4, date: "2025-02-01", amount: "$100", status: "Pendiente" },
   ];
 
   return (
     <>
       <DataGrid
-        rows={rows}
+        rows={presCuotas}
         columns={columns}
         initialState={{
           pagination: {
-            paginationModel: { pageSize: 5 },
+            paginationModel: { pageSize: 10 },
           },
         }}
-        pageSizeOptions={[5, 10, 20]}
+        pageSizeOptions={[10, 24, 48]}
       />
 
       {/* Modal para Registrar Pago */}
@@ -64,7 +72,8 @@ const PaymentHistoryTable = () => {
         <DialogTitle>Registrar Pago</DialogTitle>
         <DialogContent>
           <p>
-            ¿Deseas registrar el pago para el registro con ID: {selectedRow?.id}?
+            ¿Deseas registrar el pago para el registro con ID: {selectedRow?.id}
+            ?
           </p>
         </DialogContent>
         <DialogActions>
@@ -73,7 +82,10 @@ const PaymentHistoryTable = () => {
           </Button>
           <Button
             onClick={() => {
-              console.log("Pago registrado para el registro con ID:", selectedRow?.id);
+              console.log(
+                "Pago registrado para el registro con ID:",
+                selectedRow?.id
+              );
               handleCloseModal();
             }}
             color="primary"

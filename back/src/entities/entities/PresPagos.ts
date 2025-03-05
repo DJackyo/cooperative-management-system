@@ -6,7 +6,7 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { Prestamos } from "./Prestamos";
+import { PresCuotas } from "./PresCuotas";
 import { PresMetodosPago } from "./PresMetodosPago";
 
 @Index("pagos_pkey", ["idPago"], { unique: true })
@@ -14,6 +14,9 @@ import { PresMetodosPago } from "./PresMetodosPago";
 export class PresPagos {
   @PrimaryGeneratedColumn({ type: "integer", name: "id_pago" })
   idPago: number;
+
+  @Column("integer", { name: "id_prestamo" })
+  idPrestamo: number;
 
   @Column("timestamp without time zone", {
     name: "fecha_vencimiento",
@@ -153,9 +156,9 @@ export class PresPagos {
   })
   totalPagado: string | null;
 
-  @ManyToOne(() => Prestamos, (prestamos) => prestamos.presPagos)
-  @JoinColumn([{ name: "id_prestamo", referencedColumnName: "id" }])
-  idPrestamo: Prestamos;
+  @ManyToOne(() => PresCuotas, (presCuotas) => presCuotas.presPagos)
+  @JoinColumn([{ name: "id_cuota", referencedColumnName: "id" }])
+  idCuota: PresCuotas;
 
   @ManyToOne(
     () => PresMetodosPago,

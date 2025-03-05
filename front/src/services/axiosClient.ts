@@ -1,6 +1,9 @@
 // src/services/axiosClient.ts
 import axios from "axios";
-const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000/';
+import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
+
+const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000/";
 
 // Comprobar si la variable se carga correctamente
 if (!apiUrl) {
@@ -17,26 +20,38 @@ const axiosClient = axios.create({
 // Interceptor para agregar el token de autenticación a cada solicitud
 axiosClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("authToken"); // Usa el token almacenado
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
     }
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Interceptor para manejar errores globales
-axiosClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Redirigir a login si el token expira o es inválido
-      window.location.href = "/login";
+// Función para configurar interceptores con el router
+export const setupAxiosInterceptors = (router: any) => {
+  axiosClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      console.error(error);
+      if (error.response?.status === 401) {
+        localStorage.clear();
+        Swal.fire({
+          title: "Sesión expirada",
+          text: "Tu sesión ha vencido. Por favor, inicia sesión nuevamente.",
+          icon: "warning",
+          confirmButtonText: "Aceptar",
+        }).then(() => {
+          router.push("/authentication/login");
+        });
+      }
+      return Promise.reject(error);
     }
-    return Promise.reject(error);
-  }
-);
+  );
+};
 
 // instancia separada sin interceptores
 const axiosNoAuth = axios.create({

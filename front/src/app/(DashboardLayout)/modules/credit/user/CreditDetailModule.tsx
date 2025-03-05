@@ -1,25 +1,36 @@
 // src/modules/credit/CreditDetailModule.tsx
-import React, { Suspense, useEffect, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useState } from "react";
 import {
   Card,
   CardContent,
   Typography,
   Grid,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
   Box,
   Skeleton,
 } from "@mui/material";
-import { AttachMoney, CalendarToday, AccessTime } from "@mui/icons-material";
+import {
+  AttachMoney,
+  CalendarToday,
+  AccessTime,
+  Person,
+  BadgeOutlined,
+} from "@mui/icons-material";
 import { mockCreditRequestData, mockCreditInfoData } from "@/mock/mockData";
 import dynamic from "next/dynamic";
+import {
+  defaultLoggedUser,
+  formatCurrencyFixed,
+} from "@/app/(DashboardLayout)/utilities/utils";
+import { authService } from "@/app/authentication/services/authService";
+import { Asociado, LoggedUser } from "@/interfaces/User";
+import { Prestamo } from "@/interfaces/Prestamo";
+import { creditsService } from "@/services/creditRequestService";
 
 // Usar `dynamic` para cargar el componente de forma dinámica solo en el cliente.
-const CreditForm = dynamic(() => import("../components/CreditForm"), { ssr: false });
-const PaymentHistoryTable = dynamic(() => import("../components/PaymentHistoryTable"), { ssr: false });
+const PaymentHistoryTable = dynamic(
+  () => import("../components/PaymentHistoryTable"),
+  { ssr: false }
+);
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 // Define los tipos de datos de crédito
@@ -34,16 +45,56 @@ interface CreditInfoData {
   dueDate: string;
   remainingTerm: number;
 }
-
-const CreditDetailModule = () => {
-  const [openRequestModal, setOpenRequestModal] = useState(false);
-  const [openModifyModal, setOpenModifyModal] = useState(false);
+interface CreditDetailModuleProps {
+  userId: number;
+  creditId: number;
+}
+const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
+  userId,
+  creditId,
+}) => {
+  // Estado para el usuario actual
+  const [currentUser, setCurrentUser] = useState<LoggedUser>(defaultLoggedUser);
+  const [credit, setCredit] = useState<Prestamo>([]);
+  const [userInfo, setUserInfo] = useState<Asociado>({
+    id: 0,
+    nombres: "",
+    numeroDeIdentificacion: "",
+    idEstado: {
+      id: 1,
+      estado: "",
+    },
+  });
   // Estados para los datos simulados, permitiendo el tipo null como valor inicial
   const [creditRequestData, setCreditRequestData] =
     useState<CreditRequestData | null>(null);
   const [creditInfoData, setCreditInfoData] = useState<CreditInfoData | null>(
     null
   );
+  const loadCreditData = useCallback(async () => {
+    let response;
+    if (creditId) {
+      response = await creditsService.fetchByFilters({
+        creditId: creditId,
+        userId: userId,
+      });
+    }
+    if (response.length > 0) {
+      setCredit(response[0]);
+      setUserInfo(response[0].idAsociado);
+    }
+    console.log(response);
+  }, [userId, creditId]);
+
+  const fetchData = async () => {
+    const hasSession = authService.isAuthenticated();
+    if (hasSession) {
+      const user = await authService.getCurrentUserData();
+      setCurrentUser(user);
+      console.log("currentUser->", user);
+      loadCreditData();
+    }
+  };
 
   useEffect(() => {
     // Simular la carga de datos con un retardo
@@ -51,31 +102,10 @@ const CreditDetailModule = () => {
       setCreditRequestData(mockCreditRequestData);
       setCreditInfoData(mockCreditInfoData);
     }, 2000); // 2 segundos de retardo
+    console.log(userId, creditId);
+    fetchData();
   }, []);
 
-  const handleOpenRequestModal = () => setOpenRequestModal(true);
-  const handleCloseRequestModal = () => setOpenRequestModal(false);
-
-  const handleOpenModifyModal = () => setOpenModifyModal(true);
-  const handleCloseModifyModal = () => setOpenModifyModal(false);
-
-  const handleRequestSubmit = (formData: {
-    amount?: string;
-    term?: string;
-    reason?: string;
-  }) => {
-    console.log("Solicitud de crédito:", formData);
-    handleCloseRequestModal();
-  };
-
-  const handleModifySubmit = (formData: {
-    amount?: string;
-    term?: string;
-    reason?: string;
-  }) => {
-    console.log("Modificación de crédito:", formData);
-    handleCloseModifyModal();
-  };
   // Configuración del gráfico
   const chartOptions = {
     chart: { type: "pie" as const, toolbar: { show: true } },
@@ -89,26 +119,53 @@ const CreditDetailModule = () => {
   return (
     <Grid container spacing={3}>
       {/* Información de la Solicitud */}
-      <Grid item xs={12} md={4}>
+      <Grid item xs={12} md={6}>
         <Card variant="outlined" sx={{ boxShadow: 3 }}>
           <CardContent>
             <Typography variant="h5" color="primary" gutterBottom>
               Información de la Solicitud
             </Typography>
             <Suspense fallback={<Skeleton variant="text" width="100%" />}>
-              {creditRequestData ? (
+              {userId > 0 && (
                 <>
-                  <Typography variant="h6" display="flex" alignItems="center">
-                    <AttachMoney sx={{ mr: 1 }} /> Monto Solicitado: $
-                    {creditRequestData.amountRequested.toLocaleString()}
+                  <Box>
+                    <Typography
+                      variant="h6"
+                      sx={{ marginTop: 0.5, marginBottom: 0.5 }}
+                      display="flex"
+                      alignItems="center"
+                    >
+                      <Person sx={{ mr: 1 }} />
+                      {userId} - {userInfo.nombres}
+                    </Typography>
+                    <Typography
+                      variant="subtitle2"
+                      color="textSecondary"
+                      display="flex"
+                      alignItems="center"
+                    >
+                      <BadgeOutlined sx={{ mr: 1, display: "inline-flex" }} />
+                      {userInfo.numeroDeIdentificacion}
+                    </Typography>
+                  </Box>
+                </>
+              )}
+              {credit ? (
+                <>
+                  <Typography display="flex" alignItems="center">
+                    <AttachMoney sx={{ mr: 1 }} />
+                    <strong>Monto Solicitado: </strong>${" "}
+                    {formatCurrencyFixed(credit.monto)}
                   </Typography>
                   <Typography display="flex" alignItems="center">
-                    <CalendarToday sx={{ mr: 1 }} /> Fecha de Solicitud:{" "}
-                    {creditRequestData.requestDate}
+                    <CalendarToday sx={{ mr: 1 }} />
+                    <strong>Fecha de Solicitud: </strong>
+                    {credit.fechaSolicitud}
                   </Typography>
                   <Typography display="flex" alignItems="center">
-                    <AccessTime sx={{ mr: 1 }} /> Plazo Solicitado:{" "}
-                    {creditRequestData.termRequested} meses
+                    <AccessTime sx={{ mr: 1 }} />
+                    <strong>Plazo: </strong>
+                    {credit.plazoMeses} meses
                   </Typography>
                 </>
               ) : (
@@ -120,7 +177,7 @@ const CreditDetailModule = () => {
       </Grid>
 
       {/* Información del Crédito */}
-      <Grid item xs={12} md={4}>
+      <Grid item xs={12} md={6}>
         <Card variant="outlined" sx={{ boxShadow: 3 }}>
           <CardContent>
             <Typography variant="h5" color="primary" gutterBottom>
@@ -150,32 +207,6 @@ const CreditDetailModule = () => {
         </Card>
       </Grid>
 
-      <Grid item xs={12} md={4}>
-        <Card variant="outlined" sx={{ boxShadow: 3 }}>
-          <CardContent>
-            <Typography variant="h5" color="primary" gutterBottom>
-              Gestión de créditos
-            </Typography>
-            {/* Botones para abrir formulario en modal */}
-            <Suspense fallback={<Skeleton variant="text" width="100%" />}>
-              {creditInfoData ? (
-                <>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={handleOpenRequestModal}
-                  >
-                    Solicitar crédito
-                  </Button>
-                </>
-              ) : (
-                <Skeleton variant="text" width="100%" height={50} />
-              )}
-            </Suspense>
-          </CardContent>
-        </Card>
-      </Grid>
-
       {/* Historial de pagos */}
       <Grid item xs={12} md={8}>
         <Card variant="outlined" sx={{ boxShadow: 3 }}>
@@ -188,22 +219,20 @@ const CreditDetailModule = () => {
               <Typography variant="h5" color="primary" gutterBottom>
                 Historial de Pagos
               </Typography>
-              <Button
+              {/* <Button
                 variant="outlined"
                 color="secondary"
                 onClick={handleOpenModifyModal}
               >
                 Modificar crédito
-              </Button>
+              </Button> */}
             </Box>
             <Suspense
               fallback={
                 <Skeleton variant="rectangular" width="100%" height={300} />
               }
             >
-              <div style={{ height: 300, width: "100%" }}>
-                <PaymentHistoryTable />
-              </div>
+              <PaymentHistoryTable presCuotas={credit.presCuotas}/>
             </Suspense>
           </CardContent>
         </Card>
@@ -226,38 +255,13 @@ const CreditDetailModule = () => {
                 type="pie"
                 width="100%"
               />
+              <Typography variant="body2" mt={2}>
+                Pagado: $400, Pendiente: $100
+              </Typography>
             </Suspense>
-            <Typography variant="body2" mt={2}>
-              Pagado: $400, Pendiente: $100
-            </Typography>
           </CardContent>
         </Card>
       </Grid>
-      {/* Modal para Solicitud de Crédito */}
-      <Dialog open={openRequestModal} onClose={handleCloseRequestModal}>
-        <DialogTitle>Solicitud de Crédito</DialogTitle>
-        <DialogContent>
-          <CreditForm type="request" onSubmit={handleRequestSubmit} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseRequestModal} color="secondary">
-            Cancelar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Modal para Modificación de Crédito */}
-      <Dialog open={openModifyModal} onClose={handleCloseModifyModal}>
-        <DialogTitle>Modificación de Crédito</DialogTitle>
-        <DialogContent>
-          <CreditForm type="modify" onSubmit={handleModifySubmit} />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseModifyModal} color="secondary">
-            Cancelar
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Grid>
   );
 };

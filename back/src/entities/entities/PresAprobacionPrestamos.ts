@@ -35,16 +35,16 @@ export class PresAprobacionPrestamos {
 
   @ManyToOne(
     () => EstadosAprobacion,
-    (estadosAprobacion) => estadosAprobacion.PresAprobacionPrestamos
+    (estadosAprobacion) => estadosAprobacion.presAprobacionPrestamos
   )
   @JoinColumn([{ name: "id_estado_aprobacion", referencedColumnName: "id" }])
   idEstadoAprobacion: EstadosAprobacion;
 
-  @ManyToOne(() => Prestamos, (prestamos) => prestamos.PresAprobacionPrestamos)
+  @ManyToOne(() => Prestamos, (prestamos) => prestamos.presAprobacionPrestamos)
   @JoinColumn([{ name: "id_prestamo", referencedColumnName: "id" }])
   idPrestamo: Prestamos;
 
-  @ManyToOne(() => Usuarios, (usuarios) => usuarios.PresAprobacionPrestamos)
+  @ManyToOne(() => Usuarios, (usuarios) => usuarios.presAprobacionPrestamos)
   @JoinColumn([{ name: "usuario_revisor", referencedColumnName: "id" }])
   usuarioRevisor: Usuarios;
 }

@@ -4,9 +4,11 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from "typeorm";
 import { Prestamos } from "./Prestamos";
+import { PresPagos } from "./PresPagos";
 
 @Index("cuotas_pkey", ["id"], { unique: true })
 @Entity("pres_cuotas", { schema: "public" })
@@ -24,7 +26,7 @@ export class PresCuotas {
   fechaVencimiento: Date | null;
 
   @Column("numeric", { name: "monto" })
-  monto: string | number;
+  monto: number;
 
   @Column("character varying", { name: "estado", nullable: true, length: 50 })
   estado: string | null;
@@ -32,4 +34,7 @@ export class PresCuotas {
   @ManyToOne(() => Prestamos, (prestamos) => prestamos.presCuotas)
   @JoinColumn([{ name: "id_prestamo", referencedColumnName: "id" }])
   idPrestamo: Prestamos;
+
+  @OneToMany(() => PresPagos, (presPagos) => presPagos.idCuota)
+  presPagos: PresPagos[];
 }

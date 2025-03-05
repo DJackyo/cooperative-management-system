@@ -1,4 +1,5 @@
 import { LoggedUser } from "@/interfaces/User";
+import dayjs from "dayjs";
 
 export const formatDateToISO = (date: string | Date) => {
   const d = new Date(date);
@@ -205,4 +206,13 @@ export function redondearHaciaAbajo(
 ): number {
   const factor = Math.pow(10, decimales);
   return Math.floor(numero * factor) / factor;
+}
+
+export const formatDateTime = (date: Date): string => {
+  return dayjs(date).format("YYYY-MM-DD HH:mm:ss");
+};
+
+export const formatNumber = (number: number) => {
+  let value = number.toString();
+  return parseInt(parseFloat(value).toFixed(0))
 }

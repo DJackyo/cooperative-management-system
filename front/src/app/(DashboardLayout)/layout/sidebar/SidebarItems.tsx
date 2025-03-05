@@ -20,7 +20,7 @@ const SidebarItems = ({ toggleMobileSidebar }: any) => {
     // Verificamos que userRole no sea null y si está en item.roles
     return !item.roles || (userRole && item.roles.includes(userRole));
   });
-console.log(filteredMenuItems)
+  // console.log(filteredMenuItems)
   return (
     <Box sx={{ px: 3 }}>
       <List sx={{ pt: 0 }} className="sidebarNav" component="div">

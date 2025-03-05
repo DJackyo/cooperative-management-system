@@ -51,7 +51,7 @@ export const creditsService = {
   },
   async update(id: number, credit: Omit<Prestamo, "id">) {
     try {
-      const response = await axiosClient.put(`/${baseURL}/${id}`, credit);
+      const response = await axiosClient.put(`${baseURL}/${id}`, credit);
       if (response?.data) {
         return response.data?.data;
       }
@@ -99,6 +99,7 @@ export const creditsService = {
         return response.data?.data;
       }
     } catch (error) {
+      console.error(error)
       throw new Error("Error", error!);
     }
   },

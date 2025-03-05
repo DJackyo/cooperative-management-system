@@ -10,6 +10,7 @@ import { EstadosAprobacion } from 'src/entities/entities/EstadosAprobacion';
 import { PresAprobacionPrestamos } from 'src/entities/entities/PresAprobacionPrestamos';
 import { PresCuotas } from 'src/entities/entities/PresCuotas';
 import { AuthModule } from 'src/auth/auth.module';
+import { Asociados } from 'src/entities/entities/Asociados';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AuthModule } from 'src/auth/auth.module';
       PresAprobacionPrestamos,
       PresCuotas,
       EstadosAprobacion,
+      Asociados,
     ]),
     AuthModule,
   ],

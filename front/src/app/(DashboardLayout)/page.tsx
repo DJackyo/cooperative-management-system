@@ -10,13 +10,17 @@ import { useEffect, useState } from "react";
 import AdminDashboard from "./components/dashboard/AdminDashboard";
 import TransactionsHistory from "./components/dashboard/TransactionsHistory";
 import PaymentSupportsCard from "./components/dashboard/PaymentSupportsCard";
+import { useRouter } from "next/navigation";
+import { setupAxiosInterceptors } from "@/services/axiosClient";
 
 const Dashboard = () => {
+  const router = useRouter();
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useAuth();
-
+  
   useEffect(() => {
+    setupAxiosInterceptors(router);
     const role = localStorage.getItem("userRole");
     setUserRole(role);
   }, []);
