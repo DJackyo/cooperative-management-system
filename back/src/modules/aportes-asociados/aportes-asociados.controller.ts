@@ -8,54 +8,54 @@ import {
   Delete,
   Query,
 } from '@nestjs/common';
-import { AportesAsociadosService } from './aportes-asociados.service';
-import { CreateAportesAsociadosDto } from './dto/create-aportes-asociado.dto';
-import { UpdateAportesAsociadosDto } from './dto/update-aportes-asociado.dto';
-import { AportesAsociados } from '../../entities/entities/aportesAsociados';
+import { AsocAportesAsociadosService } from './aportes-asociados.service';
+import { CreateAsocAportesAsociadosDto } from './dto/create-aportes-asociado.dto';
+import { UpdateAsocAportesAsociadosDto } from './dto/update-aportes-asociado.dto';
+import { AsocAportesAsociados } from '../../entities/entities/AsocAportesAsociados';
 
 @Controller('aportes-asociados')
-export class AportesAsociadosController {
+export class AsocAportesAsociadosController {
   constructor(
-    private readonly aportesAsociadosService: AportesAsociadosService,
+    private readonly AsocAportesAsociadosService: AsocAportesAsociadosService,
   ) {}
 
   // Crear un nuevo aporte
   @Post()
   create(
-    @Body() createAportesAsociadosDto: CreateAportesAsociadosDto,
-  ): Promise<AportesAsociados> {
-    return this.aportesAsociadosService.create(createAportesAsociadosDto);
+    @Body() createAsocAportesAsociadosDto: CreateAsocAportesAsociadosDto,
+  ): Promise<AsocAportesAsociados> {
+    return this.AsocAportesAsociadosService.create(createAsocAportesAsociadosDto);
   }
 
   // Obtener todos los aportes
   @Get()
-  findAll(): Promise<AportesAsociados[]> {
-    return this.aportesAsociadosService.findAll();
+  findAll(): Promise<AsocAportesAsociados[]> {
+    return this.AsocAportesAsociadosService.findAll();
   }
 
   // Obtener un aporte por su ID
   @Get(':id')
-  findOne(@Param('id') id: number): Promise<AportesAsociados> {
-    return this.aportesAsociadosService.findOne(id);
+  findOne(@Param('id') id: number): Promise<AsocAportesAsociados> {
+    return this.AsocAportesAsociadosService.findOne(id);
   }
 
   // Actualizar un aporte
   @Put(':id')
   update(
     @Param('id') id: number,
-    @Body() updateAportesAsociadosDto: UpdateAportesAsociadosDto,
-  ): Promise<AportesAsociados> {
-    return this.aportesAsociadosService.update(id, updateAportesAsociadosDto);
+    @Body() updateAsocAportesAsociadosDto: UpdateAsocAportesAsociadosDto,
+  ): Promise<AsocAportesAsociados> {
+    return this.AsocAportesAsociadosService.update(id, updateAsocAportesAsociadosDto);
   }
 
   // Eliminar un aporte
   @Delete(':id')
   remove(@Param('id') id: number): Promise<void> {
-    return this.aportesAsociadosService.remove(id);
+    return this.AsocAportesAsociadosService.remove(id);
   }
 
   @Post('findWithFilters')
   async findWithFilters(@Body() filter: { idAsociadoId?: number }) {
-    return this.aportesAsociadosService.findWithFilters(filter);
+    return this.AsocAportesAsociadosService.findWithFilters(filter);
   }
 }

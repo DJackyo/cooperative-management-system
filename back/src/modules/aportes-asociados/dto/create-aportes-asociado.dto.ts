@@ -1,8 +1,8 @@
-// CreateAportesAsociadosDto.ts
+// CreateAsocAportesAsociadosDto.ts
 
 import { IsNotEmpty, IsString, IsOptional, IsNumber, IsDate } from 'class-validator';
 
-export class CreateAportesAsociadosDto {
+export class CreateAsocAportesAsociadosDto {
   @IsNotEmpty()
   @IsDate()
   fechaAporte: Date;

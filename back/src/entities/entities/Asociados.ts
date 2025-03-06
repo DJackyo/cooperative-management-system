@@ -8,7 +8,7 @@ import {
   OneToOne,
   PrimaryGeneratedColumn,
 } from "typeorm";
-import { AportesAsociados } from "./AportesAsociados";
+import { AsocAportesAsociados } from "./AsocAportesAsociados";
 import { AsocAsistenciaAsamblea } from "./AsocAsistenciaAsamblea";
 import { AsocContactos } from "./AsocContactos";
 import { AsocEconomicaSocial } from "./AsocEconomicaSocial";
@@ -95,10 +95,10 @@ export class Asociados {
   fechaModificacion: Date | null;
 
   @OneToMany(
-    () => AportesAsociados,
-    (aportesAsociados) => aportesAsociados.idAsociado
+    () => AsocAportesAsociados,
+    (asocAportesAsociados) => asocAportesAsociados.idAsociado
   )
-  aportesAsociados: AportesAsociados[];
+  asocAportesAsociados: AsocAportesAsociados[];
 
   @OneToOne(
     () => AsocAsistenciaAsamblea,

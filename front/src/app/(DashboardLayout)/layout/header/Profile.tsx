@@ -10,39 +10,42 @@ import {
   ListItemIcon,
   ListItemText,
 } from "@mui/material";
-import { useRouter } from 'next/navigation';
-import { IconBriefcase, IconInfoSquareRoundedFilled, IconListCheck, IconMail, IconSettings, IconUser } from "@tabler/icons-react";
+import { useRouter } from "next/navigation";
+import {
+  IconBriefcase,
+  IconInfoSquareRoundedFilled,
+  IconListCheck,
+  IconMail,
+  IconSettings,
+  IconUser,
+} from "@tabler/icons-react";
 import { authService } from "@/app/authentication/services/authService";
 import { useTheme } from "@mui/material/styles";
+import {
+  validateRoles,
+  roleAdmin,
+  roleUser,
+  roleSuperAdmin,
+} from "../../utilities/utils";
 
 const Profile = () => {
   const theme = useTheme();
   const router = useRouter();
   const [anchorEl2, setAnchorEl2] = useState(null);
-  const [profileImage, setProfileImage] = useState("/images/profile/user-1.jpg");
-  const [userRole, setUserRole] = useState("");
+  const [profileImage, setProfileImage] = useState(
+    "/images/profile/user-1.jpg"
+  );
+  const [userRole, setUserRole] = useState([]);
+  const [roleIcon, setRoleIcon] = useState<JSX.Element | null>(null);
 
   useEffect(() => {
-    // Obtener rol del usuario
-    const userRole = localStorage.getItem("userRole") || "Invitado";
-    setUserRole(userRole);
-
-    // Asignar imagen según el rol
-    switch (userRole) {
-      case "socio":
-        setProfileImage("/images/profile/user-1.jpg");
-        break;
-      case "administrador":
-        setProfileImage("/images/profile/admin.jpg");
-        break;
-      case "gestorOperaciones":
-        setProfileImage("/images/profile/gestor.jpg");
-        break;
-      default:
-        setProfileImage("/images/profile/socio.jpg");
-    }
+    setTimeout(() => {
+      const userRoles = authService.getUserRoles(); 
+      setUserRole(userRoles);
+      getRoleIcon(userRoles);
+    }, 1500);
   }, []);
-  
+
   const handleClick2 = (event: any) => {
     setAnchorEl2(event.currentTarget);
   };
@@ -51,16 +54,22 @@ const Profile = () => {
     setAnchorEl2(null);
   };
 
-  const getRoleIcon = (role: string) => {
-    switch (role) {
-      case "socio":
-        return <IconUser width={20} color={theme.palette.primary.main} />;
-      case "administrador":
-        return <IconSettings width={20} color={theme.palette.primary.main} />;
-      case "gestorOperaciones":
-        return <IconBriefcase width={20} color={theme.palette.primary.main} />;
-      default:
-        return <IconUser width={20} color={theme.palette.primary.main} />;
+  const getRoleIcon = (userRoles: any) => { 
+    if (validateRoles(roleUser, userRoles)) {
+      setProfileImage("/images/profile/user-1.jpg");
+      setRoleIcon(
+        <IconSettings width={20} color={theme.palette.primary.main} />
+      );
+    }
+    if (validateRoles(roleSuperAdmin, userRoles)) {
+      setProfileImage("/images/profile/admin.jpg");
+      setRoleIcon(
+        <IconBriefcase width={20} color={theme.palette.primary.main} />
+      );
+    }
+    if (validateRoles(roleAdmin, userRoles)) {
+      setProfileImage("/images/profile/gestor.jpg");
+      setRoleIcon(<IconUser width={20} color={theme.palette.primary.main} />);
     }
   };
 
@@ -68,7 +77,7 @@ const Profile = () => {
     authService.logout();
     router.push("/authentication/login");
   };
-  
+
   return (
     <Box>
       <IconButton
@@ -106,23 +115,23 @@ const Profile = () => {
         transformOrigin={{ horizontal: "right", vertical: "top" }}
         sx={{
           "& .MuiMenu-paper": {
-            width: "200px",
+            width: "250px",
           },
         }}
       >
         <MenuItem>
           <ListItemIcon sx={{ color: theme.palette.primary.main }}>
-            {getRoleIcon(userRole)}
+            {roleIcon}
           </ListItemIcon>
           <ListItemText
             primaryTypographyProps={{
               sx: {
-                fontWeight: "bold", 
+                fontWeight: "bold",
                 color: "primary.main",
               },
             }}
           >
-            {userRole}
+            {userRole.join(", ")}
           </ListItemText>
         </MenuItem>
         <MenuItem>
@@ -131,7 +140,7 @@ const Profile = () => {
           </ListItemIcon>
           <ListItemText>Mi perfil</ListItemText>
         </MenuItem>
-        <MenuItem>
+        {/* <MenuItem>
           <ListItemIcon>
             <IconMail width={20} />
           </ListItemIcon>
@@ -142,7 +151,7 @@ const Profile = () => {
             <IconListCheck width={20} />
           </ListItemIcon>
           <ListItemText>Mis créditos</ListItemText>
-        </MenuItem>
+        </MenuItem> */}
         <Box mt={1} py={1} px={2}>
           <Button
             onClick={handleLogout}

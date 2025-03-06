@@ -2,10 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { LoginDto } from './dto/login.dto';
 import { UnauthorizedException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Usuarios } from 'src/entities/entities/Usuarios';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    @InjectRepository(Usuarios)
+    private usuariosRepository: Repository<Usuarios>,
+  ) {}
   // Datos mockeados
   private readonly users = [
     {
@@ -40,18 +47,22 @@ export class AuthService {
     },
   ];
 
-  login(loginDto: LoginDto) {
-    const user = this.users.find(
-      (user) =>
-        user.email === loginDto.email &&
-        user.password === atob(loginDto.password),
-    );
+  async login(loginDto: LoginDto) {
+    // const user = this.users.find(
+    //   (user) =>
+    //     user.email === loginDto.email &&
+    //     user.password === atob(loginDto.password),
+    // );
+    const user = await this.usuariosRepository.findOne({
+      where: { username: loginDto.email, contrasena: loginDto.password },
+      relations: ['roles', 'idAsociado', 'idAsociado.idEstado'],
+    });
     if (user) {
       const payload = {
         email: loginDto.email,
-        role: user.role,
+        role: user.roles,
         userId: user.id,
-        username: user.email,
+        username: user.username,
       };
 
       const token = this.jwtService.sign(payload, {
@@ -60,7 +71,7 @@ export class AuthService {
 
       return {
         access_token: token,
-        role: user.role,
+        role: user.roles.map((role) => role.nombre).join(','),
       };
     } else {
       throw new UnauthorizedException('Credenciales inválidas');

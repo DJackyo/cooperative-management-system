@@ -1,14 +1,16 @@
 import {
   IconLayoutDashboard,
-  IconMoodHappy,
-  IconAperture,
-  IconChecklist,
-  IconCreditCard,
   IconAdjustmentsDollar,
   IconListDetails,
   IconUserCog,
 } from "@tabler/icons-react";
 import { uniqueId } from "lodash";
+import {
+  roleAdmin,
+  rolesList,
+  roleSuperAdmin,
+  roleUser,
+} from "../../utilities/utils";
 
 const Menuitems = [
   {
@@ -20,7 +22,7 @@ const Menuitems = [
     title: "Dashboard",
     icon: IconLayoutDashboard,
     href: "/",
-    roles: ["socio", "administrador", "gestorOperaciones"],
+    roles: rolesList,
   },
   {
     navlabel: true,
@@ -30,15 +32,15 @@ const Menuitems = [
     id: uniqueId(),
     title: "Gestión del ahorro",
     icon: IconAdjustmentsDollar,
-    href: "/modules/savings",
-    roles: ["administrador", "gestorOperaciones"],
+    href: "/modules/savings?id=",
+    roles: roleAdmin,
   },
   {
     id: uniqueId(),
-    title: "Movimientos",
+    title: "Mis Movimientos",
     icon: IconListDetails,
-    href: "/modules/savings",
-    roles: ["socio"],
+    href: "/modules/savings?id=",
+    roles: [rolesList[0]],
   },
   {
     navlabel: true,
@@ -48,41 +50,41 @@ const Menuitems = [
     id: uniqueId(),
     title: "Gestión del crédito",
     icon: IconAdjustmentsDollar,
-    href: "/modules/credit",
-    roles: ["administrador", "gestorOperaciones"],
+    href: "/modules/credit?userId=0",
+    roles: roleAdmin,
   },
   {
     id: uniqueId(),
-    title: "Movimientos",
+    title: "Mis Movimientos",
     icon: IconListDetails,
-    href: "/modules/credit",
-    roles: ["socio"],
+    href: "/modules/credit?userId=",
+    roles: roleUser,
   },
   {
     navlabel: true,
     subheader: "Administración",
-    roles: ["administrador"],
+    roles: roleSuperAdmin,
   },
   {
     id: uniqueId(),
     title: "Gestión de usuarios",
     icon: IconUserCog,
     href: "/modules/users",
-    roles: ["administrador"],
+    roles: roleSuperAdmin,
   },
   // {
   //   id: uniqueId(),
   //   title: "Icons",
   //   icon: IconMoodHappy,
   //   href: "/icons",
-  //   roles: ["administrador"],
+  //   roles: roleSuperAdmin,
   // },
   // {
   //   id: uniqueId(),
   //   title: "Sample Page",
   //   icon: IconAperture,
   //   href: "/sample-page",
-  //   roles: ["administrador"],
+  //   roles: roleSuperAdmin,
   // },
 ];
 

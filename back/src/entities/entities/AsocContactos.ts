@@ -7,10 +7,18 @@ export class AsocContactos {
   @Column("integer", { primary: true, name: "id_asociado" })
   idAsociado: number;
 
-  @Column("numeric", { name: "telefono1", nullable: true })
+  @Column("character varying", {
+    name: "telefono1",
+    nullable: true,
+    length: 100,
+  })
   telefono1: string | null;
 
-  @Column("numeric", { name: "telefono2", nullable: true })
+  @Column("character varying", {
+    name: "telefono2",
+    nullable: true,
+    length: 100,
+  })
   telefono2: string | null;
 
   @Column("character varying", {

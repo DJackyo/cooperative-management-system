@@ -25,11 +25,20 @@ export class PresCuotas {
   })
   fechaVencimiento: Date | null;
 
-  @Column("numeric", { name: "monto" })
+  @Column("real", { name: "monto", precision: 24 })
   monto: number;
 
   @Column("character varying", { name: "estado", nullable: true, length: 50 })
   estado: string | null;
+
+  @Column("real", { name: "proteccion_cartera", nullable: true, precision: 24 })
+  proteccionCartera: number | null;
+
+  @Column("real", { name: "abono_capital", nullable: true, precision: 24 })
+  abonoCapital: number | null;
+
+  @Column("real", { name: "intereses", nullable: true, precision: 24 })
+  intereses: number | null;
 
   @ManyToOne(() => Prestamos, (prestamos) => prestamos.presCuotas)
   @JoinColumn([{ name: "id_prestamo", referencedColumnName: "id" }])

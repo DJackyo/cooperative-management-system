@@ -1,4 +1,4 @@
-export class UpdateAportesAsociadosDto {
+export class UpdateAsocAportesAsociadosDto {
     fechaAporte: Date;
     monto: number;
     observaciones: string | null;

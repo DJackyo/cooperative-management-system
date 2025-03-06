@@ -32,14 +32,14 @@ export class Prestamos {
   })
   fechaVencimiento: Date | null;
 
-  @Column("numeric", { name: "monto" })
-  monto: string;
+  @Column("integer", { name: "monto" })
+  monto: number;
 
   @Column("integer", { name: "plazo_meses" })
   plazoMeses: number;
 
-  @Column("numeric", { name: "cuota_mensual", nullable: true })
-  cuotaMensual: string | null;
+  @Column("real", { name: "cuota_mensual", nullable: true, precision: 24 })
+  cuotaMensual: number | null;
 
   @Column("timestamp without time zone", {
     name: "fecha_solicitud",
@@ -66,6 +66,13 @@ export class Prestamos {
     nullable: true,
   })
   fechaActualizacion: Date | null;
+
+  @Column("integer", {
+    name: "porcentaje_proteccion_cartera",
+    nullable: true,
+    default: () => "0.001",
+  })
+  porcentajeProteccionCartera: number | null;
 
   @OneToMany(
     () => PresAprobacionPrestamos,

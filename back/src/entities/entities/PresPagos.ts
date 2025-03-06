@@ -48,113 +48,101 @@ export class PresPagos {
   @Column("integer", { name: "num_cuota", nullable: true, default: () => "0" })
   numCuota: number | null;
 
-  @Column("numeric", {
+  @Column("real", {
     name: "saldo_capital_inicial",
     nullable: true,
-    precision: 100,
-    scale: 4,
+    precision: 24,
     default: () => "0",
   })
-  saldoCapitalInicial: string | null;
+  saldoCapitalInicial: number | null;
 
-  @Column("numeric", {
+  @Column("real", {
     name: "saldo_capital_original",
     nullable: true,
-    precision: 100,
-    scale: 4,
+    precision: 24,
     default: () => "0",
   })
-  saldoCapitalOriginal: string | null;
+  saldoCapitalOriginal: number | null;
 
-  @Column("numeric", {
+  @Column("real", {
     name: "saldo_capital",
     nullable: true,
-    precision: 100,
-    scale: 4,
+    precision: 24,
     default: () => "0",
   })
-  saldoCapital: string | null;
+  saldoCapital: number | null;
 
-  @Column("numeric", {
+  @Column("real", {
     name: "abono_extra",
     nullable: true,
-    precision: 100,
-    scale: 4,
+    precision: 24,
     default: () => "0",
   })
-  abonoExtra: string | null;
+  abonoExtra: number | null;
 
-  @Column("numeric", {
+  @Column("real", {
     name: "proteccion_cartera",
     nullable: true,
-    precision: 100,
-    scale: 4,
+    precision: 24,
     default: () => "0",
   })
-  proteccionCartera: string | null;
+  proteccionCartera: number | null;
 
-  @Column("numeric", {
+  @Column("real", {
     name: "abono_capital",
     nullable: true,
-    precision: 100,
-    scale: 4,
+    precision: 24,
     default: () => "0",
   })
-  abonoCapital: string | null;
+  abonoCapital: number | null;
 
-  @Column("numeric", {
+  @Column("real", {
     name: "intereses",
     nullable: true,
-    precision: 100,
-    scale: 4,
+    precision: 24,
     default: () => "0",
   })
-  intereses: string | null;
+  intereses: number | null;
 
-  @Column("numeric", {
+  @Column("real", {
     name: "total_cuota",
     nullable: true,
-    precision: 100,
-    scale: 4,
+    precision: 24,
     default: () => "0",
   })
-  totalCuota: string | null;
+  totalCuota: number | null;
 
-  @Column("numeric", {
+  @Column("real", {
     name: "mora",
     nullable: true,
-    precision: 100,
-    scale: 4,
+    precision: 24,
     default: () => "0",
   })
-  mora: string | null;
+  mora: number | null;
 
-  @Column("numeric", {
+  @Column("real", {
     name: "interes_pendiente",
     nullable: true,
-    precision: 100,
-    scale: 4,
+    precision: 24,
     default: () => "0",
   })
-  interesPendiente: string | null;
+  interesPendiente: number | null;
 
-  @Column("numeric", {
+  @Column("real", {
     name: "diferencia_capital",
     nullable: true,
-    precision: 100,
-    scale: 4,
+    precision: 24,
     default: () => "0",
   })
-  diferenciaCapital: string | null;
+  diferenciaCapital: number | null;
 
-  @Column("numeric", {
+  @Column("real", {
     name: "total_pagado",
     nullable: true,
-    precision: 100,
-    scale: 4,
+    precision: 24,
     default: () => "0",
   })
-  totalPagado: string | null;
+  totalPagado: number | null;
 
   @ManyToOne(() => PresCuotas, (presCuotas) => presCuotas.presPagos)
   @JoinColumn([{ name: "id_cuota", referencedColumnName: "id" }])

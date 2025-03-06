@@ -15,7 +15,6 @@ import {
   formatCurrencyFixed,
   formatNameDate,
   formatNumber,
-  redondearHaciaAbajo,
   redondearHaciaArriba,
 } from "@/app/(DashboardLayout)/utilities/utils";
 import { IconChevronDown } from "@tabler/icons-react";
@@ -96,7 +95,7 @@ const calculatePayments = (
     totalAbonoCapital += abonoCapital;
     totalIntereses += intereses;
   }
-  
+
   totalTotalCuota =
     formatNumber(redondearHaciaArriba(cuotaMensual)) * plazoMeses;
 
@@ -148,8 +147,6 @@ const PaymentPlan: React.FC<PaymentPlanProps> = ({
 
     return { pagos: formattedPagos, totals: formattedTotals };
   }, [monto, tasaInteres, plazoMeses, fechaCredito]);
-
-  console.log(pagos);
 
   const handleChange = () => {
     setExpanded((prev) => !prev);

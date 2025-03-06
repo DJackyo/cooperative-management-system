@@ -1,17 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { AportesAsociadosController } from './aportes-asociados.controller';
-import { AportesAsociadosService } from './aportes-asociados.service';
+import { AsocAportesAsociadosController } from './aportes-asociados.controller';
+import { AsocAportesAsociadosService } from './aportes-asociados.service';
 
-describe('AportesAsociadosController', () => {
-  let controller: AportesAsociadosController;
+describe('AsocAportesAsociadosController', () => {
+  let controller: AsocAportesAsociadosController;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [AportesAsociadosController],
-      providers: [AportesAsociadosService],
+      controllers: [AsocAportesAsociadosController],
+      providers: [AsocAportesAsociadosService],
     }).compile();
 
-    controller = module.get<AportesAsociadosController>(AportesAsociadosController);
+    controller = module.get<AsocAportesAsociadosController>(AsocAportesAsociadosController);
   });
 
   it('should be defined', () => {

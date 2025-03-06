@@ -4,7 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
-import { AportesAsociados } from './entities/entities/AportesAsociados';
+import { AsocAportesAsociados } from './entities/entities/AsocAportesAsociados';
 import { PresAprobacionPrestamos } from './entities/entities/PresAprobacionPrestamos';
 import { AsocAsistenciaAsamblea } from './entities/entities/AsocAsistenciaAsamblea';
 import { AsocContactos } from './entities/entities/AsocContactos';
@@ -28,7 +28,7 @@ import { TiposIdentificacion } from './entities/entities/TiposIdentificacion';
 import { Usuarios } from './entities/entities/Usuarios';
 import { AsociadosModule } from './modules/asociados/asociados.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
-import { AportesAsociadosModule } from './modules/aportes-asociados/aportes-asociados.module';
+import { AsocAportesAsociadosModule } from './modules/aportes-asociados/aportes-asociados.module';
 import { PrestamosModule } from './modules/prestamos/prestamos.module';
 import { ConfigModule } from '@nestjs/config';
 
@@ -43,7 +43,7 @@ import { ConfigModule } from '@nestjs/config';
       password: 'postgres',
       database: '_coop',
       entities: [
-        AportesAsociados,
+        AsocAportesAsociados,
         PresAprobacionPrestamos,
         AsocAsistenciaAsamblea,
         AsocContactos,
@@ -74,7 +74,7 @@ import { ConfigModule } from '@nestjs/config';
     AuthModule,
     AsociadosModule,
     UsuariosModule,
-    AportesAsociadosModule,
+    AsocAportesAsociadosModule,
     PrestamosModule,
   ],
   controllers: [AppController],

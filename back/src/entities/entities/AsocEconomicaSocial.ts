@@ -7,11 +7,11 @@ export class AsocEconomicaSocial {
   @Column("integer", { primary: true, name: "id_asociado" })
   idAsociado: number;
 
-  @Column("numeric", { name: "estrato", nullable: true })
-  estrato: string | null;
+  @Column("integer", { name: "estrato", nullable: true })
+  estrato: number | null;
 
-  @Column("numeric", { name: "nivel_ingresos", nullable: true })
-  nivelIngresos: string | null;
+  @Column("integer", { name: "nivel_ingresos", nullable: true })
+  nivelIngresos: number | null;
 
   @Column("character varying", {
     name: "sector_economico",

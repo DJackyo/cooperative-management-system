@@ -5,20 +5,43 @@ import { Box, List } from "@mui/material";
 import NavItem from "./NavItem";
 import NavGroup from "./NavGroup/NavGroup";
 import { useState, useEffect } from "react";
+import { authService } from "@/app/authentication/services/authService";
+import { LoggedUser } from "@/interfaces/User";
 
 const SidebarItems = ({ toggleMobileSidebar }: any) => {
   const pathname = usePathname();
   const pathDirect = pathname;
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<[]>([]);
+  const [userId, setUserId] = useState<number>();
 
   useEffect(() => {
-    const role = localStorage.getItem("userRole") || "";
-    setUserRole(role || null); // Esto asegura que si no hay rol, se establece en null
+    const userRole = authService.getUserRoles();
+    const userData = authService.getCurrentUserData();
+    setUserId(userData.userId);
+    setUserRole(userRole);
   }, []);
 
-  const filteredMenuItems = Menuitems.filter((item) => {
-    // Verificamos que userRole no sea null y si está en item.roles
-    return !item.roles || (userRole && item.roles.includes(userRole));
+  const updatedMenuItems = Menuitems.map((item) => {
+    if (item.href) {
+      let newHref = item.href;
+
+      // Solo reemplazamos "id=" si no tiene un valor numérico ya definido
+      if (newHref.includes("id=") && !newHref.match(/id=\d+/)) {
+        newHref = newHref.replace("id=", `id=${userId}`);
+      }
+      if (newHref.includes("userId=") && !newHref.match(/userId=\d+/)) {
+        newHref = newHref.replace("userId=", `userId=${userId}`);
+      }
+
+      return { ...item, href: newHref };
+    }
+    return item;
+  });
+  const filteredMenuItems = updatedMenuItems.filter((item) => {
+    if (!item.roles) return true;
+    return Array.isArray(userRole)
+      ? userRole.some((role) => item.roles.includes(role))
+      : item.roles.includes(userRole);
   });
   // console.log(filteredMenuItems)
   return (

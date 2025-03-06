@@ -21,7 +21,6 @@ import {
   TablePagination,
   TableRow,
   Tooltip,
-  Chip,
 } from "@mui/material";
 import dynamic from "next/dynamic";
 import UserCard from "../../utilities/UserCard";
@@ -34,6 +33,11 @@ import {
   formatDateTime,
   formatDateWithoutTime,
   getComparator,
+  getEstadoChip,
+  hasRole,
+  roleAdmin,
+  rolesList,
+  validateRoles,
 } from "../../utilities/utils";
 import {
   IconChecks,
@@ -44,6 +48,7 @@ import {
 import { creditsService } from "@/services/creditRequestService";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
+import { setupAxiosInterceptors } from "@/services/axiosClient";
 
 // Usar `dynamic` para cargar el componente de forma dinámica solo en el cliente.
 const CreditForm = dynamic(() => import("./components/CreditForm"), {
@@ -78,6 +83,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
   // Estado para el usuario actual
   const [currentUser, setCurrentUser] = useState<LoggedUser>(defaultLoggedUser);
+  const [isUserAdmin, setIsUserAdmin] = useState(false);
 
   // Paginación
   const [page, setPage] = useState(0);
@@ -88,8 +94,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const [orderBy, setOrderBy] = useState<string>("fechaPrestamo");
 
   const [tasas, setTasas] = useState<any[]>([]);
-
-  const customRoles = ["administrador", "gestor"];
 
   const loadCredits = useCallback(async () => {
     let response;
@@ -117,6 +121,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     if (hasSession) {
       const user = await authService.getCurrentUserData();
       setCurrentUser(user);
+      checkValidRoles();
       console.log("currentUser->", user);
       loadTasas();
       loadCredits();
@@ -124,6 +129,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   };
 
   useEffect(() => {
+    setupAxiosInterceptors(router);
     fetchData();
   }, [userId, loadCredits, loadTasas]);
 
@@ -275,25 +281,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       loadCredits();
     });
   };
-  // Función para determinar el color del estado
-  const getEstadoChip = (estado: string) => {
-    const estadoConfig: Record<
-      string,
-      { label: string; color: "success" | "warning" | "error" | "info" }
-    > = {
-      APROBADO: { label: "Aprobado", color: "success" },
-      SOLICITADO: { label: "Solicitado", color: "warning" },
-      RECHAZADO: { label: "Rechazado", color: "error" },
-    };
-
-    return (
-      <Chip
-        label={estadoConfig[estado]?.label ?? "Desconocido"}
-        color={estadoConfig[estado]?.color ?? "info"}
-        variant="outlined"
-      />
-    );
-  };
 
   // Objeto de mapeo para formatear los valores de la tabla
   const formatRules: Record<string, (value: any) => React.ReactNode> = {
@@ -303,6 +290,12 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     idAsociado: (value) => value?.nombres ?? "N/A",
     tasa: (value) => (value * 100).toFixed(2) + "%",
     estado: (value) => getEstadoChip(value),
+  };
+
+  const checkValidRoles = () => {
+    const userRoles = authService.getUserRoles();
+    const isAdmin = validateRoles(roleAdmin, userRoles);
+    setIsUserAdmin(isAdmin);
   };
 
   return (
@@ -390,7 +383,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                               width: 123,
                             }}
                           >
-                            {customRoles.includes(currentUser?.role) && (
+                            {isUserAdmin && (
                               <Tooltip title="Editar" arrow>
                                 <IconButton
                                   onClick={() => handleEditClick(row)}
@@ -401,30 +394,28 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                                 </IconButton>
                               </Tooltip>
                             )}
-                            {customRoles.includes(currentUser?.role) &&
-                              row["estado"] === "SOLICITADO" && (
-                                <Tooltip title="Aprobar" arrow>
-                                  <IconButton
-                                    onClick={() => handleApproveClick(row)}
-                                    color="success"
-                                    aria-label="Aprobar"
-                                  >
-                                    <IconChecks />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
-                            {customRoles.includes(currentUser?.role) &&
-                              row["estado"] !== "SOLICITADO" && (
-                                <Tooltip title="Ver préstamo" arrow>
-                                  <IconButton
-                                    onClick={() => handleOpenDetail(row)}
-                                    color="warning"
-                                    aria-label="Ver préstamo"
-                                  >
-                                    <IconEyeDollar />
-                                  </IconButton>
-                                </Tooltip>
-                              )}
+                            {isUserAdmin && row["estado"] === "SOLICITADO" && (
+                              <Tooltip title="Aprobar" arrow>
+                                <IconButton
+                                  onClick={() => handleApproveClick(row)}
+                                  color="success"
+                                  aria-label="Aprobar"
+                                >
+                                  <IconChecks />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {isUserAdmin && row["estado"] !== "SOLICITADO" && (
+                              <Tooltip title="Ver préstamo" arrow>
+                                <IconButton
+                                  onClick={() => handleOpenDetail(row)}
+                                  color="warning"
+                                  aria-label="Ver préstamo"
+                                >
+                                  <IconEyeDollar />
+                                </IconButton>
+                              </Tooltip>
+                            )}
                           </Box>
                         </TableCell>
                       </TableRow>

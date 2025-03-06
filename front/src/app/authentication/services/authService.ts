@@ -14,7 +14,13 @@ export const authService = {
       if (response?.data) {
         const user = response.data?.data;
         this.saveToken(user.access_token);
-        localStorage.setItem("userRole", user.role);
+        const userData: any = this.getCurrentUserData();
+        if (userData) {
+          const role = userData.role
+            ?.map((role: any) => role.nombre)
+            .join(", ");
+          sessionStorage.setItem("userRole", role);
+        }
         return user.access_token;
       }
     } catch (error) {
@@ -32,7 +38,7 @@ export const authService = {
 
   logout() {
     localStorage.removeItem("authToken");
-    localStorage.removeItem("userRole");
+    sessionStorage.removeItem("userRole");
   },
 
   isAuthenticated() {
@@ -45,5 +51,14 @@ export const authService = {
       return jwt_decode(token);
     }
     return defaultLoggedUser;
+  },
+
+  getUserRoles() {
+    let roles = [];
+    const userData: any = this.getCurrentUserData();
+    if (userData) {
+      roles = userData.role?.map((role: any) => role.nombre);
+    }
+    return roles;
   },
 };

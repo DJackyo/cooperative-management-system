@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
-import { AportesAsociadosService } from './aportes-asociados.service';
-import { AportesAsociadosController } from './aportes-asociados.controller';
+import { AsocAportesAsociadosService } from './aportes-asociados.service';
+import { AsocAportesAsociadosController } from './aportes-asociados.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AportesAsociados } from 'src/entities/entities/AportesAsociados';
+import { AsocAportesAsociados } from 'src/entities/entities/AsocAportesAsociados';
 import { Asociados } from 'src/entities/entities/Asociados';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([AportesAsociados, Asociados])],
-  controllers: [AportesAsociadosController],
-  providers: [AportesAsociadosService],
+  imports: [TypeOrmModule.forFeature([AsocAportesAsociados, Asociados])],
+  controllers: [AsocAportesAsociadosController],
+  providers: [AsocAportesAsociadosService],
 })
-export class AportesAsociadosModule {}
+export class AsocAportesAsociadosModule {}

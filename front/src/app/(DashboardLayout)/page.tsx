@@ -12,17 +12,18 @@ import TransactionsHistory from "./components/dashboard/TransactionsHistory";
 import PaymentSupportsCard from "./components/dashboard/PaymentSupportsCard";
 import { useRouter } from "next/navigation";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
+import { authService } from "../authentication/services/authService";
 
 const Dashboard = () => {
   const router = useRouter();
   const [userRole, setUserRole] = useState<string | null>(null);
 
   useAuth();
-  
+
   useEffect(() => {
     setupAxiosInterceptors(router);
-    const role = localStorage.getItem("userRole");
-    setUserRole(role);
+    const userRole = authService.getUserRoles();
+    setUserRole(userRole);
   }, []);
 
   return (

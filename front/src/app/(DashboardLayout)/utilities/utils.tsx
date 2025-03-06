@@ -1,5 +1,15 @@
 import { LoggedUser } from "@/interfaces/User";
+import { Chip } from "@mui/material";
 import dayjs from "dayjs";
+
+export const rolesList = ["SOCIO", "ADMINISTRADOR", "GESTOR DE OPERACIONES"];
+export const roleSuperAdmin = [rolesList[1]];
+export const roleUser = [rolesList[0]];
+export const roleAdmin = [rolesList[1], rolesList[2]];
+
+export const validateRoles  = (roles:any, userRoles: any[]) => {
+  return userRoles.some((role) => roles.includes(role));
+};
 
 export const formatDateToISO = (date: string | Date) => {
   const d = new Date(date);
@@ -52,7 +62,7 @@ export const formatCurrencyFixed = (amount: any) => {
     maximumFractionDigits: 2,
   });
   if (!isNaN(value)) {
-    value = (value).toFixed(0);
+    value = value.toFixed(0);
     return formateador.format(value);
   }
   // return amount;
@@ -66,7 +76,7 @@ export const getComparator = (order: "asc" | "desc", orderBy: string) => {
 
 export const defaultLoggedUser: LoggedUser = {
   email: "",
-  role: "",
+  role: [],
   userId: 0,
   username: "",
   iat: 0,
@@ -214,5 +224,26 @@ export const formatDateTime = (date: Date): string => {
 
 export const formatNumber = (number: number) => {
   let value = number.toString();
-  return parseInt(parseFloat(value).toFixed(0))
-}
+  return parseInt(parseFloat(value).toFixed(0));
+};
+
+// Función para determinar el color del estado
+export const getEstadoChip = (estado: string) => {
+  const estadoConfig: Record<
+    string,
+    { label: string; color: "success" | "warning" | "error" | "info" }
+  > = {
+    APROBADO: { label: "Aprobado", color: "success" },
+    SOLICITADO: { label: "Solicitado", color: "warning" },
+    RECHAZADO: { label: "Rechazado", color: "error" },
+    PENDIENTE: { label: "Pendiente", color: "warning" },
+  };
+
+  return (
+    <Chip
+      label={estadoConfig[estado]?.label ?? "Desconocido"}
+      color={estadoConfig[estado]?.color ?? "info"}
+      variant="outlined"
+    />
+  );
+};

@@ -7,6 +7,7 @@ import {
   Grid,
   Box,
   Skeleton,
+  useMediaQuery,
 } from "@mui/material";
 import {
   AttachMoney,
@@ -20,18 +21,20 @@ import dynamic from "next/dynamic";
 import {
   defaultLoggedUser,
   formatCurrencyFixed,
+  formatNameDate,
 } from "@/app/(DashboardLayout)/utilities/utils";
 import { authService } from "@/app/authentication/services/authService";
 import { Asociado, LoggedUser } from "@/interfaces/User";
-import { Prestamo } from "@/interfaces/Prestamo";
+import { Cuota, Prestamo } from "@/interfaces/Prestamo";
 import { creditsService } from "@/services/creditRequestService";
+import Chart from "react-apexcharts";
+import { ApexOptions } from "apexcharts";
 
 // Usar `dynamic` para cargar el componente de forma dinámica solo en el cliente.
 const PaymentHistoryTable = dynamic(
   () => import("../components/PaymentHistoryTable"),
   { ssr: false }
 );
-const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
 // Define los tipos de datos de crédito
 interface CreditRequestData {
@@ -65,26 +68,42 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
       estado: "",
     },
   });
-  // Estados para los datos simulados, permitiendo el tipo null como valor inicial
-  const [creditRequestData, setCreditRequestData] =
-    useState<CreditRequestData | null>(null);
-  const [creditInfoData, setCreditInfoData] = useState<CreditInfoData | null>(
-    null
-  );
+  const [valorSaldoPendiente, setSaldoPendiente] = useState<number>(0);
+  const [valorCuotasPendiente, setCuotasPendiente] = useState<number>(0);
+  const [valorPagado, setValorPagado] = useState<number>(0);
+  const [graficoPagos, setGraficoPagos] = useState<JSX.Element | null>(null);
+
   const loadCreditData = useCallback(async () => {
-    let response;
     if (creditId) {
-      response = await creditsService.fetchByFilters({
+      const response = await creditsService.fetchByFilters({
         creditId: creditId,
         userId: userId,
       });
+      if (response.length > 0) {
+        setCredit(response[0]);
+        setUserInfo(response[0].idAsociado);
+
+        const { saldoPendiente, cuotasPendientes } = calcularSaldoYPendientes(
+          response[0].presCuotas
+        );
+        setSaldoPendiente(saldoPendiente);
+        setCuotasPendiente(cuotasPendientes);
+        setGraficoPagos(getGraficoPagos(response[0].presCuotas));
+      }
     }
-    if (response.length > 0) {
-      setCredit(response[0]);
-      setUserInfo(response[0].idAsociado);
-    }
-    console.log(response);
   }, [userId, creditId]);
+
+  const calcularSaldoYPendientes = (cuotas: Cuota[]) => {
+    const saldoPendiente = cuotas
+      .filter((cuota) => cuota.estado === "PENDIENTE")
+      .reduce((total, cuota) => total + cuota.monto, 0);
+
+    const cuotasPendientes = cuotas.filter(
+      (cuota) => cuota.estado === "PENDIENTE"
+    ).length;
+
+    return { saldoPendiente, cuotasPendientes };
+  };
 
   const fetchData = async () => {
     const hasSession = authService.isAuthenticated();
@@ -97,29 +116,42 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
   };
 
   useEffect(() => {
-    // Simular la carga de datos con un retardo
-    setTimeout(() => {
-      setCreditRequestData(mockCreditRequestData);
-      setCreditInfoData(mockCreditInfoData);
-    }, 2000); // 2 segundos de retardo
-    console.log(userId, creditId);
     fetchData();
-  }, []);
+  }, [userId, creditId]);
 
-  // Configuración del gráfico
-  const chartOptions = {
-    chart: { type: "pie" as const, toolbar: { show: true } },
-    labels: ["Pagado", "Pendiente"],
-    colors: ["#008FFB", "#FF4560"],
-    responsive: [{ breakpoint: 480, options: { chart: { width: 200 } } }],
+  const getGraficoPagos = (cuotas: Cuota[]) => {
+    // Calcular valores
+    const totalMonto = cuotas.reduce((sum, cuota) => sum + cuota.monto, 0);
+    const montoPagado =
+      totalMonto - calcularSaldoYPendientes(cuotas).saldoPendiente;
+    const montoPendiente = calcularSaldoYPendientes(cuotas).saldoPendiente;
+
+    const options: ApexOptions = {
+      chart: {
+        type: "donut",
+      },
+      labels: ["Pagado", "Pendiente"],
+      colors: ["#00C49F", "#FF8042"],
+    };
+
+    const series = [montoPagado, montoPendiente];
+    setValorPagado(montoPagado);
+    return (
+      <>
+        <Chart options={options} series={series} type="donut" width="250" />
+        {/* <Typography variant="body2" mt={2}>
+          Pagado: {montoPagado}, Pendiente: {montoPendiente}
+        </Typography> */}
+      </>
+    );
   };
 
-  const series = [400, 100]; // Datos del gráfico: Pagado y Pendiente
+  const isMobile = useMediaQuery("(max-width:600px)");
 
   return (
     <Grid container spacing={3}>
       {/* Información de la Solicitud */}
-      <Grid item xs={12} md={6}>
+      <Grid item xs={12} md={5}>
         <Card variant="outlined" sx={{ boxShadow: 3 }}>
           <CardContent>
             <Typography variant="h5" color="primary" gutterBottom>
@@ -160,7 +192,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
                   <Typography display="flex" alignItems="center">
                     <CalendarToday sx={{ mr: 1 }} />
                     <strong>Fecha de Solicitud: </strong>
-                    {credit.fechaSolicitud}
+                    {formatNameDate(credit.fechaSolicitud)}
                   </Typography>
                   <Typography display="flex" alignItems="center">
                     <AccessTime sx={{ mr: 1 }} />
@@ -177,27 +209,52 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
       </Grid>
 
       {/* Información del Crédito */}
-      <Grid item xs={12} md={6}>
+      <Grid item xs={12} md={7}>
         <Card variant="outlined" sx={{ boxShadow: 3 }}>
           <CardContent>
-            <Typography variant="h5" color="primary" gutterBottom>
-              Información del Crédito
-            </Typography>
             <Suspense fallback={<Skeleton variant="text" width="100%" />}>
-              {creditInfoData ? (
+              {credit ? (
                 <>
-                  <Typography variant="h6" display="flex" alignItems="center">
-                    <AttachMoney sx={{ mr: 1 }} /> Saldo Pendiente: $
-                    {creditInfoData.outstandingBalance.toLocaleString()}
-                  </Typography>
-                  <Typography display="flex" alignItems="center">
-                    <CalendarToday sx={{ mr: 1 }} /> Fecha de Vencimiento:{" "}
-                    {creditInfoData.dueDate}
-                  </Typography>
-                  <Typography display="flex" alignItems="center">
-                    <AccessTime sx={{ mr: 1 }} /> Plazo Restante:{" "}
-                    {creditInfoData.remainingTerm} meses
-                  </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      flexDirection: isMobile ? "column" : "row", // Columna en móvil, fila en escritorio
+                      gap: 2,
+                    }}
+                  >
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="h5" color="primary" gutterBottom>
+                        Información del Crédito
+                      </Typography>
+                      <Typography display="flex" alignItems="center">
+                        <AttachMoney sx={{ mr: 1 }} />
+                        <strong>Monto Pagado </strong> $
+                        {formatCurrencyFixed(valorPagado)}
+                      </Typography>
+                      <Typography display="flex" alignItems="center">
+                        <AttachMoney sx={{ mr: 1 }} />
+                        <strong>Saldo Pendiente: </strong> $
+                        {formatCurrencyFixed(valorSaldoPendiente)}
+                      </Typography>
+                      <Typography display="flex" alignItems="center">
+                        <CalendarToday sx={{ mr: 1 }} />
+                        <strong> Fecha de Vencimiento: </strong>
+                        {formatNameDate(credit.fechaVencimiento)}
+                      </Typography>
+                      <Typography display="flex" alignItems="center">
+                        <AccessTime sx={{ mr: 1 }} />{" "}
+                        <strong>Plazo Restante: </strong>
+                        {valorCuotasPendiente} meses
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        flex: 1,
+                      }}
+                    >
+                      {graficoPagos}
+                    </Box>
+                  </Box>
                 </>
               ) : (
                 <Skeleton variant="text" width="100%" height={50} />
@@ -206,9 +263,10 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
           </CardContent>
         </Card>
       </Grid>
+      {/* Gráfico de Pagos */}
 
       {/* Historial de pagos */}
-      <Grid item xs={12} md={8}>
+      <Grid item xs={12} md={12}>
         <Card variant="outlined" sx={{ boxShadow: 3 }}>
           <CardContent>
             <Box
@@ -232,32 +290,10 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
                 <Skeleton variant="rectangular" width="100%" height={300} />
               }
             >
-              <PaymentHistoryTable presCuotas={credit.presCuotas}/>
-            </Suspense>
-          </CardContent>
-        </Card>
-      </Grid>
-      {/* Gráfico de Pagos */}
-      <Grid item xs={12} md={4}>
-        <Card variant="outlined" sx={{ boxShadow: 3 }}>
-          <CardContent>
-            <Typography variant="h5" color="primary" gutterBottom>
-              Estado de Pagos
-            </Typography>
-            <Suspense
-              fallback={
-                <Skeleton variant="circular" width={100} height={100} />
-              }
-            >
-              <Chart
-                options={chartOptions}
-                series={series}
-                type="pie"
-                width="100%"
+              <PaymentHistoryTable
+                presCuotas={credit.presCuotas ? credit.presCuotas : []}
+                plazoMeses={credit.plazoMeses ? credit.plazoMeses : 10}
               />
-              <Typography variant="body2" mt={2}>
-                Pagado: $400, Pendiente: $100
-              </Typography>
             </Suspense>
           </CardContent>
         </Card>

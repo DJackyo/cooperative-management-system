@@ -9,12 +9,12 @@ import {
 import { Asociados } from "./Asociados";
 
 @Index("aportes_asociados_pkey", ["id"], { unique: true })
-@Entity("aportes_asociados", { schema: "public" })
-export class AportesAsociados {
+@Entity("asoc_aportes_asociados", { schema: "public" })
+export class AsocAportesAsociados {
   @Column("timestamp without time zone", { name: "fecha_aporte" })
   fechaAporte: Date;
 
-  @Column("numeric", { name: "monto", default: () => "0" })
+  @Column("integer", { name: "monto", default: () => "0" })
   monto: number;
 
   @Column("character varying", {
@@ -64,7 +64,7 @@ export class AportesAsociados {
   @Column("integer", { name: "id_usuario_registro", nullable: true })
   idUsuarioRegistro: number | null;
 
-  @ManyToOne(() => Asociados, (asociados) => asociados.aportesAsociados)
+  @ManyToOne(() => Asociados, (asociados) => asociados.asocAportesAsociados)
   @JoinColumn([{ name: "id_asociado", referencedColumnName: "id" }])
   idAsociado: Asociados;
 }

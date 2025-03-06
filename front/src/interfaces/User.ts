@@ -31,7 +31,7 @@ export interface User {
 
 export interface LoggedUser {
   email: string;
-  role: string;
+  role: [];
   userId: number;
   username: string;
   iat: number;

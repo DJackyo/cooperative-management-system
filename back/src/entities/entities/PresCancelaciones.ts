@@ -21,12 +21,12 @@ export class PresCancelaciones {
   })
   fechaCancelacion: Date | null;
 
-  @Column("numeric", {
+  @Column("integer", {
     name: "monto_cancelado",
     nullable: true,
     default: () => "0",
   })
-  montoCancelado: string | null;
+  montoCancelado: number | null;
 
   @ManyToOne(() => Prestamos, (prestamos) => prestamos.presCancelaciones)
   @JoinColumn([{ name: "id_prestamo", referencedColumnName: "id" }])

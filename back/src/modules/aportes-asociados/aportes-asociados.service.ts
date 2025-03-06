@@ -1,25 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { AportesAsociados } from 'src/entities/entities/AportesAsociados';
 import { Asociados } from 'src/entities/entities/Asociados';
 import { Repository } from 'typeorm';
-import { CreateAportesAsociadosDto } from './dto/create-aportes-asociado.dto';
-import { UpdateAportesAsociadosDto } from './dto/update-aportes-asociado.dto';
+import { CreateAsocAportesAsociadosDto } from './dto/create-aportes-asociado.dto';
+import { UpdateAsocAportesAsociadosDto } from './dto/update-aportes-asociado.dto';
+import { AsocAportesAsociados } from 'src/entities/entities/AsocAportesAsociados';
 
 @Injectable()
-export class AportesAsociadosService {
+export class AsocAportesAsociadosService {
   constructor(
-    @InjectRepository(AportesAsociados)
-    private readonly aportesAsociadosRepository: Repository<AportesAsociados>,
+    @InjectRepository(AsocAportesAsociados)
+    private readonly AsocAportesAsociadosRepository: Repository<AsocAportesAsociados>,
     @InjectRepository(Asociados)
     private readonly asociadosRepository: Repository<Asociados>,
   ) {}
 
   // Crear un nuevo aporte
   async create(
-    createAportesAsociadosDto: CreateAportesAsociadosDto,
-  ): Promise<AportesAsociados> {
-    const { idAsociado, ...aporteData } = createAportesAsociadosDto;
+    createAsocAportesAsociadosDto: CreateAsocAportesAsociadosDto,
+  ): Promise<AsocAportesAsociados> {
+    const { idAsociado, ...aporteData } = createAsocAportesAsociadosDto;
 
     // Obtener la entidad Asociado con el ID proporcionado
     const asociado = await this.asociadosRepository.findOne({
@@ -30,8 +30,8 @@ export class AportesAsociadosService {
       throw new Error('Asociado no encontrado');
     }
 
-    // Crear el objeto AportesAsociados
-    const aporte = this.aportesAsociadosRepository.create({
+    // Crear el objeto AsocAportesAsociados
+    const aporte = this.AsocAportesAsociadosRepository.create({
       ...aporteData,
       idAsociado: asociado, // Relacionar el objeto Asociado completo
     });
@@ -39,35 +39,35 @@ export class AportesAsociadosService {
     console.log(aporte)
 
     // Guardar el aporte
-    return this.aportesAsociadosRepository.save(aporte);
+    return this.AsocAportesAsociadosRepository.save(aporte);
   }
 
   // Obtener todos los aportes
-  async findAll(): Promise<AportesAsociados[]> {
-    return this.aportesAsociadosRepository.find({
+  async findAll(): Promise<AsocAportesAsociados[]> {
+    return this.AsocAportesAsociadosRepository.find({
       relations: ['idAsociado'],
     });
   }
 
   // Obtener un aporte por su ID
-  async findOne(id: number): Promise<AportesAsociados> {
-    return this.aportesAsociadosRepository.findOne({ where: { id } });
+  async findOne(id: number): Promise<AsocAportesAsociados> {
+    return this.AsocAportesAsociadosRepository.findOne({ where: { id } });
   }
 
   // Actualizar un aporte
   async update(
     id: number,
-    updateAportesAsociadosDto: UpdateAportesAsociadosDto,
-  ): Promise<AportesAsociados> {
+    updateAsocAportesAsociadosDto: UpdateAsocAportesAsociadosDto,
+  ): Promise<AsocAportesAsociados> {
     const asociado = await this.asociadosRepository.findOne({
-      where: { id: updateAportesAsociadosDto.idAsociado },
+      where: { id: updateAsocAportesAsociadosDto.idAsociado },
     });
 
     if (!asociado) {
       throw new Error('Asociado no encontrado');
     }
 
-    const aporte = await this.aportesAsociadosRepository.findOne({
+    const aporte = await this.AsocAportesAsociadosRepository.findOne({
       where: { id },
     });
 
@@ -76,31 +76,31 @@ export class AportesAsociadosService {
     }
 
     // Actualizamos las propiedades del aporte
-    aporte.fechaAporte = updateAportesAsociadosDto.fechaAporte;
-    aporte.monto = updateAportesAsociadosDto.monto;
-    aporte.observaciones = updateAportesAsociadosDto.observaciones;
-    aporte.tipoAporte = updateAportesAsociadosDto.tipoAporte;
-    aporte.estado = updateAportesAsociadosDto.estado;
-    aporte.metodoPago = updateAportesAsociadosDto.metodoPago;
-    aporte.comprobante = updateAportesAsociadosDto.comprobante;
-    aporte.idUsuarioRegistro = updateAportesAsociadosDto.idUsuarioRegistro;
+    aporte.fechaAporte = updateAsocAportesAsociadosDto.fechaAporte;
+    aporte.monto = updateAsocAportesAsociadosDto.monto;
+    aporte.observaciones = updateAsocAportesAsociadosDto.observaciones;
+    aporte.tipoAporte = updateAsocAportesAsociadosDto.tipoAporte;
+    aporte.estado = updateAsocAportesAsociadosDto.estado;
+    aporte.metodoPago = updateAsocAportesAsociadosDto.metodoPago;
+    aporte.comprobante = updateAsocAportesAsociadosDto.comprobante;
+    aporte.idUsuarioRegistro = updateAsocAportesAsociadosDto.idUsuarioRegistro;
 
     // Aquí asignamos el objeto `Asociado` en lugar de solo el ID
     aporte.idAsociado = asociado;
 
     // Guardamos los cambios
-    return await this.aportesAsociadosRepository.save(aporte);
+    return await this.AsocAportesAsociadosRepository.save(aporte);
   }
 
   // Eliminar un aporte
   async remove(id: number): Promise<void> {
-    await this.aportesAsociadosRepository.delete(id);
+    await this.AsocAportesAsociadosRepository.delete(id);
   }
 
   // Método para obtener los aportes filtrados con salida personalizada
   async findWithFilters(filter: { idAsociadoId?: number }): Promise<any> {
     const queryBuilder =
-      this.aportesAsociadosRepository.createQueryBuilder('aporte');
+      this.AsocAportesAsociadosRepository.createQueryBuilder('aporte');
 
     // Aplicar filtro por idAsociadoId, si se proporciona
     if (filter.idAsociadoId) {

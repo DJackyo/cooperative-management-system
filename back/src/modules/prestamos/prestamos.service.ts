@@ -7,13 +7,12 @@ import { Repository } from 'typeorm';
 import { PresAprobacionPrestamos } from 'src/entities/entities/PresAprobacionPrestamos';
 import { PresCuotas } from 'src/entities/entities/PresCuotas';
 import { EstadosAprobacion } from 'src/entities/entities/EstadosAprobacion';
-import { Usuarios } from 'src/entities/entities/Usuarios';
 
 @Injectable()
 export class PrestamosService {
   constructor(
     @InjectRepository(Prestamos)
-    private readonly prestamosRepository: Repository<Prestamos>, // El repositorio de la entidad Prestamos
+    private readonly prestamosRepository: Repository<Prestamos>,
 
     @InjectRepository(PresAprobacionPrestamos)
     private readonly aprobacionPrestamoRepository: Repository<PresAprobacionPrestamos>,
@@ -24,14 +23,14 @@ export class PrestamosService {
     @InjectRepository(EstadosAprobacion)
     private readonly estadosAprobacionRepository: Repository<EstadosAprobacion>,
   ) {}
-  // Obtener todos los prestamos, incluyendo las relaciones
+  /* Obtener todos los prestamos, incluyendo las relaciones */
   async getAll(): Promise<Prestamos[]> {
     return this.prestamosRepository.find({
-      relations: ['idTasa', 'idAsociado'], // Cargamos las relaciones
+      relations: ['idTasa', 'idAsociado'],
     });
   }
 
-  // Obtener un prestamo por id, incluyendo las relaciones
+  /* Obtener un prestamo por id, incluyendo las relaciones */
   async getOne(id: number): Promise<Prestamos> {
     const prestamo = await this.prestamosRepository.findOne({
       where: { id },
@@ -109,7 +108,7 @@ export class PrestamosService {
     // Actualizar el estado del préstamo
     const prestamos = await this.prestamosRepository.find({
       where: { id },
-      relations: ['idTasa', 'idAsociado', 'PresAprobacionPrestamos'],
+      relations: ['idTasa', 'idAsociado'],
     });
 
     if (prestamos.length === 0) {
@@ -140,8 +139,12 @@ export class PrestamosService {
       prestamo.estado = updatePrestamoDto.estado;
       prestamo.fechaCredito = updatePrestamoDto.fechaCredito;
       prestamo.fechaVencimiento = updatePrestamoDto.fechaVencimiento;
-      prestamo.fechaDesembolso = updatePrestamoDto.fechaDesembolso;
-      prestamo.fechaActualizacion = updatePrestamoDto.fechaActualizacion;
+      prestamo.fechaDesembolso = updatePrestamoDto.fechaDesembolso
+        ? updatePrestamoDto.fechaDesembolso
+        : new Date();
+      prestamo.fechaActualizacion = updatePrestamoDto.fechaActualizacion
+        ? updatePrestamoDto.fechaActualizacion
+        : new Date();
 
       if (updatePrestamoDto.observaciones) {
         prestamo.observaciones = updatePrestamoDto.observaciones;
@@ -175,24 +178,32 @@ export class PrestamosService {
 
   // Método para generar el plan de pagos (pres_cuotas)
   private async generatePaymentPlan(prestamo: Prestamos) {
-    const monto = parseFloat(prestamo.monto);
+    const monto = prestamo.monto;
+    let saldoCapitalTmp = monto;
     const tasa = parseFloat(prestamo.idTasa.tasa);
     const plazoMeses = prestamo.plazoMeses;
-
+    const porcentajeProteccionCartera = prestamo.porcentajeProteccionCartera
+      ? prestamo.porcentajeProteccionCartera
+      : 0.001;
+    let saldoCapital = monto;
     const cuotaMensual = this.calculateCuotaMensual(monto, tasa, plazoMeses);
 
     for (let i = 1; i <= plazoMeses; i++) {
       const cuota = new PresCuotas();
       cuota.numeroCuota = i;
       cuota.monto = cuotaMensual;
+      cuota.intereses = saldoCapital * tasa;
+      cuota.abonoCapital = cuotaMensual - cuota.intereses;
+      cuota.proteccionCartera = saldoCapitalTmp * porcentajeProteccionCartera;
       cuota.fechaVencimiento = this.calculateVencimientoDate(
         prestamo.fechaCredito,
         i,
       );
       cuota.estado = 'PENDIENTE';
-
       cuota.idPrestamo = prestamo;
+      saldoCapital -= cuota.abonoCapital;
       await this.cuotasRepository.save(cuota);
+      saldoCapitalTmp -= cuota.abonoCapital;
     }
   }
 
