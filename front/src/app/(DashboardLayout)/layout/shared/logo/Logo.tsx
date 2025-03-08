@@ -1,12 +1,6 @@
-import { Mouse_Memoirs } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { Typography, Box } from "@mui/material";
-
-const poppins = Mouse_Memoirs({
-  weight: "400",
-  subsets: ["latin"],
-});
 
 interface LogoProps {
   showText?: boolean;
@@ -40,16 +34,17 @@ const Logo: React.FC<LogoProps> = ({
         {showText && (
           <Typography
             variant="h1"
-            className={poppins.className} // Asegúrate de que esta clase esté aplicada
+            className={"logo-text"}
             sx={{
               background:
                 "linear-gradient(to right, rgba(93, 135, 255, 0.85), rgba(73, 190, 255, 0.85))",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               fontWeight: 400,
+              fontfamily: "'Mouse Memoirs', sans-serif",
             }}
           >
-            Coopinsi
+            COOPINSI
           </Typography>
         )}
       </Box>

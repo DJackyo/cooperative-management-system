@@ -9,13 +9,17 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import {
+  calcularDiasEnMora,
+  calcularMora,
   formatCurrency,
+  formatDateTime,
   formatNameDate,
   formatNumber,
   getEstadoChip,
   redondearHaciaArriba,
 } from "@/app/(DashboardLayout)/utilities/utils";
 import { Cuota } from "@/interfaces/Prestamo";
+import PresPagosForm from "./PresPagosForm";
 
 interface PaymentHistoryProps {
   presCuotas: Cuota[];
@@ -39,21 +43,30 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
     setSelectedRow(null);
   };
 
-  const sortedCuotas = [...presCuotas].sort(
+  let sortedCuotas = [...presCuotas].sort(
     (a: any, b: any) => a.numeroCuota - b.numeroCuota
   );
   console.log("sortedCuotas->", sortedCuotas);
+
+  sortedCuotas = sortedCuotas.map((cuota) => ({
+    ...cuota,
+    diasEnMora: calcularDiasEnMora(
+      cuota.fechaVencimiento,
+      formatDateTime(new Date())
+    ),
+  }));
+
   const columns: GridColDef[] = [
     {
       field: "numeroCuota",
       headerName: "# Cuota",
-      width: 80,
+      width: 70,
       headerClassName: "multiline-header",
     },
     {
       field: "fechaVencimiento",
       headerName: "Fecha de Vencimiento",
-      width: 110,
+      width: 100,
       valueFormatter: (params: any) => {
         if (!params) return "****";
         return formatNameDate(params);
@@ -74,10 +87,36 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
     {
       field: "intereses",
       headerName: "Intereses",
-      width: 100,
+      width: 90,
       valueFormatter: (params: any) => {
         if (!params) return "$0.00";
         return "$" + formatCurrency(formatNumber(redondearHaciaArriba(params)));
+      },
+      headerClassName: "multiline-header",
+      cellClassName: "align-right",
+    },
+    {
+      field: "diasEnMora",
+      headerName: "Días en Mora",
+      width: 60,
+      valueFormatter: (params: any) => {
+        if (!params) return "0";
+        return formatNumber(redondearHaciaArriba(params));
+      },
+      headerClassName: "multiline-header",
+      cellClassName: "align-right",
+    },
+    {
+      field: "mora",
+      headerName: "Mora",
+      width: 80,
+      renderCell: (params) => {
+        const currentRow = params.row;
+        const mora = redondearHaciaArriba(
+          calcularMora(currentRow.monto, currentRow.diasEnMora)
+        );
+        if (!params) return "0";
+        return "$" + formatCurrency(formatNumber(mora));
       },
       cellClassName: "align-right",
     },
@@ -95,11 +134,12 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
     {
       field: "monto",
       headerName: "Monto",
-      width: 110,
+      width: 100,
       valueFormatter: (params: any) => {
         if (!params) return "$0.00";
         return "$" + formatCurrency(formatNumber(redondearHaciaArriba(params)));
       },
+      headerClassName: "multiline-header",
       cellClassName: "align-right",
     },
     {
@@ -107,15 +147,17 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       headerName: "Estado",
       width: 110,
       renderCell: (params) => getEstadoChip(params.value),
+      headerClassName: "multiline-header",
     },
     {
       field: "presPagos.diaDePago",
       headerName: "Fecha de Pago",
-      width: 130,
+      width: 100,
       valueFormatter: (params: any) => {
         if (!params) return "No registrado";
         return formatNameDate(params);
       },
+      headerClassName: "multiline-header",
     },
     {
       field: "pagado",
@@ -144,6 +186,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
           <>***</>
         );
       },
+      headerClassName: "multiline-header",
     },
   ];
 
@@ -199,29 +242,14 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
         />
       </Box>
       {/* Modal para Registrar Pago */}
-      <Dialog open={open} onClose={handleCloseModal}>
+      <Dialog open={open} onClose={handleCloseModal} maxWidth="md">
         <DialogTitle>Registrar Pago</DialogTitle>
         <DialogContent>
-          <p>
-            ¿Deseas registrar el pago para el registro con ID: {selectedRow?.id}
-            ?
-          </p>
+          <PresPagosForm pago={selectedRow} />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseModal} color="secondary">
             Cancelar
-          </Button>
-          <Button
-            onClick={() => {
-              console.log(
-                "Pago registrado para el registro con ID:",
-                selectedRow?.id
-              );
-              handleCloseModal();
-            }}
-            color="primary"
-          >
-            Confirmar
           </Button>
         </DialogActions>
       </Dialog>

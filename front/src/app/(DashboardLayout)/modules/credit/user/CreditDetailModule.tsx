@@ -1,64 +1,31 @@
 // src/modules/credit/CreditDetailModule.tsx
 import React, { Suspense, useCallback, useEffect, useState } from "react";
-import {
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  Box,
-  Skeleton,
-  useMediaQuery,
-} from "@mui/material";
-import {
-  AttachMoney,
-  CalendarToday,
-  AccessTime,
-  Person,
-  BadgeOutlined,
-} from "@mui/icons-material";
-import { mockCreditRequestData, mockCreditInfoData } from "@/mock/mockData";
+import { Card, CardContent, Typography, Grid, Box, Skeleton, useMediaQuery } from "@mui/material";
+import { AttachMoney, CalendarToday, AccessTime, Person, BadgeOutlined } from "@mui/icons-material";
 import dynamic from "next/dynamic";
-import {
-  defaultLoggedUser,
-  formatCurrencyFixed,
-  formatNameDate,
-} from "@/app/(DashboardLayout)/utilities/utils";
+import { defaultLoggedUser, formatCurrencyFixed, formatNameDate } from "@/app/(DashboardLayout)/utilities/utils";
 import { authService } from "@/app/authentication/services/authService";
 import { Asociado, LoggedUser } from "@/interfaces/User";
 import { Cuota, Prestamo } from "@/interfaces/Prestamo";
 import { creditsService } from "@/services/creditRequestService";
 import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
+import { useRouter } from "next/navigation";
+import { setupAxiosInterceptors } from "@/services/axiosClient";
 
 // Usar `dynamic` para cargar el componente de forma dinámica solo en el cliente.
-const PaymentHistoryTable = dynamic(
-  () => import("../components/PaymentHistoryTable"),
-  { ssr: false }
-);
+const PaymentHistoryTable = dynamic(() => import("../components/PaymentHistoryTable"), { ssr: false });
 
-// Define los tipos de datos de crédito
-interface CreditRequestData {
-  amountRequested: number;
-  requestDate: string;
-  termRequested: number;
-}
-
-interface CreditInfoData {
-  outstandingBalance: number;
-  dueDate: string;
-  remainingTerm: number;
-}
 interface CreditDetailModuleProps {
   userId: number;
   creditId: number;
 }
-const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
-  userId,
-  creditId,
-}) => {
+
+const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditId }) => {
+  const router = useRouter();
   // Estado para el usuario actual
   const [currentUser, setCurrentUser] = useState<LoggedUser>(defaultLoggedUser);
-  const [credit, setCredit] = useState<Prestamo>([]);
+  const [credit, setCredit] = useState<Prestamo>();
   const [userInfo, setUserInfo] = useState<Asociado>({
     id: 0,
     nombres: "",
@@ -83,9 +50,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
         setCredit(response[0]);
         setUserInfo(response[0].idAsociado);
 
-        const { saldoPendiente, cuotasPendientes } = calcularSaldoYPendientes(
-          response[0].presCuotas
-        );
+        const { saldoPendiente, cuotasPendientes } = calcularSaldoYPendientes(response[0].presCuotas);
         setSaldoPendiente(saldoPendiente);
         setCuotasPendiente(cuotasPendientes);
         setGraficoPagos(getGraficoPagos(response[0].presCuotas));
@@ -94,13 +59,9 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
   }, [userId, creditId]);
 
   const calcularSaldoYPendientes = (cuotas: Cuota[]) => {
-    const saldoPendiente = cuotas
-      .filter((cuota) => cuota.estado === "PENDIENTE")
-      .reduce((total, cuota) => total + cuota.monto, 0);
+    const saldoPendiente = cuotas.filter((cuota) => cuota.estado === "PENDIENTE").reduce((total, cuota) => total + cuota.monto, 0);
 
-    const cuotasPendientes = cuotas.filter(
-      (cuota) => cuota.estado === "PENDIENTE"
-    ).length;
+    const cuotasPendientes = cuotas.filter((cuota) => cuota.estado === "PENDIENTE").length;
 
     return { saldoPendiente, cuotasPendientes };
   };
@@ -116,14 +77,14 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
   };
 
   useEffect(() => {
+    setupAxiosInterceptors(router);
     fetchData();
   }, [userId, creditId]);
 
   const getGraficoPagos = (cuotas: Cuota[]) => {
     // Calcular valores
     const totalMonto = cuotas.reduce((sum, cuota) => sum + cuota.monto, 0);
-    const montoPagado =
-      totalMonto - calcularSaldoYPendientes(cuotas).saldoPendiente;
+    const montoPagado = totalMonto - calcularSaldoYPendientes(cuotas).saldoPendiente;
     const montoPendiente = calcularSaldoYPendientes(cuotas).saldoPendiente;
 
     const options: ApexOptions = {
@@ -139,9 +100,6 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
     return (
       <>
         <Chart options={options} series={series} type="donut" width="250" />
-        {/* <Typography variant="body2" mt={2}>
-          Pagado: {montoPagado}, Pendiente: {montoPendiente}
-        </Typography> */}
       </>
     );
   };
@@ -161,21 +119,11 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
               {userId > 0 && (
                 <>
                   <Box>
-                    <Typography
-                      variant="h6"
-                      sx={{ marginTop: 0.5, marginBottom: 0.5 }}
-                      display="flex"
-                      alignItems="center"
-                    >
+                    <Typography variant="h6" sx={{ marginTop: 0.5, marginBottom: 0.5 }} display="flex" alignItems="center">
                       <Person sx={{ mr: 1 }} />
                       {userId} - {userInfo.nombres}
                     </Typography>
-                    <Typography
-                      variant="subtitle2"
-                      color="textSecondary"
-                      display="flex"
-                      alignItems="center"
-                    >
+                    <Typography variant="subtitle2" color="textSecondary" display="flex" alignItems="center">
                       <BadgeOutlined sx={{ mr: 1, display: "inline-flex" }} />
                       {userInfo.numeroDeIdentificacion}
                     </Typography>
@@ -186,8 +134,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
                 <>
                   <Typography display="flex" alignItems="center">
                     <AttachMoney sx={{ mr: 1 }} />
-                    <strong>Monto Solicitado: </strong>${" "}
-                    {formatCurrencyFixed(credit.monto)}
+                    <strong>Monto Solicitado: </strong>$ {formatCurrencyFixed(credit.monto)}
                   </Typography>
                   <Typography display="flex" alignItems="center">
                     <CalendarToday sx={{ mr: 1 }} />
@@ -228,13 +175,11 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
                       </Typography>
                       <Typography display="flex" alignItems="center">
                         <AttachMoney sx={{ mr: 1 }} />
-                        <strong>Monto Pagado </strong> $
-                        {formatCurrencyFixed(valorPagado)}
+                        <strong>Monto Pagado </strong> ${formatCurrencyFixed(valorPagado)}
                       </Typography>
                       <Typography display="flex" alignItems="center">
                         <AttachMoney sx={{ mr: 1 }} />
-                        <strong>Saldo Pendiente: </strong> $
-                        {formatCurrencyFixed(valorSaldoPendiente)}
+                        <strong>Saldo Pendiente: </strong> ${formatCurrencyFixed(valorSaldoPendiente)}
                       </Typography>
                       <Typography display="flex" alignItems="center">
                         <CalendarToday sx={{ mr: 1 }} />
@@ -242,14 +187,14 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
                         {formatNameDate(credit.fechaVencimiento)}
                       </Typography>
                       <Typography display="flex" alignItems="center">
-                        <AccessTime sx={{ mr: 1 }} />{" "}
-                        <strong>Plazo Restante: </strong>
+                        <AccessTime sx={{ mr: 1 }} /> <strong>Plazo Restante: </strong>
                         {valorCuotasPendiente} meses
                       </Typography>
                     </Box>
                     <Box
                       sx={{
                         flex: 1,
+                        paddingTop: 2,
                       }}
                     >
                       {graficoPagos}
@@ -269,11 +214,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
       <Grid item xs={12} md={12}>
         <Card variant="outlined" sx={{ boxShadow: 3 }}>
           <CardContent>
-            <Box
-              display="flex"
-              justifyContent="space-between"
-              alignItems="center"
-            >
+            <Box display="flex" justifyContent="space-between" alignItems="center">
               <Typography variant="h5" color="primary" gutterBottom>
                 Historial de Pagos
               </Typography>
@@ -285,15 +226,8 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
                 Modificar crédito
               </Button> */}
             </Box>
-            <Suspense
-              fallback={
-                <Skeleton variant="rectangular" width="100%" height={300} />
-              }
-            >
-              <PaymentHistoryTable
-                presCuotas={credit.presCuotas ? credit.presCuotas : []}
-                plazoMeses={credit.plazoMeses ? credit.plazoMeses : 10}
-              />
+            <Suspense fallback={<Skeleton variant="rectangular" width="100%" height={300} />}>
+              {credit ? <PaymentHistoryTable presCuotas={credit.presCuotas ? credit.presCuotas : []} plazoMeses={credit.plazoMeses ? credit.plazoMeses : 10} /> : <></>}
             </Suspense>
           </CardContent>
         </Card>

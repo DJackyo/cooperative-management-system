@@ -20,7 +20,7 @@ const axiosClient = axios.create({
 // Interceptor para agregar el token de autenticación a cada solicitud
 axiosClient.interceptors.request.use(
   (config) => {
-    if (typeof window !== "undefined") {
+    if (window && typeof window !== "undefined") {
       const token = localStorage.getItem("authToken");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;

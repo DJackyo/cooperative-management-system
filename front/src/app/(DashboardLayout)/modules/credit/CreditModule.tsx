@@ -34,9 +34,7 @@ import {
   formatDateWithoutTime,
   getComparator,
   getEstadoChip,
-  hasRole,
   roleAdmin,
-  rolesList,
   validateRoles,
 } from "../../utilities/utils";
 import {

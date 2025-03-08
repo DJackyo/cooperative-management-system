@@ -7,7 +7,7 @@ export const roleSuperAdmin = [rolesList[1]];
 export const roleUser = [rolesList[0]];
 export const roleAdmin = [rolesList[1], rolesList[2]];
 
-export const validateRoles  = (roles:any, userRoles: any[]) => {
+export const validateRoles = (roles: any, userRoles: any[]) => {
   return userRoles.some((role) => roles.includes(role));
 };
 
@@ -246,4 +246,26 @@ export const getEstadoChip = (estado: string) => {
       variant="outlined"
     />
   );
+};
+
+// 📌 Función para calcular los días en mora
+export const calcularDiasEnMora = (
+  fechaVenc: string,
+  diaPago: string
+): number => {
+  if (!fechaVenc || !diaPago) return 0;
+
+  const fechaVencDate = new Date(fechaVenc);
+  const diaPagoDate = new Date(diaPago);
+
+  // Calcular la diferencia en días
+  const diferenciaDias = Math.floor(
+    (diaPagoDate.getTime() - fechaVencDate.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  return diferenciaDias > 0 ? diferenciaDias : 0; // Si es negativo, retorna 0
+};
+
+export const calcularMora = (monto: number, diasEnMora: number) => {
+  return Math.ceil(monto * (18 / 100 / 366) * diasEnMora);
 };

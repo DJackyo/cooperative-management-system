@@ -55,7 +55,7 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
-    title: "Mis Movimientos",
+    title: "Mis Créditos",
     icon: IconListDetails,
     href: "/modules/credit?userId=",
     roles: roleUser,

@@ -12,10 +12,6 @@ export default function RootLayout({
   return (
     <html lang="es">
       <head> 
-        <link
-          href="https://fonts.googleapis.com/css2?family=Mouse+Memoirs:wght@400&display=swap"
-          rel="stylesheet"
-        />
       </head>
       <body>
         <ThemeProvider theme={baselightTheme}>

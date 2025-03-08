@@ -27,14 +27,15 @@ const UserCreditPage = () => {
             <ErrorOutline sx={{ mr: 1, fontSize: 40, color: "error.main" }} />{" "}
             {/* Ícono de error */}
             <Typography variant="h6" color="error" align="center">
-              No se encontró un ID de usuario o Crédito relacionado para mostrar
-              la información
+              No se encontró un ID de usuario o de Crédito relacionado para
+              mostrar la información
             </Typography>
           </Box>
         </CardContent>
       </Card>
     );
   }
+
   return (
     <CreditDetailModule
       userId={parseInt(userId!)}

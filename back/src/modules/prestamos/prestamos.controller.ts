@@ -23,7 +23,8 @@ export class PrestamosController {
     private readonly tasasService: TasasService,
   ) {}
 
-  // Ruta para obtener todos los prestamos
+  /* Ruta para obtener todos los prestamos*/
+  @UseGuards(JwtAuthGuard)
   @Get()
   async getAll() {
     const prestamos = await this.prestamosService.getAll();
@@ -44,19 +45,21 @@ export class PrestamosController {
     }));
   }
 
-  // Ruta para obtener un prestamo por id
+  /* Ruta para obtener un prestamo por id*/
   @Get(':id')
   async getPrestamo(@Param('id') id: number) {
     return this.prestamosService.getOne(id); // Llamamos al servicio pasando el id
   }
 
-  // Ruta para crear un nuevo prestamo
+  /* Ruta para crear un nuevo prestamo*/
+  @UseGuards(JwtAuthGuard)
   @Post()
   async createPrestamo(@Body() prestamoDto: PrestamoDto) {
     return this.prestamosService.create(prestamoDto); // Llamamos al servicio pasando el DTO
   }
 
-  // Ruta para actualizar un prestamo por id
+  /* Ruta para actualizar un prestamo por id*/
+  @UseGuards(JwtAuthGuard)
   @Put(':id')
   async updatePrestamo(
     @Param('id') id: number,
@@ -65,13 +68,15 @@ export class PrestamosController {
     return this.prestamosService.update(id, updatePrestamoDto); // Llamamos al servicio pasando el id y DTO
   }
 
-  // Ruta para eliminar un prestamo por id
+  /* Ruta para eliminar un prestamo por id*/
+  @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async deletePrestamo(@Param('id') id: number) {
     return this.prestamosService.deleteOne(id); // Llamamos al servicio pasando el id
   }
 
-  // Ruta para obtener un prestamo por id
+  /* Ruta para obtener un prestamo por id*/
+  @UseGuards(JwtAuthGuard)
   @Get('user/:userId')
   async getPrestamoByUserId(@Param('userId') id: number) {
     const prestamos = await this.prestamosService.getByUserId(id);
@@ -109,7 +114,9 @@ export class PrestamosController {
   }
 
   @Post('findWithFilters')
-  async findWithFilters(@Body() filter: { userId?: number, creditId?: number }) {
+  async findWithFilters(
+    @Body() filter: { userId?: number; creditId?: number },
+  ) {
     return this.prestamosService.findWithFilters(filter);
   }
 }
