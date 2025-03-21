@@ -38,39 +38,8 @@ export class PresPagos {
   })
   diaDePago: Date | null;
 
-  @Column("boolean", {
-    name: "cuota_pagada",
-    nullable: true,
-    default: () => "false",
-  })
-  cuotaPagada: boolean | null;
-
   @Column("integer", { name: "num_cuota", nullable: true, default: () => "0" })
   numCuota: number | null;
-
-  @Column("real", {
-    name: "saldo_capital_inicial",
-    nullable: true,
-    precision: 24,
-    default: () => "0",
-  })
-  saldoCapitalInicial: number | null;
-
-  @Column("real", {
-    name: "saldo_capital_original",
-    nullable: true,
-    precision: 24,
-    default: () => "0",
-  })
-  saldoCapitalOriginal: number | null;
-
-  @Column("real", {
-    name: "saldo_capital",
-    nullable: true,
-    precision: 24,
-    default: () => "0",
-  })
-  saldoCapital: number | null;
 
   @Column("real", {
     name: "abono_extra",
@@ -105,12 +74,12 @@ export class PresPagos {
   intereses: number | null;
 
   @Column("real", {
-    name: "total_cuota",
+    name: "monto",
     nullable: true,
     precision: 24,
     default: () => "0",
   })
-  totalCuota: number | null;
+  monto: number | null;
 
   @Column("real", {
     name: "mora",
@@ -119,22 +88,6 @@ export class PresPagos {
     default: () => "0",
   })
   mora: number | null;
-
-  @Column("real", {
-    name: "interes_pendiente",
-    nullable: true,
-    precision: 24,
-    default: () => "0",
-  })
-  interesPendiente: number | null;
-
-  @Column("real", {
-    name: "diferencia_capital",
-    nullable: true,
-    precision: 24,
-    default: () => "0",
-  })
-  diferenciaCapital: number | null;
 
   @Column("real", {
     name: "total_pagado",

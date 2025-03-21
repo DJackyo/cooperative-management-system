@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -6,8 +6,13 @@ import {
   Box,
   Button,
   Checkbox,
+  FormControl,
   FormControlLabel,
   Grid,
+  InputAdornment,
+  InputLabel,
+  MenuItem,
+  Select,
   TextField,
   Typography,
 } from "@mui/material";
@@ -19,23 +24,37 @@ import {
   numeroALetras,
   redondearHaciaArriba,
 } from "@/app/(DashboardLayout)/utilities/utils";
+import { pagosService } from "@/services/paymentsService";
+import { MetodoPago } from "@/interfaces/Cuota";
+
+const metodosPago: MetodoPago[] = [
+  { id: 1, nombre: "EFECTIVO" },
+  { id: 2, nombre: "TRANSFERENCIA" },
+  { id: 3, nombre: "CONSIGNACIÓN" },
+  { id: 4, nombre: "NEQUI/DAVIPLATA" },
+];
+
+const messages = {
+  invalid_type_error: "El valor debe ser un número válido",
+  min: "El valor debe ser mayor o igual a 0",
+};
 // 📌 Definir esquema de validación con Zod
 const presPagosSchema = z.object({
   id: z.number().optional(),
   numeroCuota: z.number().min(1, "Número de cuota requerido"),
   fechaVencimiento: z.string().optional(),
   diaDePago: z.string().optional(),
-  monto: z.number().min(0, "El monto debe ser positivo"),
-  diasEnMora: z
-    .number()
-    .min(0, "Días en mora no pueden ser negativos")
-    .optional(),
+  monto: z.number().min(0, messages.min),
+  diasEnMora: z.number().min(0, messages.min).optional(),
   mora: z.number().optional(),
   totalPagar: z.number().optional(),
   estado: z.string().optional(),
-  proteccionCartera: z.number().min(0),
-  abonoCapital: z.number().min(0),
-  intereses: z.number().min(0),
+  proteccionCartera: z.number().min(0, messages.min),
+  abonoCapital: z.number().min(0, messages.min),
+  intereses: z.number().min(0, messages.min),
+  abonoExtra: z
+    .number({ invalid_type_error: messages.invalid_type_error })
+    .min(0, messages.min),
   pagado: z.literal(true).refine((value) => value === true, {
     message: "Debe marcar la casilla para registrar el pago",
   }),
@@ -47,9 +66,12 @@ type PresPagosFormData = z.infer<typeof presPagosSchema>;
 // 📌 Tipado de Props
 interface PresPagosFormProps {
   pago?: PresPagosFormData;
+  creditId: number;
 }
 
-export default function PresPagosForm({ pago }: PresPagosFormProps) {
+export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
+  const [metodoSeleccionado, setMetodoSeleccionado] = useState<number | "">("");
+
   const {
     register,
     handleSubmit,
@@ -72,6 +94,7 @@ export default function PresPagosForm({ pago }: PresPagosFormProps) {
   const abonoCapital = watch("abonoCapital", 0);
   const intereses = watch("intereses", 0);
   const mora = watch("mora", 0);
+  const abonoExtra = watch("abonoExtra", 0) || 0;
   const totalPagar = watch("totalPagar") || 0;
 
   // 📌 Cargar valores de `pago` en el formulario cuando cambie
@@ -119,13 +142,28 @@ export default function PresPagosForm({ pago }: PresPagosFormProps) {
       Number(monto) +
       Number(proteccionCartera) +
       Number(intereses) +
-      Number(abonoCapital);
+      Number(abonoCapital) +
+      Number(abonoExtra);
     setValue("totalPagar", total);
-  }, [mora, monto, proteccionCartera, abonoCapital, intereses, setValue]);
+  }, [
+    mora,
+    monto,
+    proteccionCartera,
+    abonoCapital,
+    intereses,
+    abonoExtra,
+    setValue,
+  ]);
 
-  // 📌 Función de envío de datos (simulada con console.log)
-  const onSubmit = (data: PresPagosFormData) => {
+  // 📌 Función de envío de datos
+  const onSubmit = async (data: any) => {
     console.log("Datos enviados:", data);
+    let pagoRequest = await pagosService.create(creditId,data);
+    console.log("Pago enviado:", pagoRequest);
+  };
+
+  const handleChange: any = (event: React.ChangeEvent<{ value: unknown }>) => {
+    setMetodoSeleccionado(event.target.value as number);
   };
 
   return (
@@ -139,42 +177,7 @@ export default function PresPagosForm({ pago }: PresPagosFormProps) {
       </Typography>
       <p>Se registrará el pago con la siguiente información:</p>
       <Grid container spacing={2} sx={{ mt: 1 }}>
-        {/* Días en Mora */}
-        <Grid item xs={12} sm={4}>
-          <TextField
-            fullWidth
-            label="Días en Mora"
-            type="number"
-            {...register("diasEnMora", { valueAsNumber: true })}
-            error={!!errors.diasEnMora}
-            helperText={errors.diasEnMora?.message}
-            disabled
-          />
-        </Grid>
-
-        {/* Mora Calculada */}
-        <Grid item xs={12} sm={4}>
-          <TextField
-            fullWidth
-            label="Mora Calculada"
-            type="number"
-            disabled
-            value={watch("mora") || 0} // Mostrar el valor actualizado
-          />
-        </Grid>
-
-        {/* Día de Pago */}
-        <Grid item xs={12} sm={4}>
-          <TextField
-            fullWidth
-            label="Día de Pago"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            {...register("diaDePago")}
-          />
-        </Grid>
-
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={3}>
           <TextField
             fullWidth
             label="Fecha de Vencimiento"
@@ -184,40 +187,106 @@ export default function PresPagosForm({ pago }: PresPagosFormProps) {
             disabled
           />
         </Grid>
-        <Grid item xs={12} sm={4}>
+        {/* Día de Pago */}
+        <Grid item xs={12} sm={3}>
           <TextField
             fullWidth
-            label="Monto"
+            label="Día de Pago"
+            type="date"
+            InputLabelProps={{ shrink: true }}
+            {...register("diaDePago")}
+          />
+        </Grid>
+        {/* Días en Mora */}
+        <Grid item xs={12} sm={3}>
+          <TextField
+            fullWidth
+            label="Días en Mora"
+            type="number"
+            {...register("diasEnMora", { valueAsNumber: true })}
+            error={!!errors.diasEnMora}
+            helperText={errors.diasEnMora?.message}
+            disabled
+            InputProps={{
+              sx: { textAlign: "right" },
+              inputProps: { style: { textAlign: "right" } },
+            }}
+          />
+        </Grid>
+
+        {/* Mora Calculada */}
+        <Grid item xs={12} sm={3}>
+          <TextField
+            fullWidth
+            label="Mora Calculada"
+            type="number"
+            disabled
+            value={watch("mora") || 0}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">$</InputAdornment>
+              ),
+              sx: { textAlign: "right" },
+              inputProps: { style: { textAlign: "right" } },
+            }}
+          />
+        </Grid>
+
+        <Grid item xs={12} sm={3}>
+          <TextField
+            fullWidth
+            label="Valor de la cuota"
             type="number"
             {...register("monto", { valueAsNumber: true })}
             error={!!errors.monto}
             helperText={errors.monto?.message}
             disabled
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">$</InputAdornment>
+              ),
+              sx: { textAlign: "right" },
+              inputProps: { style: { textAlign: "right" } },
+            }}
           />
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={3}>
           <TextField
             fullWidth
-            label="Protección Cartera"
+            label="Protección de cartera"
             type="number"
             {...register("proteccionCartera", { valueAsNumber: true })}
             error={!!errors.proteccionCartera}
             helperText={errors.proteccionCartera?.message}
             disabled
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">$</InputAdornment>
+              ),
+              sx: { textAlign: "right" },
+              inputProps: { style: { textAlign: "right" } },
+            }}
           />
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={3}>
           <TextField
             fullWidth
-            label="Abono Capital"
+            label="Abono a Capital"
             type="number"
             {...register("abonoCapital", { valueAsNumber: true })}
             error={!!errors.abonoCapital}
             helperText={errors.abonoCapital?.message}
             disabled
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">$</InputAdornment>
+              ),
+              sx: { textAlign: "right" },
+              inputProps: { style: { textAlign: "right" } },
+            }}
           />
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={3}>
           <TextField
             fullWidth
             label="Intereses"
@@ -226,16 +295,69 @@ export default function PresPagosForm({ pago }: PresPagosFormProps) {
             error={!!errors.intereses}
             helperText={errors.intereses?.message}
             disabled
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">$</InputAdornment>
+              ),
+              sx: { textAlign: "right" },
+              inputProps: { style: { textAlign: "right" } },
+            }}
           />
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={3}>
+          <TextField
+            fullWidth
+            label="Abono extra"
+            type="number"
+            {...register("abonoExtra", { valueAsNumber: true })}
+            error={!!errors.abonoExtra}
+            helperText={errors.abonoExtra?.message}
+            value={watch("abonoExtra") || 0}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">$</InputAdornment>
+              ),
+              sx: { textAlign: "right" },
+              inputProps: { style: { textAlign: "right" } },
+            }}
+          />
+        </Grid>
+        <Grid item xs={12} sm={3}>
+          <FormControl fullWidth variant="outlined">
+            <InputLabel id="metodo-pago-label">Método de Pago</InputLabel>
+            <Select
+              labelId="metodo-pago-label"
+              id="metodo-pago"
+              value={metodoSeleccionado}
+              onChange={handleChange}
+              label="Método de Pago"
+            >
+              {metodosPago.map((metodo) => (
+                <MenuItem key={metodo.id} value={metodo.id}>
+                  {metodo.nombre}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+        <Grid item xs={12} sm={3}>
           <TextField
             fullWidth
             label="Total a Pagar"
             type="number"
             disabled
             value={watch("totalPagar") || 0}
-            sx={{ fontWeight: "bold", backgroundColor: "#f3f3f3" }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">$</InputAdornment>
+              ),
+              sx: {
+                fontWeight: "bold",
+                backgroundColor: "#f3f3f3",
+                textAlign: "right",
+              },
+              inputProps: { style: { textAlign: "right" } },
+            }}
           />
         </Grid>
         <Grid item xs={12} sm={12}>
@@ -244,6 +366,7 @@ export default function PresPagosForm({ pago }: PresPagosFormProps) {
             label={
               <>
                 Registrar pago por $ {formatCurrency(totalPagar) + " "}
+                <br />
                 <em>({numeroALetras(totalPagar, true)})</em>
               </>
             }

@@ -29,11 +29,13 @@ export const authService = {
   },
 
   saveToken(token: string) {
-    localStorage.setItem("authToken", token);
+    if (window && typeof window !== "undefined")
+      localStorage.setItem("authToken", token);
   },
 
   getToken() {
-    return localStorage.getItem("authToken");
+    if (window && typeof window !== "undefined")
+      return localStorage.getItem("authToken");
   },
 
   logout() {
@@ -42,22 +44,27 @@ export const authService = {
   },
 
   isAuthenticated() {
-    return !!localStorage.getItem("authToken");
+    if (window && typeof window !== "undefined")
+      return !!localStorage.getItem("authToken");
   },
 
   getCurrentUserData(): LoggedUser {
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      return jwt_decode(token);
+    if (window && typeof window !== "undefined") {
+      const token = localStorage.getItem("authToken");
+      if (token) {
+        return jwt_decode(token);
+      }
     }
     return defaultLoggedUser;
   },
 
   getUserRoles() {
     let roles = [];
-    const userData: any = this.getCurrentUserData();
-    if (userData) {
-      roles = userData.role?.map((role: any) => role.nombre);
+    if (window && typeof window !== "undefined") {
+      const userData: any = this.getCurrentUserData();
+      if (userData) {
+        roles = userData.role?.map((role: any) => role.nombre);
+      }
     }
     return roles;
   },

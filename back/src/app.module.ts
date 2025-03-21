@@ -31,6 +31,7 @@ import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { AsocAportesAsociadosModule } from './modules/aportes-asociados/aportes-asociados.module';
 import { PrestamosModule } from './modules/prestamos/prestamos.module';
 import { ConfigModule } from '@nestjs/config';
+import { PagosModule } from './modules/pagos/pagos.module';
 
 @Module({
   imports: [
@@ -76,6 +77,7 @@ import { ConfigModule } from '@nestjs/config';
     UsuariosModule,
     AsocAportesAsociadosModule,
     PrestamosModule,
+    PagosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

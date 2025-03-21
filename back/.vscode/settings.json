@@ -1,18 +1,17 @@
 {
-    "nuxt.isNuxtApp": false,
     "workbench.colorCustomizations": {
-        "titleBar.activeBackground": "#e8918b",
+        "titleBar.activeBackground": "#615bd8",
         "titleBar.activeForeground": "#FFFFFF",
-        "titleBar.inactiveBackground": "#e8918b",
+        "titleBar.inactiveBackground": "#615bd8",
         "titleBar.inactiveForeground": "#FFFFFF",
-        "titleBar.border": "#e8918b",
-        "activityBar.background": "#e8918b",
+        "titleBar.border": "#615bd8",
+        "activityBar.background": "#615bd8",
         "activityBar.foreground": "#FFFFFF",
-        "statusBar.background": "#e8918b",
+        "statusBar.background": "#615bd8",
         "statusBar.foreground": "#FFFFFF",
-        "statusBar.debuggingBackground": "#e8918b",
+        "statusBar.debuggingBackground": "#615bd8",
         "statusBar.debuggingForeground": "#FFFFFF",
-        "tab.activeBorder": "#e8918b",
+        "tab.activeBorder": "#615bd8",
         "iLoveWorkSpaceColors": true,
         "iLoveWorkSpaceRandom": false
     }

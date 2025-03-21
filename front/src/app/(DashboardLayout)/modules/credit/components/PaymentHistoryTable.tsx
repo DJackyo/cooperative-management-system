@@ -24,11 +24,13 @@ import PresPagosForm from "./PresPagosForm";
 interface PaymentHistoryProps {
   presCuotas: Cuota[];
   plazoMeses: number;
+  creditId: number;
 }
 
 const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
   presCuotas,
   plazoMeses,
+  creditId,
 }) => {
   const [open, setOpen] = useState(false);
   const [selectedRow, setSelectedRow]: any = useState(null);
@@ -245,7 +247,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       <Dialog open={open} onClose={handleCloseModal} maxWidth="md">
         <DialogTitle>Registrar Pago</DialogTitle>
         <DialogContent>
-          <PresPagosForm pago={selectedRow} />
+          <PresPagosForm pago={selectedRow} creditId={creditId} />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseModal} color="secondary">
