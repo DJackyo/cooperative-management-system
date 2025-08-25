@@ -3,7 +3,8 @@
 "use client";
 import useAuth from "../../hooks/useAuth";
 
-import { Grid, Box } from "@mui/material";
+import Grid from "@mui/material/Grid";
+import Box from "@mui/material/Box";
 import PageContainer from "@/app/(DashboardLayout)/components/container/PageContainer";
 // components
 import { useEffect, useState } from "react";
@@ -30,7 +31,7 @@ const Dashboard = () => {
     <PageContainer title="Dashboard" description="this is Dashboard">
       <Box>
         <Grid container spacing={2}>
-          <Grid item xs={12} lg={8}>
+          <Grid container item xs={12} lg={8}>
             <AdminDashboard />
           </Grid>
           <Grid item xs={12} lg={4}>
