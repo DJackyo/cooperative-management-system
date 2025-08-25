@@ -2,7 +2,7 @@
 import { defaultLoggedUser } from "@/app/(DashboardLayout)/utilities/utils";
 import { LoggedUser } from "@/interfaces/User";
 import { axiosNoAuth } from "@/services/axiosClient";
-import jwt_decode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 
 export const authService = {
   async login(email: string, password: string) {
@@ -52,7 +52,7 @@ export const authService = {
     if (window && typeof window !== "undefined") {
       const token = localStorage.getItem("authToken");
       if (token) {
-        return jwt_decode(token);
+        return jwtDecode(token);
       }
     }
     return defaultLoggedUser;

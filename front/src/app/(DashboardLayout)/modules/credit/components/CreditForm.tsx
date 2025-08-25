@@ -54,7 +54,7 @@ const CreditForm: React.FC<CreditFormProps> = ({
     }
   }, [existingData]);
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] : any= useState({
     fechaCredito: new Date(),
     fechaVencimiento: null,
     monto: 0,

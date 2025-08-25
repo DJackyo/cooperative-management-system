@@ -108,7 +108,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   }, [userId]);
 
   const loadTasas = useCallback(async () => {
-    if (tasas.length === 0) {
+    if (tasas?.length === 0) {
       const response = await creditsService.getTasas();
       setTasas(response);
     }
