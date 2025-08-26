@@ -30,46 +30,54 @@ import { AsociadosModule } from './modules/asociados/asociados.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { AsocAportesAsociadosModule } from './modules/aportes-asociados/aportes-asociados.module';
 import { PrestamosModule } from './modules/prestamos/prestamos.module';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PagosModule } from './modules/pagos/pagos.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    TypeOrmModule.forRoot({
-      type: 'postgres',
-      host: 'localhost',
-      port: 5432,
-      username: 'postgres',
-      password: 'postgres',
-      database: '_coop',
-      entities: [
-        AsocAportesAsociados,
-        PresAprobacionPrestamos,
-        AsocAsistenciaAsamblea,
-        AsocContactos,
-        AsocEconomicaSocial,
-        Asociados,
-        AsocInformacionFamiliar,
-        AsocInformacionLaboral,
-        AsocTiposFamiliares,
-        AsocUbicaciones,
-        EstadosAprobacion,
-        EstadosAsociado,
-        PresCancelaciones,
-        PresCuotas,
-        PresHistorialPrestamos,
-        PresMetodosPago,
-        PresPagos,
-        Prestamos,
-        PresTasasPrestamo,
-        Roles,
-        TiposIdentificacion,
-        Usuarios,
-      ], // Aquí agregas todas tus entidades
-      synchronize: false, // Este parámetro sincroniza las entidades con la base de datos. Solo para desarrollo.
-      migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
-      logging: true, // Habilita el logging de SQL
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        entities: [
+          AsocAportesAsociados,
+          PresAprobacionPrestamos,
+          AsocAsistenciaAsamblea,
+          AsocContactos,
+          AsocEconomicaSocial,
+          Asociados,
+          AsocInformacionFamiliar,
+          AsocInformacionLaboral,
+          AsocTiposFamiliares,
+          AsocUbicaciones,
+          EstadosAprobacion,
+          EstadosAsociado,
+          PresCancelaciones,
+          PresCuotas,
+          PresHistorialPrestamos,
+          PresMetodosPago,
+          PresPagos,
+          Prestamos,
+          PresTasasPrestamo,
+          Roles,
+          TiposIdentificacion,
+          Usuarios,
+        ],
+        synchronize: false,
+        migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
+        logging: configService.get<string>('DB_LOGGING') === 'true', // Habilita el logging de SQL
+        ssl:
+          configService.get<string>('IS_PROD') === 'true'
+            ? { rejectUnauthorized: false }
+            : false,
+      }),
+      inject: [ConfigService],
     }),
     UsersModule,
     AuthModule,
