@@ -52,7 +52,7 @@ const PaymentSupportsCard = () => {
             Estos son los soportes que necesitan validación.
           </Typography> */}
       {/* <Grid container alignItems="end" gap={2}>
-        <Grid item alignItems="end">
+        <Grid  alignItems="end">
           <IconButton size="small" color="primary" sx={{ mt: 1 }}>
             <IconFileInvoice /> Ver detalles
           </IconButton>

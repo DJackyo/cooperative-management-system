@@ -25,21 +25,21 @@ const Dashboard = () => {
     setupAxiosInterceptors(router);
     const userRole = authService.getUserRoles();
     setUserRole(userRole);
-  }, []);
+  }, [router]);
 
   return (
     <PageContainer title="Dashboard" description="this is Dashboard">
       <Box>
         <Grid container spacing={2}>
-          <Grid container item xs={12} lg={8}>
+          <Grid container size={{ xs: 12, md: 8 }}>
             <AdminDashboard />
           </Grid>
-          <Grid item xs={12} lg={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <Grid container spacing={3}>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <PaymentSupportsCard />
               </Grid>
-              <Grid item xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <TransactionsHistory />
               </Grid>
             </Grid>

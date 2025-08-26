@@ -151,7 +151,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
         <form>
           <Grid container spacing={3}>
             {/* Primera columna */}
-            <Grid item xs={12} md={6}>
+            <Grid  size={{ xs: 12, md: 6 }}>
               {/* Fecha de aporte */}
               <TextField
                 label="Fecha del Aporte"
@@ -168,7 +168,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
                 helperText={errors.fechaAporte}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid  size={{ xs: 12, md: 6 }}>
               {/* Monto */}
               <TextField
                 label="Monto"
@@ -188,7 +188,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
               />
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid  size={{ xs: 12, md: 6 }}>
               {/* Tipo de aporte */}
               <FormControl fullWidth sx={{ mt: 2 }} error={!!errors.tipoAporte}>
                 <InputLabel>Tipo Aporte</InputLabel>
@@ -208,7 +208,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={6}>
+            <Grid  size={{ xs: 12, md: 6 }}>
               {/* Metodo de pago */}
               <FormControl fullWidth sx={{ mt: 2 }} error={!!errors.metodoPago}>
                 <InputLabel>Metodo de Pago</InputLabel>
@@ -233,7 +233,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
 
             {/* Comprobante solo si es Transferencia o Tarjeta */}
             {paymentMethodsWithComprobante.includes(aporte.metodoPago) && (
-              <Grid item xs={12} md={12}>
+              <Grid  size={{ xs: 12, md: 12}}>
                 <TextField
                   label="Comprobante"
                   type="file"
@@ -247,7 +247,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
               </Grid>
             )}
 
-            <Grid item xs={12} md={12}>
+            <Grid  size={{ xs: 12, md: 12}}>
               {/* Observaciones */}
               <TextField
                 label="Observaciones"

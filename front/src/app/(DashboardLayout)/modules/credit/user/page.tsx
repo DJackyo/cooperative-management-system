@@ -3,8 +3,13 @@
 import { ErrorOutline } from "@mui/icons-material";
 import { Card, CardContent, Typography } from "@mui/material";
 import { Box } from "@mui/system";
+import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import CreditDetailModule from "./CreditDetailModule";
+// import CreditDetailModule from "./CreditDetailModule";
+
+const CreditDetailModule = dynamic(() => import('./CreditDetailModule'), {
+  ssr: false, // 👈 evita el renderizado en el servidor
+});
 
 const UserCreditPage = () => {
   // Obtener los parámetros de la URL

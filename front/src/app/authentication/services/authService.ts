@@ -16,9 +16,7 @@ export const authService = {
         this.saveToken(user.access_token);
         const userData: any = this.getCurrentUserData();
         if (userData) {
-          const role = userData.role
-            ?.map((role: any) => role.nombre)
-            .join(", ");
+          const role = userData.role?.map((role: any) => role.nombre).join(", ");
           sessionStorage.setItem("userRole", role);
         }
         return user.access_token;
@@ -29,13 +27,15 @@ export const authService = {
   },
 
   saveToken(token: string) {
-    if (window && typeof window !== "undefined")
+    if (typeof window !== "undefined") {
       localStorage.setItem("authToken", token);
+    }
   },
 
   getToken() {
-    if (window && typeof window !== "undefined")
+    if (typeof window !== "undefined") {
       return localStorage.getItem("authToken");
+    }
   },
 
   logout() {
@@ -44,12 +44,11 @@ export const authService = {
   },
 
   isAuthenticated() {
-    if (window && typeof window !== "undefined")
-      return !!localStorage.getItem("authToken");
+    if (typeof window !== "undefined") return !!localStorage.getItem("authToken");
   },
 
   getCurrentUserData(): LoggedUser {
-    if (window && typeof window !== "undefined") {
+    if (typeof window !== "undefined") {
       const token = localStorage.getItem("authToken");
       if (token) {
         return jwtDecode(token);
@@ -60,7 +59,7 @@ export const authService = {
 
   getUserRoles() {
     let roles = [];
-    if (window && typeof window !== "undefined") {
+    if (typeof window !== "undefined") {
       const userData: any = this.getCurrentUserData();
       if (userData) {
         roles = userData.role?.map((role: any) => role.nombre);

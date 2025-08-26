@@ -69,7 +69,7 @@ const TotalUsersCard = () => {
     <DashboardCard title="Total de usuarios">
       <Grid container spacing={2}>
         {/* columna para total de usuarios y crecimiento */}
-        <Grid item xs={12} sm={5}>          
+        <Grid  size={{ xs: 12,  sm:5}}>          
         <Typography variant="h3" fontWeight="700">
             {totalUsers}
           </Typography>
@@ -103,7 +103,7 @@ const TotalUsersCard = () => {
           </Stack>
         </Grid>
         {/* columna para gráfico de dona */}
-        <Grid item xs={12} sm={7}>
+        <Grid  size={{ xs: 12,  sm:7}}>
           <Chart
             options={options}
             series={series}

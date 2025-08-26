@@ -1,8 +1,14 @@
 import React from "react";
 import { Card, CardContent, Box, Avatar, Typography } from "@mui/material";
 import IconUser from "@mui/icons-material/Person";
+import { Asociado } from "@/interfaces/User"; // Asegúrate de que esta interfaz existe
 
-const UserCard = ({ id, userInfo }) => {
+interface UserCardProps {
+  id: number | string;
+  userInfo: Asociado;
+}
+
+const UserCard: React.FC<UserCardProps> = ({ id, userInfo }) => {
   return (
     <Card variant="outlined" sx={{ boxShadow: 3 }}>
       <CardContent>

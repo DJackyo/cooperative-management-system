@@ -1,21 +1,6 @@
 import React, { useEffect, useState } from "react";
-import {
-  Modal,
-  Box,
-  Button,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Grid,
-} from "@mui/material";
-import {
-  formatCurrency,
-  formatDateToISO,
-  numeroALetras,
-} from "@/app/(DashboardLayout)/utilities/utils";
+import { Modal, Box, Button, Typography, Table, TableBody, TableCell, TableHead, TableRow, Grid } from "@mui/material";
+import { formatCurrency, formatDateToISO, numeroALetras } from "@/app/(DashboardLayout)/utilities/utils";
 import { logoBase64 } from "@/app/(DashboardLayout)/utilities/logoBase64";
 import { obtenerInformacionAportes } from "@/app/(DashboardLayout)/utilities/AportesUtils";
 import { IconPrinter } from "@tabler/icons-react";
@@ -30,58 +15,44 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
   const [fechaAporte, setFechaAporte] = useState<string>("fechaAporte");
   const [anyoAporte, setAnyoAporte] = useState<number>(0);
 
-  // Asegúrate de no llamar hooks condicionalmente
-  if (!data) return null; // Este return debe ir después de que los hooks se hayan llamado
-
-  const { selectedRow, savings } = data;
+  const selectedRow = data?.selectedRow;
+  const savings = data?.savings;
 
   const getMonthYear = (fechaAporte: string) => {
-    let fecha = new Date(fechaAporte);
-    let formateada =
-      fecha
-        .toLocaleString("default", { month: "long" })
-        .charAt(0)
-        .toUpperCase() +
-      fecha.toLocaleString("default", { month: "long" }).slice(1);
-    formateada += " de " + fecha.getFullYear();
-    setFechaAporte(formateada.toLocaleUpperCase());
+    const fecha = new Date(fechaAporte);
+    const month = fecha.toLocaleString("default", { month: "long" });
+    const formatted = month.charAt(0).toUpperCase() + month.slice(1) + " de " + fecha.getFullYear();
+    setFechaAporte(formatted.toUpperCase());
   };
 
   const getYear = (fechaAporte: string) => {
-    let fecha = new Date(fechaAporte);
+    const fecha = new Date(fechaAporte);
     setAnyoAporte(fecha.getFullYear());
   };
 
-  // El useEffect debe ser siempre ejecutado, aunque `data` esté vacío
   useEffect(() => {
-    if (selectedRow && selectedRow.fechaAporte) {
+    if (selectedRow?.fechaAporte) {
       getMonthYear(selectedRow.fechaAporte);
       getYear(selectedRow.fechaAporte);
     }
   }, [selectedRow]);
 
-  let estadoAportes = obtenerInformacionAportes(
-    savings,
-    selectedRow.fechaCreacion
-  );
+  if (!data || !selectedRow || !savings) return null; // ✅ Esto va después de los hooks
+
+  const estadoAportes = obtenerInformacionAportes(savings, selectedRow.fechaCreacion);
   console.log(estadoAportes);
 
-  // Función para imprimir el contenido del modal
   const handlePrint = () => {
-    const printWindow: any = window.open("", "", "height=600,width=1000");
-    const modalContent =
-      document.getElementById("modal-content")?.innerHTML || "";
+    if (typeof window !== "undefined") {
+      const printWindow: any = window.open("", "", "height=600,width=1000");
+      const modalContent = document.getElementById("modal-content")?.innerHTML || "";
 
-    printWindow.document.write("<html><head><title></title>");
+      printWindow.document.write("<html><head><title></title>");
 
-    printWindow.document.write(
-      '<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap">'
-    );
-    printWindow.document.write(
-      '<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@mui/material@5.0.0/dist/material-ui.min.css">'
-    );
-    // También puedes agregar otros estilos locales o personalizados aquí si los necesitas
-    printWindow.document.write(`
+      printWindow.document.write('<link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap">');
+      printWindow.document.write('<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/@mui/material@5.0.0/dist/material-ui.min.css">');
+      // También puedes agregar otros estilos locales o personalizados aquí si los necesitas
+      printWindow.document.write(`
         <style> 
       @page {
         margin: 20mm; 
@@ -155,9 +126,9 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
         </style>
       `);
 
-    printWindow.document.write("</head><body>");
-    // Escribe el encabezado antes del contenido
-    printWindow.document.write(`
+      printWindow.document.write("</head><body>");
+      // Escribe el encabezado antes del contenido
+      printWindow.document.write(`
         <div class="header">
           <div class="img" ></div>
           <div class="text">
@@ -168,11 +139,12 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
           </div>
         </div>
       `);
-    printWindow.document.write(modalContent);
-    printWindow.document.write("</body></html>");
+      printWindow.document.write(modalContent);
+      printWindow.document.write("</body></html>");
 
-    printWindow.document.close();
-    printWindow.print();
+      printWindow.document.close();
+      printWindow.print();
+    }
   };
 
   return (
@@ -191,17 +163,12 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
         }}
       >
         <div id="modal-content">
-          <Typography
-            variant="h6"
-            gutterBottom
-            align="center"
-            sx={{ marginBottom: 2 }}
-          >
+          <Typography variant="h6" gutterBottom align="center" sx={{ marginBottom: 2 }}>
             RECIBO MENSUAL DE APORTES
           </Typography>
           <Grid container spacing={3}>
             {/* Primera columna */}
-            <Grid item xs={12} md={12}>
+            <Grid size={{ xs: 12, md: 12 }}>
               <Table
                 size="small"
                 sx={{
@@ -236,17 +203,11 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
                 <TableBody>
                   <TableRow>
                     <TableCell>{selectedRow.asociado?.id || "#N/A"}</TableCell>
-                    <TableCell>
-                      {selectedRow.asociado?.numeroDeIdentificacion || "#N/A"}
-                    </TableCell>
-                    <TableCell>
-                      {selectedRow.asociado?.nombres || "#N/A"}
-                    </TableCell>
+                    <TableCell>{selectedRow.asociado?.numeroDeIdentificacion || "#N/A"}</TableCell>
+                    <TableCell>{selectedRow.asociado?.nombres || "#N/A"}</TableCell>
                     <TableCell>{selectedRow.tipoAporte || "#N/A"}</TableCell>
                     <TableCell>${formatCurrency(selectedRow.monto)}</TableCell>
-                    <TableCell>
-                      {formatDateToISO(selectedRow.fechaCreacion)}
-                    </TableCell>
+                    <TableCell>{formatDateToISO(selectedRow.fechaCreacion)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell colSpan={2}>
@@ -257,7 +218,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
                 </TableBody>
               </Table>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Table
                 size="small"
                 sx={{
@@ -309,25 +270,19 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
                     </TableCell>
                     <TableCell align="center">
                       <Typography variant="body2" component="strong">
-                        $
-                        {formatCurrency(
-                          estadoAportes.sumatoriaAportesAnoCreacion
-                        )}
+                        ${formatCurrency(estadoAportes.sumatoriaAportesAnoCreacion)}
                       </Typography>
                     </TableCell>
                     <TableCell align="center">
                       <Typography variant="body2" component="strong">
-                        $
-                        {formatCurrency(
-                          estadoAportes.sumatoriaAportesHastaFechaCreacion
-                        )}
+                        ${formatCurrency(estadoAportes.sumatoriaAportesHastaFechaCreacion)}
                       </Typography>
                     </TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <Table
                 size="small"
                 sx={{
@@ -373,21 +328,10 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
         </div>
         {/* Botones de acción */}
         <Box display="flex" justifyContent="space-between" sx={{ mt: 3 }}>
-          <Button
-            color="secondary"
-            variant="contained"
-            onClick={handlePrint}
-            sx={{ mt: 2 }}
-            startIcon={<IconPrinter />}
-          >
+          <Button color="secondary" variant="contained" onClick={handlePrint} sx={{ mt: 2 }} startIcon={<IconPrinter />}>
             Imprimir
           </Button>
-          <Button
-            onClick={onClose}
-            variant="contained"
-            color="primary"
-            sx={{ marginTop: 2 }}
-          >
+          <Button onClick={onClose} variant="contained" color="primary" sx={{ marginTop: 2 }}>
             Cerrar
           </Button>
         </Box>

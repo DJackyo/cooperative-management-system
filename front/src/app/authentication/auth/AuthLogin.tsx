@@ -9,8 +9,8 @@ import { useRouter } from "next/navigation";
 
 interface loginType {
   title?: string;
-  subtitle?: JSX.Element | JSX.Element[];
-  subtext?: JSX.Element | JSX.Element[];
+  subtitle?: React.ReactNode | React.ReactNode[];
+  subtext?: React.ReactNode | React.ReactNode[];
 }
 
 const AuthLogin = ({ title, subtitle, subtext }: loginType) => {

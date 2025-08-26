@@ -287,7 +287,7 @@ const UserManagementModule = () => {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={4}>
+      <Grid  size={{ xs: 12, md: 4 }}>
         <DashboardCard title="">
           <Box
             display="flex"
@@ -311,10 +311,10 @@ const UserManagementModule = () => {
         </DashboardCard>
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid  size={{ xs: 12 }}>
         <DashboardCard title="">
           <Grid container spacing={2} sx={{ marginBottom: 2 }}>
-            <Grid item xs={12}>
+            <Grid  size={{ xs: 12 }}>
               <Box
                 display="flex"
                 justifyContent="space-between"
@@ -325,7 +325,7 @@ const UserManagementModule = () => {
                 </Typography>
               </Box>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid  size={{ xs: 12, md: 6 }}>
               {/* Filtro por nombre */}
               <TextField
                 label="Buscar por nombres o ID"
@@ -336,7 +336,7 @@ const UserManagementModule = () => {
               />
             </Grid>
 
-            <Grid item xs={12} sm={6}>
+            <Grid  size={{ xs: 12, md: 6 }}>
               {/* Filtro por estado */}
               <FormControl fullWidth>
                 <InputLabel id="estado-label">Filtrar por estado</InputLabel>
@@ -361,7 +361,7 @@ const UserManagementModule = () => {
         </DashboardCard>
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid  size={{ xs: 12 }}>
         <DashboardCard title="">
           <Box>
             <Box

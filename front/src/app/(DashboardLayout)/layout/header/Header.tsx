@@ -60,7 +60,7 @@ const Header = ({ toggleMobileSidebar }: ItemType) => {
   useEffect(() => {
     setupAxiosInterceptors(router);
     fetchData();
-  }, []);
+  }, [router]);
 
   return (
     <AppBarStyled position="sticky" color="default">

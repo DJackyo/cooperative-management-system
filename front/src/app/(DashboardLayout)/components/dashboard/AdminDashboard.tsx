@@ -33,34 +33,34 @@ const AdminDashboard = () => {
   return (
     <Grid container spacing={3}>
       {loading ? (
-        <Grid item xs={12}>
+        <Grid  size={{ xs: 12, sm: 12 }}>
           <Paper style={{ padding: "20px", textAlign: "center" }}>
             <Loading />
           </Paper>
         </Grid>
       ) : (
         <>
-          <Grid item xs={12} md={4}>
+          <Grid  size={{ xs: 12, md: 4 }}>
             <TotalUsersCard />
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid  size={{ xs: 12, md: 4 }}>
             <ActiveCredits dashboardData={dashboardData} />
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid  size={{ xs: 12, md: 4 }}>
             <PendingCredits dashboardData={dashboardData} />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid  size={{ xs: 12, md: 6 }}>
             <CreditDistribution />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid  size={{ xs: 12, md: 6 }}>
             <SavingsTransactionsCard />
           </Grid>
 
-          {/* <Grid item xs={12} md={4}>
+          {/* <Grid  size={{ xs: 12, md: 4 }}>
             <DashboardCard title="Pending Payment Supports">
               <Typography variant="h5">
                 {dashboardData.pendingPaymentSupports}
@@ -68,11 +68,11 @@ const AdminDashboard = () => {
             </DashboardCard>
           </Grid> */}
 
-          {/* <Grid item xs={12} md={6}>
+          {/* <Grid  size={{ xs: 12, md: 6 }}>
             <SavingsTransactionsCard />
           </Grid> */}
 
-          {/* <Grid item xs={12}>
+          {/* <Grid  size={{ xs: 12 }}>
               <DashboardCard title="Deactivation Requests">
                   <Chart options={deactivationRequestsOptions} series={deactivationRequestsSeries} type="bar" height={350} />
               </DashboardCard>

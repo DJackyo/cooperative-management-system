@@ -228,10 +228,10 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+        <Grid  size={{ xs: 12, md: 8 }}>
           <UserCard id={id} userInfo={userInfo} />
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid  size={{ xs: 12, md: 4 }}>
           <Card variant="outlined" sx={{ boxShadow: 3 }}>
             <CardContent>
               <Box
@@ -278,7 +278,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={12}>
+        <Grid  size={{ xs: 12, md: 12 }}>
           <Card variant="outlined" sx={{ boxShadow: 3, padding: 2 }}>
             <Typography variant="h5" color="primary" gutterBottom>
               Filtro de fechas
@@ -289,14 +289,16 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   label="Fecha Inicio"
                   value={startDate}
                   onChange={(date) => setStartDate(date)}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
-                />
+                  />
+                  {/* slots={{ textField: TextField }}
+                  slotProps={{ textField: { fullWidth: true } }} */}
                 <DatePicker
                   label="Fecha Fin"
                   value={endDate}
                   onChange={(date) => setEndDate(date)}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
-                />
+                  />
+                  {/* slots={{ textField: TextField }}
+                  slotProps={{ textField: { fullWidth: true } }} */}
               </Box>
               <Box display="flex">
                 <Button
@@ -314,7 +316,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
           </Card>
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid  size={{xs: 12, md: 12 }}>
           <Card variant="outlined" sx={{ boxShadow: 3 }}>
             <CardContent>
               <Box
@@ -372,7 +374,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                         ))}
                         <TableCell>
                           {/* Aquí mostramos solo el botón si currentUser tiene el rol "administrador" */}
-                          {currentUser?.role === "administrador" && (
+                          {currentUser?.role?.includes("administrador") && (
                             <Tooltip title="Editar" arrow>
                               <IconButton
                                 onClick={() => handleEditClick(row)}

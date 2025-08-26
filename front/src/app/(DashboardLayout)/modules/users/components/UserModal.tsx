@@ -49,7 +49,7 @@ const UserModal: React.FC<UserModalProps> = ({
         </Typography>
         <Box component="form" noValidate autoComplete="off">
           <Grid container spacing={2}>
-            <Grid item xs={6}>
+            <Grid  size={{ xs: 12, md:  6}}>
               <TextField
                 fullWidth
                 label="Identificación"
@@ -60,7 +60,7 @@ const UserModal: React.FC<UserModalProps> = ({
                 disabled={true}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid  size={{ xs: 12, md:  6}}>
               <TextField
                 fullWidth
                 label="Correo Electrónico"
@@ -70,7 +70,7 @@ const UserModal: React.FC<UserModalProps> = ({
                 onChange={onChange}
               />
             </Grid>
-            <Grid item xs={6}>
+            <Grid  size={{ xs: 12, md:  6}}>
               <TextField
                 fullWidth
                 select

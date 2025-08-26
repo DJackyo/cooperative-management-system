@@ -100,11 +100,11 @@ const Credits = () => {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12} md={12}>
+      <Grid  size={{ xs: 12, md: 12}}>
         {/* Filtros en un Card separado */}
         <DashboardCard title="Filtros">
           <Grid container spacing={2} sx={{ mb: 2 }}>
-            <Grid item xs={12} md={6}>
+            <Grid  size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Nombre del Socio"
@@ -113,7 +113,7 @@ const Credits = () => {
                 onChange={(e) => setFilterName(e.target.value)}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid  size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 label="Estado"
@@ -134,7 +134,7 @@ const Credits = () => {
           </Grid>
         </DashboardCard>
       </Grid>
-      <Grid item xs={12} md={12}>
+      <Grid  size={{ xs: 12, md: 12}}>
         {/* Tabla de solicitudes de crédito */}
         <DashboardCard title="Lista de Solicitudes de Crédito">
           <TableContainer component={Paper}>

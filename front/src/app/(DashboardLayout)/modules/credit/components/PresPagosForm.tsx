@@ -53,7 +53,7 @@ const presPagosSchema = z.object({
   abonoCapital: z.number().min(0, messages.min),
   intereses: z.number().min(0, messages.min),
   abonoExtra: z
-    .number({ invalid_type_error: messages.invalid_type_error })
+    .number()
     .min(0, messages.min),
   pagado: z.literal(true).refine((value) => value === true, {
     message: "Debe marcar la casilla para registrar el pago",
@@ -177,7 +177,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
       </Typography>
       <p>Se registrará el pago con la siguiente información:</p>
       <Grid container spacing={2} sx={{ mt: 1 }}>
-        <Grid item xs={12} sm={3}>
+        <Grid  size={{ xs: 12, md:  3}}>
           <TextField
             fullWidth
             label="Fecha de Vencimiento"
@@ -188,7 +188,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
           />
         </Grid>
         {/* Día de Pago */}
-        <Grid item xs={12} sm={3}>
+        <Grid  size={{ xs: 12, md:  3}}>
           <TextField
             fullWidth
             label="Día de Pago"
@@ -198,7 +198,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
           />
         </Grid>
         {/* Días en Mora */}
-        <Grid item xs={12} sm={3}>
+        <Grid  size={{ xs: 12, md:  3}}>
           <TextField
             fullWidth
             label="Días en Mora"
@@ -215,7 +215,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
         </Grid>
 
         {/* Mora Calculada */}
-        <Grid item xs={12} sm={3}>
+        <Grid  size={{ xs: 12, md:  3}}>
           <TextField
             fullWidth
             label="Mora Calculada"
@@ -232,7 +232,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
           />
         </Grid>
 
-        <Grid item xs={12} sm={3}>
+        <Grid  size={{ xs: 12, md:  3}}>
           <TextField
             fullWidth
             label="Valor de la cuota"
@@ -250,7 +250,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
             }}
           />
         </Grid>
-        <Grid item xs={12} sm={3}>
+        <Grid  size={{ xs: 12, md:  3}}>
           <TextField
             fullWidth
             label="Protección de cartera"
@@ -268,7 +268,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
             }}
           />
         </Grid>
-        <Grid item xs={12} sm={3}>
+        <Grid  size={{ xs: 12, md:  3}}>
           <TextField
             fullWidth
             label="Abono a Capital"
@@ -286,7 +286,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
             }}
           />
         </Grid>
-        <Grid item xs={12} sm={3}>
+        <Grid  size={{ xs: 12, md:  3}}>
           <TextField
             fullWidth
             label="Intereses"
@@ -304,7 +304,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
             }}
           />
         </Grid>
-        <Grid item xs={12} sm={3}>
+        <Grid  size={{ xs: 12, md:  3}}>
           <TextField
             fullWidth
             label="Abono extra"
@@ -322,7 +322,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
             }}
           />
         </Grid>
-        <Grid item xs={12} sm={3}>
+        <Grid  size={{ xs: 12, md:  3}}>
           <FormControl fullWidth variant="outlined">
             <InputLabel id="metodo-pago-label">Método de Pago</InputLabel>
             <Select
@@ -340,7 +340,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
             </Select>
           </FormControl>
         </Grid>
-        <Grid item xs={12} sm={3}>
+        <Grid  size={{ xs: 12, md:  3}}>
           <TextField
             fullWidth
             label="Total a Pagar"
@@ -360,7 +360,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
             }}
           />
         </Grid>
-        <Grid item xs={12} sm={12}>
+        <Grid  size={{ xs: 12, md: 12 }}>
           <FormControlLabel
             control={<Checkbox {...register("pagado")} />}
             label={
@@ -379,7 +379,7 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
         </Grid>
 
         {/* Botón de envío */}
-        <Grid item xs={12} sx={{ textAlign: "right", mt: 1 }}>
+        <Grid  size={{ xs: 12 }} sx={{ textAlign: "right", mt: 1 }}>
           <Button type="submit" variant="contained">
             {pago ? "Registrar Pago" : ""}
           </Button>

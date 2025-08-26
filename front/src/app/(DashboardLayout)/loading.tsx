@@ -6,7 +6,7 @@ const Loading = () => {
     <Box sx={{ padding: 3 }}>
       <Grid container spacing={3}>
         {/* Skeleton para las tarjetas del dashboard */}
-        <Grid item xs={12} md={4}>
+        <Grid  size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
               <Skeleton variant="text" width="60%" height={30} />
@@ -14,7 +14,7 @@ const Loading = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid  size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
               <Skeleton variant="text" width="60%" height={30} />
@@ -22,7 +22,7 @@ const Loading = () => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid  size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
               <Skeleton variant="text" width="60%" height={30} />
@@ -32,7 +32,7 @@ const Loading = () => {
         </Grid>
 
         {/* Skeleton para la tabla */}
-        <Grid item xs={12}>
+        <Grid  size={{ xs: 12 }}>
           <Card>
             <CardContent>
               <Skeleton variant="text" width="40%" height={30} />

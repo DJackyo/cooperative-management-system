@@ -7,7 +7,7 @@ import PageContainer from "@/app/(DashboardLayout)/components/container/PageCont
 import Logo from "@/app/(DashboardLayout)/layout/shared/logo/Logo";
 import AuthLogin from "../auth/AuthLogin";
 
-const Login2 = () => { 
+const Login2 = () => {
   return (
     <PageContainer title="Login" description="this is Login page">
       <Box
@@ -25,47 +25,20 @@ const Login2 = () => {
           },
         }}
       >
-        <Grid
-          container
-          spacing={0}
-          justifyContent="center"
-          sx={{ height: "100vh" }}
-        >
-          <Grid
-            item
-            xs={12}
-            sm={12}
-            lg={4}
-            xl={3}
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-          >
-            <Card
-              elevation={9}
-              sx={{ p: 4, zIndex: 1, width: "100%", maxWidth: "500px" }}
-            >
+        <Grid container spacing={0} justifyContent="center" sx={{ height: "100vh" }}>
+          <Grid size={{ xs: 12, md: 12, lg: 4, xl: 3 }} display="flex" justifyContent="center" alignItems="center">
+            <Card elevation={9} sx={{ p: 4, zIndex: 1, width: "100%", maxWidth: "500px" }}>
               <Box display="flex" alignItems="center" justifyContent="center">
                 <Logo />
               </Box>
               <AuthLogin
                 subtext={
-                  <Typography
-                    variant="subtitle1"
-                    textAlign="left"
-                    color="textSecondary"
-                    mb={1}
-                  >
+                  <Typography variant="subtitle1" textAlign="left" color="textSecondary" mb={1}>
                     <p>Ingrese su usuario y contraseña</p>
                   </Typography>
                 }
                 subtitle={
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    justifyContent="center"
-                    mt={3}
-                  >
+                  <Stack direction="row" spacing={1} justifyContent="center" mt={3}>
                     {/* <Typography
                       color="textSecondary"
                       variant="h6"
