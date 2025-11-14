@@ -1,9 +1,11 @@
 # compiled output
 front/dist
+front/_node_modules
 front/node_modules
 front/build
 
 back/dist
+back/_node_modules
 back/node_modules
 back/build
 
