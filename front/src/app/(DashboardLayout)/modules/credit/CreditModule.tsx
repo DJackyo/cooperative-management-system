@@ -32,6 +32,8 @@ import { defaultLoggedUser, formatCurrency, formatDateTime, formatDateWithoutTim
 import { IconChecks, IconEyeDollar, IconPencilDollar, IconX } from "@tabler/icons-react";
 import { creditsService } from "@/services/creditRequestService";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
+import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
+import { usePageLoading } from "@/hooks/usePageLoading";
 
 // Componente cargado dinámicamente
 const CreditForm = dynamic(() => import("./components/CreditForm"), {
@@ -44,6 +46,7 @@ interface CreditModuleProps {
 
 const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const router = useRouter();
+  const { loading, stopLoading } = usePageLoading();
 
   const [openRequestModal, setOpenRequestModal] = useState(false);
   const [openModifyModal, setOpenModifyModal] = useState(false);
@@ -88,6 +91,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       checkValidRoles();
       await loadTasas();
       await loadCredits();
+      stopLoading();
     }
   }, [loadTasas, loadCredits]);
 
@@ -146,7 +150,8 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
   const handleOpenDetail = (row: Prestamo) => {
     if (row) {
-      router.push(`/modules/credit/user?userId=${userId}&creditId=${row.id}`);
+      const idUser = row.idAsociado.id;
+      router.push(`/modules/credit/user?userId=${idUser}&creditId=${row.id}`);
     }
   };
 
@@ -221,6 +226,10 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     // Por ahora solo devuelve todo
     return true;
   });
+
+  if (loading) {
+    return <GenericLoadingSkeleton type="table" rows={6} />;
+  }
 
   return (
     <Grid container spacing={3}>

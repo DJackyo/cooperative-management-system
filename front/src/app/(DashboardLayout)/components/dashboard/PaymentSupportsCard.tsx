@@ -1,20 +1,32 @@
 import {
   Typography,
-  Stack,
   Avatar,
-  IconButton,
-  Grid,
   Box,
 } from "@mui/material";
-import {
-  IconClipboardList,
-  IconEye,
-  IconFileInvoice,
-} from "@tabler/icons-react"; // Asegúrate de tener el icono adecuado
+import { IconEye } from "@tabler/icons-react";
 import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
+import { useEffect, useState } from "react";
+import { dashboardService } from "@/services/dashboardService";
 
 const PaymentSupportsCard = () => {
-  const pendingSupportsCount = 9; // Cambia esto por tu lógica para obtener la cantidad real
+  const [pendingSupportsCount, setPendingSupportsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadPendingSupports = async () => {
+      try {
+        const count = await dashboardService.getPendingPaymentSupports();
+        setPendingSupportsCount(count);
+      } catch (error) {
+        console.error('Error loading pending supports:', error);
+        setPendingSupportsCount(0);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    loadPendingSupports();
+  }, []);
 
   return (
     <DashboardCard title="Soportes pendientes de validación">
@@ -32,7 +44,7 @@ const PaymentSupportsCard = () => {
             }}
           >
             <Typography variant="h4" color="primary.main">
-              {pendingSupportsCount}
+              {loading ? '...' : pendingSupportsCount}
             </Typography>
           </Avatar>
           <Typography

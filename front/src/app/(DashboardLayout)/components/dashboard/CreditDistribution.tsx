@@ -2,11 +2,16 @@ import dynamic from "next/dynamic";
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 import { useTheme } from "@mui/material/styles";
 import { Grid, Stack, Typography, Avatar } from "@mui/material";
+import { DashboardData } from "@/services/dashboardService";
 import { IconArrowUpLeft } from "@tabler/icons-react";
 
 import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
 
-const CreditDistribution = () => {
+interface CreditDistributionProps {
+  dashboardData: DashboardData;
+}
+
+const CreditDistribution: React.FC<CreditDistributionProps> = ({ dashboardData }) => {
   // chart color
   const theme = useTheme();
   const primary = theme.palette.primary.main;
@@ -24,7 +29,7 @@ const CreditDistribution = () => {
       },
       height: 155,
     },
-    colors: [primary, primarylight, "#F9F9FD"],
+    colors: [primary, primarylight, "#f44336"],
     plotOptions: {
       pie: {
         startAngle: 0,
@@ -60,8 +65,10 @@ const CreditDistribution = () => {
     ],
   };
 
-  // Datos mockeados para la distribución de créditos
-  const seriescolumnchart: any = [40, 20]; // 70% créditos activos, 30% créditos pendientes
+  // Datos reales del backend
+  const totalCredits = dashboardData.activeCredits + dashboardData.pendingCredits + (dashboardData.overdueCredits || 0);
+  const activePercentage = totalCredits > 0 ? Math.round((dashboardData.activeCredits / totalCredits) * 100) : 0;
+  const seriescolumnchart: any = [dashboardData.activeCredits, dashboardData.pendingCredits, dashboardData.overdueCredits || 0];
 
   return (
     <DashboardCard title="Distribución de Créditos">
@@ -69,7 +76,7 @@ const CreditDistribution = () => {
         {/* columna */}
         <Grid size={{ xs: 7, sm: 7 }}>
           <Typography variant="h3" fontWeight="700">
-            70%
+            {activePercentage}%
           </Typography>
           <Stack direction="row" spacing={1} mt={1} alignItems="center">
             <Avatar sx={{ bgcolor: successlight, width: 27, height: 27 }}>
@@ -93,6 +100,12 @@ const CreditDistribution = () => {
               <Avatar sx={{ width: 9, height: 9, bgcolor: primarylight, svg: { display: "none" } }}></Avatar>
               <Typography variant="subtitle2" color="textSecondary">
                 Pendientes
+              </Typography>
+            </Stack>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Avatar sx={{ width: 9, height: 9, bgcolor: "#ffcdd2", svg: { display: "none" } }}></Avatar>
+              <Typography variant="subtitle2" color="textSecondary">
+                Vencidos
               </Typography>
             </Stack>
           </Stack>

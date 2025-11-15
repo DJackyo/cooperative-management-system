@@ -10,6 +10,14 @@ const MainWrapper = styled("div")(() => ({
   width: "100%",
 }));
 
+const SidebarWrapper = styled("div")(() => ({
+  position: "relative",
+  zIndex: 1200,
+  flexShrink: 0,
+  minWidth: "235px",
+  willChange: "auto",
+}));
+
 const PageWrapper = styled("div")(() => ({
   display: "flex",
   flexGrow: 1,
@@ -17,6 +25,8 @@ const PageWrapper = styled("div")(() => ({
   flexDirection: "column",
   zIndex: 1,
   backgroundColor: "#f6f9fd",
+  opacity: 1,
+  transition: "none",
 }));
 
 interface Props {
@@ -35,11 +45,13 @@ export default function RootLayout({
       {/* ------------------------------------------- */}
       {/* Sidebar */}
       {/* ------------------------------------------- */}
-      <Sidebar
-        isSidebarOpen={isSidebarOpen}
-        isMobileSidebarOpen={isMobileSidebarOpen}
-        onSidebarClose={() => setMobileSidebarOpen(false)}
-      />
+      <SidebarWrapper>
+        <Sidebar
+          isSidebarOpen={isSidebarOpen}
+          isMobileSidebarOpen={isMobileSidebarOpen}
+          onSidebarClose={() => setMobileSidebarOpen(false)}
+        />
+      </SidebarWrapper>
 
       {/* ------------------------------------------- */}
       {/* Main Wrapper */}

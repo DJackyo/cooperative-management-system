@@ -1,6 +1,6 @@
 // src/modules/savings/SavingsModule.tsx
 "use client";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import {
   Card,
   CardContent,
@@ -46,6 +46,8 @@ import ReceiptModal from "./components/ReceiptModal";
 import { defaultAporteValue } from "../../utilities/AportesUtils";
 import { IconUser } from "@tabler/icons-react";
 import UserCard from "../../utilities/UserCard";
+import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
+import { usePageLoading } from "@/hooks/usePageLoading";
 
 // Agregar el tipo de las props
 interface SavingsModuleProps {
@@ -53,6 +55,7 @@ interface SavingsModuleProps {
 }
 
 const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
+  const { loading, stopLoading } = usePageLoading();
   const [startDate, setStartDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
 
@@ -85,8 +88,9 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const [selectedRow, setSelectedRow] = useState<any>(defaultAporteValue);
   const [receiptModalOpen, setModalOpen] = useState(false);
 
-  const loadSavings = useCallback(async () => {
-    // Asigna el valor de 'id' al filtro
+  const loadSavingsRef = useRef<() => Promise<void>>();
+  
+  loadSavingsRef.current = async () => {
     const filter = {
       idAsociadoId: id ? id : 0,
     };
@@ -95,8 +99,9 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     if (response.length > 0) {
       setUserInfo(response[0].idAsociado);
     }
-    console.log(response);
-  }, [id]);
+  };
+
+  const loadSavings = useCallback(() => loadSavingsRef.current?.(), []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -104,12 +109,12 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
       if (hasSession) {
         const user = await authService.getCurrentUserData();
         setCurrentUser(user);
-        console.log("currentUser->", user);
-        loadSavings();
+        await loadSavings();
+        stopLoading();
       }
     };
     fetchData();
-  }, [id, loadSavings]); // Vuelve a ejecutar si 'id' cambia
+  }, [id]); // Vuelve a ejecutar si 'id' cambia
 
   const stableSort = (
     array: Aporte[],
@@ -224,6 +229,10 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const handleCloseReceiptModal = () => {
     setModalOpen(false); // Cerramos el modal
   };
+
+  if (loading) {
+    return <GenericLoadingSkeleton type="table" rows={5} />;
+  }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>

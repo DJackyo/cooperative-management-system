@@ -6,6 +6,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { useState } from "react";
 import {
@@ -20,20 +22,25 @@ import {
 } from "@/app/(DashboardLayout)/utilities/utils";
 import { Cuota } from "@/interfaces/Prestamo";
 import PresPagosForm from "./PresPagosForm";
+import InfoTooltip from "@/components/InfoTooltip";
 
 interface PaymentHistoryProps {
   presCuotas: Cuota[];
   plazoMeses: number;
   creditId: number;
+  onPaymentSuccess?: () => void;
 }
 
 const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
   presCuotas,
   plazoMeses,
   creditId,
+  onPaymentSuccess,
 }) => {
   const [open, setOpen] = useState(false);
   const [selectedRow, setSelectedRow]: any = useState(null);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const handleOpenModal = (row: any) => {
     setSelectedRow(row);
@@ -43,6 +50,11 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
   const handleCloseModal = () => {
     setOpen(false);
     setSelectedRow(null);
+  };
+
+  const handlePaymentSuccess = () => {
+    handleCloseModal();
+    onPaymentSuccess?.();
   };
 
   let sortedCuotas = [...presCuotas].sort(
@@ -58,7 +70,72 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
     ),
   }));
 
-  const columns: GridColDef[] = [
+  const mobileColumns: GridColDef[] = [
+    {
+      field: "numeroCuota",
+      headerName: "#",
+      width: 50,
+      headerClassName: "multiline-header",
+    },
+    {
+      field: "fechaVencimiento",
+      headerName: "Vencimiento",
+      width: 100,
+      valueFormatter: (params: any) => {
+        if (!params) return "****";
+        return formatNameDate(params);
+      },
+      headerClassName: "multiline-header",
+    },
+    {
+      field: "monto",
+      headerName: "Monto",
+      width: 90,
+      valueFormatter: (params: any) => {
+        if (!params) return "$0.00";
+        return "$" + formatCurrency(formatNumber(redondearHaciaArriba(params)));
+      },
+      headerClassName: "multiline-header",
+      cellClassName: "align-right",
+    },
+    {
+      field: "estado",
+      headerName: "Estado",
+      width: 90,
+      renderCell: (params) => getEstadoChip(params.value),
+      headerClassName: "multiline-header",
+    },
+    {
+      field: "pagado",
+      headerName: "Acción",
+      width: 80,
+      renderCell: (params) => {
+        const currentRow = params.row;
+        const currentIndex = sortedCuotas.findIndex(
+          (c) => c.id === currentRow.id
+        );
+        const previousCuota = sortedCuotas[currentIndex - 1];
+        const isEnabled = !previousCuota || previousCuota.estado === "PAGADO";
+
+        return isEnabled && currentRow.estado === "PENDIENTE" ? (
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => handleOpenModal(currentRow)}
+            size="small"
+            sx={{ fontSize: '0.7rem', px: 1 }}
+          >
+            Pagar
+          </Button>
+        ) : (
+          <>***</>
+        );
+      },
+      headerClassName: "multiline-header",
+    },
+  ];
+
+  const desktopColumns: GridColDef[] = [
     {
       field: "numeroCuota",
       headerName: "# Cuota",
@@ -107,6 +184,12 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       },
       headerClassName: "multiline-header",
       cellClassName: "align-right",
+      renderHeader: () => (
+        <Box display="flex" alignItems="center">
+          Días en Mora
+          <InfoTooltip title="Número de días transcurridos después de la fecha de vencimiento" size="small" />
+        </Box>
+      ),
     },
     {
       field: "mora",
@@ -132,6 +215,12 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       },
       headerClassName: "multiline-header",
       cellClassName: "align-right",
+      renderHeader: () => (
+        <Box display="flex" alignItems="center">
+          Protección
+          <InfoTooltip title="Seguro que protege el crédito en caso de incumplimiento" size="small" />
+        </Box>
+      ),
     },
     {
       field: "monto",
@@ -225,14 +314,27 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
     <>
       <Box
         sx={{
-          maxWidth: 1020,
-          overflowX: "auto",
+          width: '100%',
+          overflowX: isMobile ? "auto" : "visible",
         }}
       >
         <DataGrid
           rows={sortedCuotas}
-          columns={columns}
-          sx={styles}
+          columns={isMobile ? mobileColumns : desktopColumns}
+          sx={{
+            ...styles,
+            minWidth: isMobile ? 400 : 'auto',
+            '& .MuiDataGrid-cell': {
+              ...styles['& .MuiDataGrid-cell'],
+              fontSize: isMobile ? '0.7rem' : '0.75rem',
+              padding: isMobile ? '2px 4px' : '4px 6px',
+            },
+            '& .MuiDataGrid-columnHeader': {
+              ...styles['& .MuiDataGrid-columnHeader'],
+              fontSize: isMobile ? '0.7rem' : '0.75rem',
+              padding: isMobile ? '2px 4px' : '4px 6px',
+            },
+          }}
           showCellVerticalBorder={true}
           showColumnVerticalBorder={true}
           initialState={{
@@ -241,13 +343,29 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
             },
           }}
           pageSizeOptions={[plazoMeses]}
+          density='compact'
         />
       </Box>
       {/* Modal para Registrar Pago */}
-      <Dialog open={open} onClose={handleCloseModal} maxWidth="md">
+      <Dialog 
+        open={open} 
+        onClose={handleCloseModal} 
+        maxWidth="md"
+        fullScreen={isMobile}
+        PaperProps={{
+          sx: {
+            margin: isMobile ? 0 : 2,
+            width: isMobile ? '100%' : 'auto',
+          }
+        }}
+      >
         <DialogTitle>Registrar Pago</DialogTitle>
         <DialogContent>
-          <PresPagosForm pago={selectedRow} creditId={creditId} />
+          <PresPagosForm 
+            pago={selectedRow} 
+            creditId={creditId} 
+            onSuccess={handlePaymentSuccess}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseModal} color="secondary">

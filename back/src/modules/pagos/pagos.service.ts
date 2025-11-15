@@ -4,7 +4,7 @@ import { UpdatePagoDto } from './dto/update-pago.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { PresCuotas } from 'src/entities/entities/PresCuotas';
 import { PresPagos } from 'src/entities/entities/PresPagos';
-import { Repository } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
 import { PresMetodosPago } from 'src/entities/entities/PresMetodosPago';
 import { Prestamos } from 'src/entities/entities/Prestamos';
 
@@ -19,6 +19,7 @@ export class PagosService {
     private readonly cuotasRepository: Repository<PresCuotas>,
     @InjectRepository(PresMetodosPago)
     private readonly metodosPagoRepository: Repository<PresMetodosPago>,
+    private readonly dataSource: DataSource,
   ) {}
 
   create(createPagoDto: CreatePagoDto) {
@@ -42,29 +43,75 @@ export class PagosService {
   }
 
   async createByCredit(idCredit: number, createPagoDto: CreatePagoDto) {
-    // Convertimos los IDs a entidades
-    const prestamo = await this.prestamosRepository.findOne({
-      where: { id: idCredit },
+    return await this.dataSource.transaction(async manager => {
+      // Convertimos los IDs a entidades
+      const prestamo = await manager.findOne(Prestamos, {
+        where: { id: idCredit },
+      });
+      const cuota = await manager.findOne(PresCuotas, {
+        where: { id: createPagoDto.idCuota },
+      });
+
+      const metodoPago = await manager.findOne(PresMetodosPago, {
+        where: { id: createPagoDto.metodoPagoId },
+      });
+
+      if (!cuota) throw new Error('Cuota no encontrada');
+      if (!metodoPago) throw new Error('Método de pago no encontrado');
+      if (!prestamo) throw new Error('Préstamo no encontrado');
+
+      // Crear la entidad con relaciones
+      const nuevoPago = manager.create(PresPagos, {
+        ...createPagoDto,
+        idCuota: cuota,
+        metodoPago: metodoPago,
+        idPrestamo: prestamo.id,
+      });
+
+      // Guardar el pago
+      const pagoGuardado = await manager.save(PresPagos, nuevoPago);
+
+      // Actualizar el estado de la cuota a PAGADO
+      await manager.update(PresCuotas, cuota.id, {
+        estado: 'PAGADO'
+      });
+
+      return pagoGuardado;
     });
+  }
+
+  async debugCuota(idCuota: number) {
     const cuota = await this.cuotasRepository.findOne({
-      where: { id: createPagoDto.idCuota },
+      where: { id: idCuota }
     });
+    return {
+      cuota,
+      timestamp: new Date().toISOString()
+    };
+  }
 
-    const metodoPago = await this.metodosPagoRepository.findOne({
-      where: { id: createPagoDto.metodoPagoId },
+  async updateCuotaStatus(idCuota: number) {
+    console.log('🔧 Actualizando manualmente cuota:', idCuota);
+    
+    const cuotaAntes = await this.cuotasRepository.findOne({
+      where: { id: idCuota }
     });
-
-    if (!cuota) throw new Error('Cuota no encontrada');
-    if (!metodoPago) throw new Error('Método de pago no encontrado');
-
-    // Crear la entidad con relaciones
-    const nuevoPago = this.pagosRepository.create({
-      ...createPagoDto,
-      idCuota: cuota,
-      metodoPago: metodoPago,
-      idPrestamo: prestamo.id,
+    console.log('📋 Cuota antes:', cuotaAntes);
+    
+    const updateResult = await this.cuotasRepository.update(idCuota, {
+      estado: 'PAGADO'
     });
-
-    return this.pagosRepository.save(nuevoPago);
+    console.log('✅ Resultado update:', updateResult);
+    
+    const cuotaDespues = await this.cuotasRepository.findOne({
+      where: { id: idCuota }
+    });
+    console.log('📋 Cuota después:', cuotaDespues);
+    
+    return {
+      antes: cuotaAntes,
+      despues: cuotaDespues,
+      updateResult
+    };
   }
 }

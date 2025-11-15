@@ -6,15 +6,28 @@ import { IconArrowUpLeft } from "@tabler/icons-react";
 
 import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
 
-const TotalUsersCard = () => {
+interface UserStatus {
+  status: string;
+  count: number;
+}
+
+interface TotalUsersCardProps {
+  totalUsers?: number;
+  usersByStatus?: UserStatus[];
+}
+
+const TotalUsersCard = ({ totalUsers = 0, usersByStatus = [] }: TotalUsersCardProps) => {
   // chart color
   const theme = useTheme();
   const primary = theme.palette.primary.main;
-  const primaryLight = "#ecf2ff";
-  const successLight = theme.palette.success.light;
+  const secondary = theme.palette.secondary.main;
+  const success = theme.palette.success.main;
+  const warning = theme.palette.warning.main;
+  const error = theme.palette.error.main;
+  
+  // Generar colores dinámicamente
+  const colors = [primary, secondary, success, warning, error];
 
-  // Datos mockeados
-  const totalUsers = 1200; // Total de usuarios
   const growthPercentage = 9; // Porcentaje de crecimiento
   const options = {
     chart: {
@@ -26,7 +39,7 @@ const TotalUsersCard = () => {
       },
       height: 155,
     },
-    colors: [primary, primaryLight],
+    colors: colors.slice(0, usersByStatus.length || 2),
     plotOptions: {
       pie: {
         startAngle: 0,
@@ -62,8 +75,10 @@ const TotalUsersCard = () => {
     ],
   };
 
-  // Porcentaje de usuarios activos e inactivos
-  const series = [80, 20]; // 80% activos, 20% inactivos
+  // Datos de usuarios por estado
+  const series = usersByStatus.length > 0 
+    ? usersByStatus.map(item => item.count)
+    : [totalUsers || 1]; // Fallback si no hay datos por estado
 
   return (
     <DashboardCard title="Total de usuarios">
@@ -74,32 +89,37 @@ const TotalUsersCard = () => {
             {totalUsers}
           </Typography>
           <Stack spacing={1} mt={2} direction="column">
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Avatar
-                sx={{
-                  width: 9,
-                  height: 9,
-                  bgcolor: primary,
-                  svg: { display: "none" },
-                }}
-              ></Avatar>
-              <Typography variant="subtitle2" color="textSecondary">
-                Activos
-              </Typography>
-            </Stack>
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Avatar
-                sx={{
-                  width: 9,
-                  height: 9,
-                  bgcolor: primaryLight,
-                  svg: { display: "none" },
-                }}
-              ></Avatar>
-              <Typography variant="subtitle2" color="textSecondary">
-                Retirados
-              </Typography>
-            </Stack>
+            {usersByStatus.length > 0 ? (
+              usersByStatus.map((item, index) => (
+                <Stack key={item.status} direction="row" spacing={1} alignItems="center">
+                  <Avatar
+                    sx={{
+                      width: 9,
+                      height: 9,
+                      bgcolor: colors[index] || primary,
+                      svg: { display: "none" },
+                    }}
+                  ></Avatar>
+                  <Typography variant="subtitle2" color="textSecondary">
+                    {item.status} ({item.count})
+                  </Typography>
+                </Stack>
+              ))
+            ) : (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Avatar
+                  sx={{
+                    width: 9,
+                    height: 9,
+                    bgcolor: primary,
+                    svg: { display: "none" },
+                  }}
+                ></Avatar>
+                <Typography variant="subtitle2" color="textSecondary">
+                  Total Usuarios
+                </Typography>
+              </Stack>
+            )}
           </Stack>
         </Grid>
         {/* columna para gráfico de dona */}

@@ -41,10 +41,34 @@ export class PagosController {
   }
 
   @Post('createByCredit/:id')
-  createByCredit(
+  async createByCredit(
     @Param('id') id: number,
     @Body() createPagoDto: CreatePagoDto,
   ) {
-    return this.pagosService.createByCredit(id, createPagoDto);
+    try {
+      const result = await this.pagosService.createByCredit(id, createPagoDto);
+      return {
+        status: 'success',
+        data: result,
+        message: 'Pago registrado exitosamente'
+      };
+    } catch (error) {
+      console.error('Error en createByCredit:', error);
+      return {
+        status: 'error',
+        data: null,
+        message: error.message || 'Error al registrar el pago'
+      };
+    }
+  }
+
+  @Get('debug/cuota/:id')
+  debugCuota(@Param('id') id: string) {
+    return this.pagosService.debugCuota(+id);
+  }
+
+  @Post('debug/update-cuota/:id')
+  async updateCuotaStatus(@Param('id') id: string) {
+    return this.pagosService.updateCuotaStatus(+id);
   }
 }

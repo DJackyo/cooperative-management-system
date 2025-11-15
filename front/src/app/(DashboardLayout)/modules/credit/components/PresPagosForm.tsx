@@ -26,6 +26,8 @@ import {
 } from "@/app/(DashboardLayout)/utilities/utils";
 import { pagosService } from "@/services/paymentsService";
 import { MetodoPago } from "@/interfaces/Cuota";
+import { useNotification } from "@/contexts/NotificationContext";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 const metodosPago: MetodoPago[] = [
   { id: 1, nombre: "EFECTIVO" },
@@ -67,10 +69,15 @@ type PresPagosFormData = z.infer<typeof presPagosSchema>;
 interface PresPagosFormProps {
   pago?: PresPagosFormData;
   creditId: number;
+  onSuccess?: () => void;
 }
 
-export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
+export default function PresPagosForm({ pago , creditId, onSuccess}: PresPagosFormProps) {
   const [metodoSeleccionado, setMetodoSeleccionado] = useState<number | "">("");
+  const [loading, setLoading] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [pendingData, setPendingData] = useState<any>(null);
+  const { showNotification } = useNotification();
 
   const {
     register,
@@ -157,9 +164,44 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
 
   // 📌 Función de envío de datos
   const onSubmit = async (data: any) => {
-    console.log("Datos enviados:", data);
-    let pagoRequest = await pagosService.create(creditId,data);
-    console.log("Pago enviado:", pagoRequest);
+    if (!metodoSeleccionado || metodoSeleccionado === "") {
+      showNotification("Debe seleccionar un método de pago", "warning");
+      return;
+    }
+    
+    // Mostrar confirmación antes de procesar
+    setPendingData(data);
+    setShowConfirm(true);
+  };
+
+  const handleConfirmPayment = async () => {
+    setShowConfirm(false);
+    setLoading(true);
+    
+    try {
+      // Agregar el ID de la cuota al pago
+      const pagoData = {
+        ...pendingData,
+        idCuota: pago?.id, // ID de la cuota que se está pagando
+        metodoPagoId: Number(metodoSeleccionado) // Convertir a número
+      };
+      console.log("Datos enviados:", pagoData);
+      const pagoRequest = await pagosService.create(creditId, pagoData);
+      console.log("Pago enviado:", pagoRequest);
+      
+      if (pagoRequest) {
+        showNotification("Pago registrado exitosamente", "success");
+        onSuccess?.();
+      } else {
+        showNotification("Error al registrar el pago", "error");
+      }
+    } catch (error) {
+      console.error("Error al registrar pago:", error);
+      showNotification("Error al registrar el pago. Intente nuevamente.", "error");
+    } finally {
+      setLoading(false);
+      setPendingData(null);
+    }
   };
 
   const handleChange: any = (event: React.ChangeEvent<{ value: unknown }>) => {
@@ -323,14 +365,15 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
           />
         </Grid>
         <Grid  size={{ xs: 12, md:  3}}>
-          <FormControl fullWidth variant="outlined">
-            <InputLabel id="metodo-pago-label">Método de Pago</InputLabel>
+          <FormControl fullWidth variant="outlined" required>
+            <InputLabel id="metodo-pago-label">Método de Pago *</InputLabel>
             <Select
               labelId="metodo-pago-label"
               id="metodo-pago"
               value={metodoSeleccionado}
               onChange={handleChange}
-              label="Método de Pago"
+              label="Método de Pago *"
+              error={!metodoSeleccionado}
             >
               {metodosPago.map((metodo) => (
                 <MenuItem key={metodo.id} value={metodo.id}>
@@ -380,11 +423,26 @@ export default function PresPagosForm({ pago , creditId}: PresPagosFormProps) {
 
         {/* Botón de envío */}
         <Grid  size={{ xs: 12 }} sx={{ textAlign: "right", mt: 1 }}>
-          <Button type="submit" variant="contained">
-            {pago ? "Registrar Pago" : ""}
+          <Button 
+            type="submit" 
+            variant="contained"
+            disabled={loading}
+          >
+            {loading ? "Registrando..." : (pago ? "Registrar Pago" : "")}
           </Button>
         </Grid>
       </Grid>
+      
+      <ConfirmDialog
+        open={showConfirm}
+        title="Confirmar Pago"
+        message={`¿Está seguro de registrar el pago por ${formatCurrency(totalPagar)} pesos?`}
+        type="warning"
+        confirmText="Registrar Pago"
+        cancelText="Cancelar"
+        onConfirm={handleConfirmPayment}
+        onCancel={() => setShowConfirm(false)}
+      />
     </Box>
   );
 }

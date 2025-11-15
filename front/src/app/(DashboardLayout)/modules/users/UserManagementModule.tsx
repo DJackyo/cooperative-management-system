@@ -48,9 +48,12 @@ import { defaultLoggedUser } from "../../utilities/utils";
 import { Aporte } from "@/interfaces/Aporte";
 import AporteModal from "../savings/components/AporteModal";
 import { savingsService } from "@/services/savingsService";
+import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
+import { usePageLoading } from "@/hooks/usePageLoading";
 
 const UserManagementModule = () => {
   const router = useRouter();
+  const { loading, stopLoading } = usePageLoading();
 
   const [search, setSearch] = useState("");
   const [openModal, setOpenModal] = useState(false);
@@ -102,7 +105,7 @@ const UserManagementModule = () => {
         setActiveUsersCount(count);
         const user = await authService.getCurrentUserData();
         setCurrentUser(user);
-        console.log("currentUser->", user);
+        stopLoading();
       }
     };
 
@@ -284,6 +287,10 @@ const UserManagementModule = () => {
     }
   };
 
+
+  if (loading) {
+    return <GenericLoadingSkeleton type="table" rows={8} />;
+  }
 
   return (
     <Grid container spacing={3}>

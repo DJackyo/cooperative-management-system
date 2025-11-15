@@ -32,6 +32,8 @@ import { AsocAportesAsociadosModule } from './modules/aportes-asociados/aportes-
 import { PrestamosModule } from './modules/prestamos/prestamos.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PagosModule } from './modules/pagos/pagos.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { SchedulerModule } from './modules/scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -86,6 +88,8 @@ import { PagosModule } from './modules/pagos/pagos.module';
     AsocAportesAsociadosModule,
     PrestamosModule,
     PagosModule,
+    DashboardModule,
+    SchedulerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

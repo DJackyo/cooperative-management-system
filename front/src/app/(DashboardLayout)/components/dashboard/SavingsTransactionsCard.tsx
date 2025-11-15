@@ -5,7 +5,12 @@ import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCa
 import dynamic from "next/dynamic";
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 
-const SavingsTransactionsCard = () => {
+interface SavingsTransactionsCardProps {
+  savingsTransactions?: number[];
+  savingsLabels?: string[];
+}
+
+const SavingsTransactionsCard = ({ savingsTransactions = [], savingsLabels = [] }: SavingsTransactionsCardProps) => {
   // select
   const [month, setMonth] = React.useState("1");
 
@@ -65,16 +70,7 @@ const SavingsTransactionsCard = () => {
       tickAmount: 4,
     },
     xaxis: {
-      categories: [
-        "16/08",
-        "17/08",
-        "18/08",
-        "19/08",
-        "20/08",
-        "21/08",
-        "22/08",
-        "23/08",
-      ],
+      categories: savingsLabels.length > 0 ? savingsLabels : ["Mes 1", "Mes 2", "Mes 3", "Mes 4", "Mes 5", "Mes 6"],
       axisBorder: {
         show: false,
       },
@@ -88,17 +84,13 @@ const SavingsTransactionsCard = () => {
   const seriescolumnchart: any = [
     {
       name: "Cuota de Ahorro",
-      data: [355, 390, 300, 350, 390, 180, 355, 390],
-    },
-    {
-      name: "Cuota de Crédito",
-      data: [280, 250, 325, 215, 250, 310, 280, 250],
+      data: savingsTransactions.length > 0 ? savingsTransactions : [0, 0, 0, 0, 0, 0],
     },
   ];
 
   return (
     <DashboardCard
-      title="Ahorros en los últimos 6 meses"
+      title="Ahorros por mes (últimos 6 con actividad)"
       // action={
       //   <Select
       //     labelId="month-dd"

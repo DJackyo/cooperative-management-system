@@ -254,7 +254,6 @@ export class PrestamosService {
     // Personalizar la respuesta antes de enviarla
     return prestamos.map((data) => ({
       ...data,
-      estado: data.estado ? 'Activo' : 'Inactivo',
       idAsociado: {
         id: data.idAsociado.id,
         nombres: [
@@ -268,7 +267,7 @@ export class PrestamosService {
       },
       presCuotas: data.presCuotas.map((cuota) => ({
         ...cuota,
-        pagado: cuota.presPagos.length > 0, // 🔹 Se marca como pagado si tiene pagos asociados
+        pagado: cuota.estado === 'PAGADO', // 🔹 Se marca como pagado basado en el estado real
       })),
     }));
   }

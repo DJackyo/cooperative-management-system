@@ -1,7 +1,9 @@
 // src/modules/credit/CreditDetailModule.tsx
 "use client";
 import React, { Suspense, useCallback, useEffect, useState } from "react";
-import { Card, CardContent, Typography, Grid, Box, Skeleton, useMediaQuery } from "@mui/material";
+import { Card, CardContent, Typography, Grid, Box, Skeleton, useMediaQuery, Button } from "@mui/material";
+import AnimatedCard from "@/components/AnimatedCard";
+import InfoTooltip from "@/components/InfoTooltip";
 import { AttachMoney, CalendarToday, AccessTime, Person, BadgeOutlined } from "@mui/icons-material";
 import dynamic from "next/dynamic";
 import { defaultLoggedUser, formatCurrencyFixed, formatNameDate } from "@/app/(DashboardLayout)/utilities/utils";
@@ -13,6 +15,7 @@ import Chart from "react-apexcharts";
 import { ApexOptions } from "apexcharts";
 import { useRouter } from "next/navigation";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
+import { IconRefresh } from "@tabler/icons-react";
 
 // Usar `dynamic` para cargar el componente de forma dinámica solo en el cliente.
 const PaymentHistoryTable = dynamic(() => import("../components/PaymentHistoryTable"), { ssr: false });
@@ -40,6 +43,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
   const [valorCuotasPendiente, setCuotasPendiente] = useState<number>(0);
   const [valorPagado, setValorPagado] = useState<number>(0);
   const [graficoPagos, setGraficoPagos] = useState<React.ReactNode | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const getGraficoPagos = useCallback((cuotas: Cuota[]) => {
     const totalMonto = cuotas.reduce((sum, cuota) => sum + cuota.monto, 0);
@@ -60,18 +64,23 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
 
   const loadCreditData = useCallback(async () => {
     if (creditId) {
-      const response = await creditsService.fetchByFilters({
-        creditId: creditId,
-        userId: userId,
-      });
-      if (response.length > 0) {
-        setCredit(response[0]);
-        setUserInfo(response[0].idAsociado);
+      setRefreshing(true);
+      try {
+        const response = await creditsService.fetchByFilters({
+          creditId: creditId,
+          userId: userId,
+        });
+        if (response.length > 0) {
+          setCredit(response[0]);
+          setUserInfo(response[0].idAsociado);
 
-        const { saldoPendiente, cuotasPendientes } = calcularSaldoYPendientes(response[0].presCuotas);
-        setSaldoPendiente(saldoPendiente);
-        setCuotasPendiente(cuotasPendientes);
-        setGraficoPagos(getGraficoPagos(response[0].presCuotas)); // 🔴 Aquí getGraficoPagos no está memorizada
+          const { saldoPendiente, cuotasPendientes } = calcularSaldoYPendientes(response[0].presCuotas);
+          setSaldoPendiente(saldoPendiente);
+          setCuotasPendiente(cuotasPendientes);
+          setGraficoPagos(getGraficoPagos(response[0].presCuotas));
+        }
+      } finally {
+        setRefreshing(false);
       }
     }
   }, [userId, creditId, getGraficoPagos]); // 🔧 SOLUCIÓN: Agregar getGraficoPagos a las dependencias
@@ -104,7 +113,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
     <Grid container spacing={3}>
       {/* Información de la Solicitud */}
       <Grid size={{ xs: 12, md: 5 }}>
-        <Card variant="outlined" sx={{ boxShadow: 3 }}>
+        <AnimatedCard variant="outlined" sx={{ boxShadow: 3 }} animationType="fade" delay={0}>
           <CardContent>
             <Typography variant="h5" color="primary" gutterBottom>
               Información de la Solicitud
@@ -146,12 +155,12 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
               )}
             </Suspense>
           </CardContent>
-        </Card>
+        </AnimatedCard>
       </Grid>
 
       {/* Información del Crédito */}
       <Grid size={{ xs: 12, md: 7 }}>
-        <Card variant="outlined" sx={{ boxShadow: 3 }}>
+        <AnimatedCard variant="outlined" sx={{ boxShadow: 3 }} animationType="fade" delay={200}>
           <CardContent>
             <Suspense fallback={<Skeleton variant="text" width="100%" />}>
               {credit ? (
@@ -170,10 +179,12 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
                       <Typography display="flex" alignItems="center">
                         <AttachMoney sx={{ mr: 1 }} />
                         <strong>Monto Pagado </strong> ${formatCurrencyFixed(valorPagado)}
+                        <InfoTooltip title="Total de dinero que ya ha sido pagado del crédito" />
                       </Typography>
                       <Typography display="flex" alignItems="center">
                         <AttachMoney sx={{ mr: 1 }} />
                         <strong>Saldo Pendiente: </strong> ${formatCurrencyFixed(valorSaldoPendiente)}
+                        <InfoTooltip title="Monto total que aún falta por pagar del crédito" />
                       </Typography>
                       <Typography display="flex" alignItems="center">
                         <CalendarToday sx={{ mr: 1 }} />
@@ -183,6 +194,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
                       <Typography display="flex" alignItems="center">
                         <AccessTime sx={{ mr: 1 }} /> <strong>Plazo Restante: </strong>
                         {valorCuotasPendiente} meses
+                        <InfoTooltip title="Número de cuotas que aún faltan por pagar" />
                       </Typography>
                     </Box>
                     <Box
@@ -200,31 +212,42 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
               )}
             </Suspense>
           </CardContent>
-        </Card>
+        </AnimatedCard>
       </Grid>
       {/* Gráfico de Pagos */}
 
       {/* Historial de pagos */}
       <Grid size={{ xs: 12, md: 12}}>
-        <Card variant="outlined" sx={{ boxShadow: 3 }}>
+        <AnimatedCard variant="outlined" sx={{ boxShadow: 3 }} animationType="slide" delay={400}>
           <CardContent>
             <Box display="flex" justifyContent="space-between" alignItems="center">
               <Typography variant="h5" color="primary" gutterBottom>
                 Historial de Pagos
               </Typography>
-              {/* <Button
+              <Button
                 variant="outlined"
-                color="secondary"
-                onClick={handleOpenModifyModal}
+                color="primary"
+                onClick={loadCreditData}
+                disabled={refreshing}
+                startIcon={<IconRefresh />}
               >
-                Modificar crédito
-              </Button> */}
+                {refreshing ? "Actualizando..." : "Actualizar"}
+              </Button>
             </Box>
             <Suspense fallback={<Skeleton variant="rectangular" width="100%" height={300} />}>
-              {credit ? <PaymentHistoryTable presCuotas={credit.presCuotas ? credit.presCuotas : []} plazoMeses={credit.plazoMeses ? credit.plazoMeses : 10} creditId={creditId} /> : <></>}
+              {credit ? (
+                <PaymentHistoryTable 
+                  presCuotas={credit.presCuotas ? credit.presCuotas : []} 
+                  plazoMeses={credit.plazoMeses ? credit.plazoMeses : 10} 
+                  creditId={creditId}
+                  onPaymentSuccess={loadCreditData}
+                />
+              ) : (
+                <></>
+              )}
             </Suspense>
           </CardContent>
-        </Card>
+        </AnimatedCard>
       </Grid>
     </Grid>
   );
