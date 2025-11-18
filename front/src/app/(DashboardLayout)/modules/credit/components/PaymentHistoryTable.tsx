@@ -1,4 +1,3 @@
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import {
   Box,
   Button,
@@ -8,6 +7,15 @@ import {
   DialogTitle,
   useMediaQuery,
   useTheme,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  Tooltip,
+  IconButton,
 } from "@mui/material";
 import { useState } from "react";
 import {
@@ -70,282 +78,152 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
     ),
   }));
 
-  const mobileColumns: GridColDef[] = [
-    {
-      field: "numeroCuota",
-      headerName: "#",
-      width: 50,
-      headerClassName: "multiline-header",
-    },
-    {
-      field: "fechaVencimiento",
-      headerName: "Vencimiento",
-      width: 100,
-      valueFormatter: (params: any) => {
-        if (!params) return "****";
-        return formatNameDate(params);
-      },
-      headerClassName: "multiline-header",
-    },
-    {
-      field: "monto",
-      headerName: "Monto",
-      width: 90,
-      valueFormatter: (params: any) => {
-        if (!params) return "$0.00";
-        return "$" + formatCurrency(formatNumber(redondearHaciaArriba(params)));
-      },
-      headerClassName: "multiline-header",
-      cellClassName: "align-right",
-    },
-    {
-      field: "estado",
-      headerName: "Estado",
-      width: 90,
-      renderCell: (params) => getEstadoChip(params.value),
-      headerClassName: "multiline-header",
-    },
-    {
-      field: "pagado",
-      headerName: "Acción",
-      width: 80,
-      renderCell: (params) => {
-        const currentRow = params.row;
-        const currentIndex = sortedCuotas.findIndex(
-          (c) => c.id === currentRow.id
-        );
-        const previousCuota = sortedCuotas[currentIndex - 1];
-        const isEnabled = !previousCuota || previousCuota.estado === "PAGADO";
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
-        return isEnabled && currentRow.estado === "PENDIENTE" ? (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => handleOpenModal(currentRow)}
-            size="small"
-            sx={{ fontSize: '0.7rem', px: 1 }}
-          >
-            Pagar
-          </Button>
-        ) : (
-          <>***</>
-        );
-      },
-      headerClassName: "multiline-header",
-    },
+  const handlePageChange = (_: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
+  const handlePageSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setPageSize(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const paginatedRows = sortedCuotas.slice(page * pageSize, page * pageSize + pageSize);
+
+  // Función para obtener el estilo de fila según el estado de pagos
+  const getRowStyle = (cuota: any) => {
+    if (cuota.estado === "PAGADO") {
+      return {
+        backgroundColor: "#e8f5e8",
+        borderLeft: "4px solid #4caf50",
+        "&:hover": { backgroundColor: "#c8e6c9" }
+      };
+    }
+    
+    if (cuota.estado === "PENDIENTE") {
+      const today = new Date();
+      const dueDate = new Date(cuota.fechaVencimiento);
+      
+      // Si está vencido
+      if (dueDate < today) {
+        return {
+          backgroundColor: "#ffebee",
+          borderLeft: "4px solid #f44336",
+          "&:hover": { backgroundColor: "#ffcdd2" }
+        };
+      }
+      
+      // Si está próximo a vencer (menos de 7 días)
+      const diffTime = dueDate.getTime() - today.getTime();
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays <= 7 && diffDays > 0) {
+        return {
+          backgroundColor: "#fff3e0",
+          borderLeft: "4px solid #ff9800",
+          "&:hover": { backgroundColor: "#ffe0b2" }
+        };
+      }
+    }
+    
+    return {};
+  };
+
+  const columns = [
+    { field: "numeroCuota", headerName: "# Cuota", width: 80 },
+    { field: "fechaVencimiento", headerName: "Vencimiento", width: 120 },
+    { field: "abonoCapital", headerName: "Abono Capital", width: 120 },
+    { field: "intereses", headerName: "Intereses", width: 100 },
+    { field: "diasEnMora", headerName: "Días Mora", width: 90 },
+    { field: "mora", headerName: "Mora", width: 100 },
+    { field: "proteccionCartera", headerName: "Protección", width: 100 },
+    { field: "monto", headerName: "Monto Total", width: 120 },
+    { field: "estado", headerName: "Estado", width: 100 },
+    { field: "fechaPago", headerName: "Fecha Pago", width: 120 },
+    { field: "acciones", headerName: "Acciones", width: 120 },
   ];
 
-  const desktopColumns: GridColDef[] = [
-    {
-      field: "numeroCuota",
-      headerName: "# Cuota",
-      width: 70,
-      headerClassName: "multiline-header",
+  const formatRules: Record<string, (value: any, row?: any) => React.ReactNode> = {
+    numeroCuota: (value) => value,
+    fechaVencimiento: (value) => value ? formatNameDate(value) : "****",
+    abonoCapital: (value) => value ? "$" + formatCurrency(formatNumber(redondearHaciaArriba(value))) : "$0.00",
+    intereses: (value) => value ? "$" + formatCurrency(formatNumber(redondearHaciaArriba(value))) : "$0.00",
+    diasEnMora: (value) => value ? formatNumber(redondearHaciaArriba(value)) : "0",
+    mora: (value, row) => {
+      const mora = redondearHaciaArriba(calcularMora(row?.monto || 0, row?.diasEnMora || 0));
+      return "$" + formatCurrency(formatNumber(mora));
     },
-    {
-      field: "fechaVencimiento",
-      headerName: "Fecha de Vencimiento",
-      width: 100,
-      valueFormatter: (params: any) => {
-        if (!params) return "****";
-        return formatNameDate(params);
-      },
-      headerClassName: "multiline-header",
+    proteccionCartera: (value) => value ? "$" + formatCurrency(formatNumber(redondearHaciaArriba(value))) : "$0.00",
+    monto: (value) => value ? "$" + formatCurrency(formatNumber(redondearHaciaArriba(value))) : "$0.00",
+    estado: (value) => getEstadoChip(value),
+    fechaPago: (value, row) => {
+      const fechaPago = row?.presPagos?.diaDePago;
+      return fechaPago ? formatNameDate(fechaPago) : "No registrado";
     },
-    {
-      field: "abonoCapital",
-      headerName: "Abono a Capital",
-      width: 110,
-      valueFormatter: (params: any) => {
-        if (!params) return "$0.00";
-        return "$" + formatCurrency(formatNumber(redondearHaciaArriba(params)));
-      },
-      headerClassName: "multiline-header",
-      cellClassName: "align-right",
-    },
-    {
-      field: "intereses",
-      headerName: "Intereses",
-      width: 90,
-      valueFormatter: (params: any) => {
-        if (!params) return "$0.00";
-        return "$" + formatCurrency(formatNumber(redondearHaciaArriba(params)));
-      },
-      headerClassName: "multiline-header",
-      cellClassName: "align-right",
-    },
-    {
-      field: "diasEnMora",
-      headerName: "Días en Mora",
-      width: 60,
-      valueFormatter: (params: any) => {
-        if (!params) return "0";
-        return formatNumber(redondearHaciaArriba(params));
-      },
-      headerClassName: "multiline-header",
-      cellClassName: "align-right",
-      renderHeader: () => (
-        <Box display="flex" alignItems="center">
-          Días en Mora
-          <InfoTooltip title="Número de días transcurridos después de la fecha de vencimiento" size="small" />
-        </Box>
-      ),
-    },
-    {
-      field: "mora",
-      headerName: "Mora",
-      width: 80,
-      renderCell: (params) => {
-        const currentRow = params.row;
-        const mora = redondearHaciaArriba(
-          calcularMora(currentRow.monto, currentRow.diasEnMora)
-        );
-        if (!params) return "0";
-        return "$" + formatCurrency(formatNumber(mora));
-      },
-      cellClassName: "align-right",
-    },
-    {
-      field: "proteccionCartera",
-      headerName: "Protección de Cartera",
-      width: 100,
-      valueFormatter: (params: any) => {
-        if (!params) return "$0.00";
-        return "$" + formatCurrency(formatNumber(redondearHaciaArriba(params)));
-      },
-      headerClassName: "multiline-header",
-      cellClassName: "align-right",
-      renderHeader: () => (
-        <Box display="flex" alignItems="center">
-          Protección
-          <InfoTooltip title="Seguro que protege el crédito en caso de incumplimiento" size="small" />
-        </Box>
-      ),
-    },
-    {
-      field: "monto",
-      headerName: "Monto",
-      width: 100,
-      valueFormatter: (params: any) => {
-        if (!params) return "$0.00";
-        return "$" + formatCurrency(formatNumber(redondearHaciaArriba(params)));
-      },
-      headerClassName: "multiline-header",
-      cellClassName: "align-right",
-    },
-    {
-      field: "estado",
-      headerName: "Estado",
-      width: 110,
-      renderCell: (params) => getEstadoChip(params.value),
-      headerClassName: "multiline-header",
-    },
-    {
-      field: "presPagos.diaDePago",
-      headerName: "Fecha de Pago",
-      width: 100,
-      valueFormatter: (params: any) => {
-        if (!params) return "No registrado";
-        return formatNameDate(params);
-      },
-      headerClassName: "multiline-header",
-    },
-    {
-      field: "pagado",
-      headerName: "Acciones",
-      width: 150,
-      renderCell: (params) => {
-        const currentRow = params.row;
-        const currentIndex = sortedCuotas.findIndex(
-          (c) => c.id === currentRow.id
-        );
-        const previousCuota = sortedCuotas[currentIndex - 1];
+    acciones: (value, row) => {
+      const currentIndex = sortedCuotas.findIndex((c) => c.id === row.id);
+      const previousCuota = sortedCuotas[currentIndex - 1];
+      const isEnabled = !previousCuota || previousCuota.estado === "PAGADO";
 
-        // Habilitar solo si la cuota anterior está PAGADA o es la primera cuota
-        const isEnabled = !previousCuota || previousCuota.estado === "PAGADO";
-
-        return isEnabled && currentRow.estado === "PENDIENTE" ? (
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => handleOpenModal(currentRow)}
-            size="small"
-          >
-            Registrar Pago
-          </Button>
-        ) : (
-          <>***</>
-        );
-      },
-      headerClassName: "multiline-header",
-    },
-  ];
-
-  const styles = {
-    "& .MuiDataGrid-columnHeaders": {
-      borderBottom: "2px solid #ccc",
-      textAlign: "center",
-    },
-    "& .MuiDataGrid-columnHeader": {
-      borderRight: "1px solid #ddd",
-      backgroundColor: "#f5f5f5",
-      textAlign: "center",
-    },
-    "& .MuiDataGrid-columnHeader:last-child": {
-      borderRight: "none",
-    },
-    "& .MuiDataGrid-cell": {
-      borderRight: "1px solid #ddd",
-    },
-    "& .MuiDataGrid-row:last-child .MuiDataGrid-cell": {
-      borderBottom: "1px solid #ddd",
-    },
-    "& .multiline-header .MuiDataGrid-columnHeaderTitle": {
-      whiteSpace: "normal",
-      lineHeight: "1.2",
-    },
-    "& .align-right": {
-      textAlign: "right",
-      justifyContent: "flex-end",
+      return isEnabled && row.estado === "PENDIENTE" ? (
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => handleOpenModal(row)}
+          size="small"
+        >
+          Registrar Pago
+        </Button>
+      ) : (
+        <span>***</span>
+      );
     },
   };
 
   return (
     <>
-      <Box
-        sx={{
-          width: '100%',
-          overflowX: isMobile ? "auto" : "visible",
-        }}
-      >
-        <DataGrid
-          rows={sortedCuotas}
-          columns={isMobile ? mobileColumns : desktopColumns}
-          sx={{
-            ...styles,
-            minWidth: isMobile ? 400 : 'auto',
-            '& .MuiDataGrid-cell': {
-              ...styles['& .MuiDataGrid-cell'],
-              fontSize: isMobile ? '0.7rem' : '0.75rem',
-              padding: isMobile ? '2px 4px' : '4px 6px',
-            },
-            '& .MuiDataGrid-columnHeader': {
-              ...styles['& .MuiDataGrid-columnHeader'],
-              fontSize: isMobile ? '0.7rem' : '0.75rem',
-              padding: isMobile ? '2px 4px' : '4px 6px',
-            },
-          }}
-          showCellVerticalBorder={true}
-          showColumnVerticalBorder={true}
-          initialState={{
-            pagination: {
-              paginationModel: { pageSize: plazoMeses },
-            },
-          }}
-          pageSizeOptions={[plazoMeses]}
-          density='compact'
-        />
-      </Box>
+      <TableContainer>
+        <Table>
+          <TableHead>
+            <TableRow>
+              {columns.map((column) => (
+                <TableCell key={column.field} style={{ width: column.width }}>
+                  {column.headerName}
+                  {column.field === "diasEnMora" && (
+                    <InfoTooltip title="Número de días transcurridos después de la fecha de vencimiento" size="small" />
+                  )}
+                  {column.field === "proteccionCartera" && (
+                    <InfoTooltip title="Seguro que protege el crédito en caso de incumplimiento" size="small" />
+                  )}
+                </TableCell>
+              ))}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {paginatedRows.map((row: any) => (
+              <TableRow key={row.id} sx={getRowStyle(row)}>
+                {columns.map((column) => (
+                  <TableCell key={column.field}>
+                    {formatRules[column.field] ? formatRules[column.field](row[column.field], row) : row[column.field]}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      
+      <TablePagination
+        rowsPerPageOptions={[5, 10, 25]}
+        component="div"
+        count={sortedCuotas.length}
+        rowsPerPage={pageSize}
+        page={page}
+        onPageChange={handlePageChange}
+        onRowsPerPageChange={handlePageSizeChange}
+      />
       {/* Modal para Registrar Pago */}
       <Dialog 
         open={open} 

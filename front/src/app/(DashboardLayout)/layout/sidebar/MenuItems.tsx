@@ -32,7 +32,7 @@ const Menuitems = [
     id: uniqueId(),
     title: "Gestión del ahorro",
     icon: IconAdjustmentsDollar,
-    href: "/modules/savings?id=",
+    href: "/modules/savings?id=0",
     roles: roleAdmin,
   },
   {

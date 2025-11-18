@@ -33,6 +33,12 @@ export class AsocAportesAsociadosController {
     return this.AsocAportesAsociadosService.findAll();
   }
 
+  // Obtener resumen de usuarios (debe ir antes de :id)
+  @Get('users-summary')
+  async getUsersSummary() {
+    return this.AsocAportesAsociadosService.getUsersSummary();
+  }
+
   // Obtener un aporte por su ID
   @Get(':id')
   findOne(@Param('id') id: number): Promise<AsocAportesAsociados> {

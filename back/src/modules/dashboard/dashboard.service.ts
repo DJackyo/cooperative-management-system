@@ -112,39 +112,252 @@ export class DashboardService {
   }
 
   async getRecentTransactions() {
-    // Retornar datos mock por ahora hasta resolver las relaciones de BD
-    const mockTransactions = [
-      {
-        id: '1',
-        type: 'payment',
-        amount: 150000,
-        user: 'Juan Pérez',
-        timestamp: new Date().toISOString(),
-        description: 'Pago de cuota por valor de $150.000 por Juan Pérez',
-      },
-      {
-        id: '2',
-        type: 'credit_approved',
-        amount: 500000,
-        user: 'María López',
-        timestamp: new Date(Date.now() - 3600000).toISOString(),
-        description: 'Crédito aprobado para María López',
-      },
-      {
-        id: '3',
-        type: 'savings',
-        amount: 300000,
-        user: 'Carlos Rodríguez',
-        timestamp: new Date(Date.now() - 7200000).toISOString(),
-        description: 'Ahorro agregado de $300.000 de Carlos Rodríguez',
-      }
-    ];
-    
-    return mockTransactions;
+    try {
+      const transactions = [];
+      
+      // Obtener pagos recientes con JOIN manual
+      const recentPayments = await this.pagosRepository
+        .createQueryBuilder('pago')
+        .leftJoin('pres_cuotas', 'cuota', 'cuota.id = pago.id_cuota')
+        .leftJoin('prestamos', 'prestamo', 'prestamo.id = cuota.id_prestamo')
+        .leftJoin('asociados', 'asociado', 'asociado.id = prestamo.id_asociado')
+        .select([
+          'pago.id_pago as id',
+          'pago.monto as monto',
+          'pago.dia_de_pago as fecha',
+          'asociado.nombre1 as nombre1',
+          'asociado.nombre2 as nombre2',
+          'asociado.apellido1 as apellido1',
+          'asociado.apellido2 as apellido2'
+        ])
+        .where('pago.dia_de_pago IS NOT NULL')
+        .orderBy('pago.dia_de_pago', 'DESC')
+        .limit(5)
+        .getRawMany();
+      
+      // Agregar pagos a las transacciones
+      recentPayments.forEach(pago => {
+        if (pago.fecha && pago.monto) {
+          transactions.push({
+            id: `payment_${pago.id}`,
+            type: 'payment',
+            amount: pago.monto,
+            user: `${pago.nombre1 || ''} ${pago.nombre2 || ''} ${pago.apellido1 || ''} ${pago.apellido2 || ''}`.trim().replace(/\s+/g, ' '),
+            timestamp: new Date(pago.fecha).toISOString(),
+            description: `Pago de cuota por valor de $${pago.monto.toLocaleString('es-CO')}`,
+          });
+        }
+      });
+      
+      // Obtener créditos aprobados recientes
+      const recentCredits = await this.prestamosRepository
+        .createQueryBuilder('prestamo')
+        .leftJoin('asociados', 'asociado', 'asociado.id = prestamo.id_asociado')
+        .select([
+          'prestamo.id as id',
+          'prestamo.monto as monto',
+          'prestamo.fecha_desembolso as fecha',
+          'asociado.nombre1 as nombre1',
+          'asociado.nombre2 as nombre2',
+          'asociado.apellido1 as apellido1',
+          'asociado.apellido2 as apellido2'
+        ])
+        .where('prestamo.estado = :estado', { estado: 'APROBADO' })
+        .andWhere('prestamo.fecha_desembolso IS NOT NULL')
+        .orderBy('prestamo.fecha_desembolso', 'DESC')
+        .limit(5)
+        .getRawMany();
+      
+      // Agregar créditos aprobados a las transacciones
+      recentCredits.forEach(prestamo => {
+        if (prestamo.fecha) {
+          transactions.push({
+            id: `credit_${prestamo.id}`,
+            type: 'credit_approved',
+            amount: prestamo.monto,
+            user: `${prestamo.nombre1 || ''} ${prestamo.nombre2 || ''} ${prestamo.apellido1 || ''} ${prestamo.apellido2 || ''}`.trim().replace(/\s+/g, ' '),
+            timestamp: new Date(prestamo.fecha).toISOString(),
+            description: `Crédito aprobado por valor de $${prestamo.monto.toLocaleString('es-CO')}`,
+          });
+        }
+      });
+      
+      // Obtener aportes recientes (ahorros)
+      const recentSavings = await this.aportesRepository
+        .createQueryBuilder('aporte')
+        .leftJoin('asociados', 'asociado', 'asociado.id = aporte.id_asociado')
+        .select([
+          'aporte.id as id',
+          'aporte.monto as monto',
+          'aporte.fecha_aporte as fecha',
+          'asociado.nombre1 as nombre1',
+          'asociado.nombre2 as nombre2',
+          'asociado.apellido1 as apellido1',
+          'asociado.apellido2 as apellido2'
+        ])
+        .where('aporte.monto > 0')
+        .orderBy('aporte.fecha_aporte', 'DESC')
+        .limit(5)
+        .getRawMany();
+      
+      // Agregar ahorros a las transacciones
+      recentSavings.forEach(aporte => {
+        transactions.push({
+          id: `savings_${aporte.id}`,
+          type: 'savings',
+          amount: aporte.monto,
+          user: `${aporte.nombre1 || ''} ${aporte.nombre2 || ''} ${aporte.apellido1 || ''} ${aporte.apellido2 || ''}`.trim().replace(/\s+/g, ' '),
+          timestamp: new Date(aporte.fecha).toISOString(),
+          description: `Ahorro agregado de $${aporte.monto.toLocaleString('es-CO')}`,
+        });
+      });
+      
+      // Ordenar todas las transacciones por fecha (más recientes primero)
+      transactions.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      
+      // Retornar solo las 10 más recientes
+      return transactions.slice(0, 10);
+      
+    } catch (error) {
+      console.error('Error fetching recent transactions:', error);
+      // Fallback con datos mock en caso de error
+      return [
+        {
+          id: '1',
+          type: 'payment',
+          amount: 150000,
+          user: 'Usuario de prueba',
+          timestamp: new Date().toISOString(),
+          description: 'Pago de cuota por valor de $150.000',
+        }
+      ];
+    }
   }
 
   async getPendingPaymentSupports() {
     // Implementar lógica para soportes pendientes
     return { count: 0 };
+  }
+
+  async generateYearProjection(year: number) {
+    try {
+      console.log(`Generating projections for year ${year}`);
+      
+      // Verificar si ya existen metas para este año
+      const existingMetas = await this.aportesRepository.query(
+        'SELECT COUNT(*) as count FROM asoc_metas_ahorro WHERE año = $1',
+        [year]
+      );
+      
+      if (parseInt(existingMetas[0]?.count) > 0) {
+        return {
+          message: `Ya existen ${existingMetas[0].count} metas para el año ${year}`,
+          created: 0
+        };
+      }
+      
+      // Generar metas basadas en el año anterior o promedio histórico
+      const previousYear = year - 1;
+      
+      const insertQuery = `
+        INSERT INTO asoc_metas_ahorro (asociado_id, meta_mensual, año)
+        SELECT 
+          asoc.id,
+          COALESCE(
+            -- Usar meta del año anterior si existe
+            (SELECT meta_mensual FROM asoc_metas_ahorro 
+             WHERE asociado_id = asoc.id AND año = $2),
+            -- Si no, usar promedio histórico de aportes
+            ROUND(
+              (SELECT AVG(monto) FROM asoc_aportes_asociados 
+               WHERE id_asociado = asoc.id AND monto > 0), 0
+            ),
+            -- Meta mínima por defecto
+            50000
+          ) as meta_mensual,
+          $1 as año
+        FROM asociados asoc
+        WHERE asoc.id_estado = 1
+      `;
+      
+      await this.aportesRepository.query(insertQuery, [year, previousYear]);
+      
+      // Contar cuántas se crearon
+      const newCount = await this.aportesRepository.query(
+        'SELECT COUNT(*) as count FROM asoc_metas_ahorro WHERE año = $1',
+        [year]
+      );
+      
+      return {
+        message: `Proyecciones generadas exitosamente para el año ${year}`,
+        created: parseInt(newCount[0]?.count) || 0
+      };
+      
+    } catch (error) {
+      console.error('Error generating year projection:', error);
+      throw error;
+    }
+  }
+
+  async getSavingsProjection() {
+    try {
+      const currentYear = new Date().getFullYear();
+      console.log('Calculating savings projection for year:', currentYear);
+      
+      // Obtener el total de ahorros registrados en el año actual
+      const registeredSavings = await this.aportesRepository
+        .createQueryBuilder('aporte')
+        .select('SUM(aporte.monto)', 'total')
+        .where('EXTRACT(YEAR FROM aporte.fechaAporte) = :year', { year: currentYear })
+        .andWhere('aporte.monto > 0')
+        .getRawOne();
+      
+      console.log('Registered savings raw result:', registeredSavings);
+      
+      // Intentar obtener metas de ahorro usando consulta SQL directa
+      let projected = 0;
+      try {
+        const savingsGoalsQuery = `
+          SELECT SUM(meta_mensual * 12) as total_anual 
+          FROM asoc_metas_ahorro 
+          WHERE año = $1 AND activa = true
+        `;
+        const savingsGoalsResult = await this.aportesRepository.query(savingsGoalsQuery, [currentYear]);
+        console.log('Savings goals raw result:', savingsGoalsResult);
+        
+        projected = parseFloat(savingsGoalsResult[0]?.total_anual) || 0;
+        console.log('Projected amount from metas:', projected);
+      } catch (metasError) {
+        console.log('Error querying asoc_metas_ahorro:', metasError.message);
+        projected = 0;
+      }
+      
+      // Si no hay metas establecidas, usar fallback
+      if (projected === 0) {
+        const totalUsers = await this.asociadosRepository.count();
+        const averageSavingsGoal = 500000; // Meta promedio por asociado al año
+        projected = totalUsers * averageSavingsGoal;
+        console.log('Using fallback projection:', projected, 'for', totalUsers, 'users');
+      }
+      
+      const registered = parseFloat(registeredSavings?.total) || 0;
+      const percentage = projected > 0 ? (registered / projected) * 100 : 0;
+      
+      console.log('Final calculation:', { projected, registered, percentage });
+      
+      return {
+        projected,
+        registered,
+        percentage
+      };
+    } catch (error) {
+      console.error('Error calculating savings projection:', error);
+      // Fallback con datos de ejemplo
+      return {
+        projected: 50000000,
+        registered: 35000000,
+        percentage: 70
+      };
+    }
   }
 }

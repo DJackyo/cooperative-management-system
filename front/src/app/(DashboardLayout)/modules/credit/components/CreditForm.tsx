@@ -47,6 +47,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
   const [formData, setFormData]: any = useState({
     fechaCredito: new Date(),
     fechaVencimiento: null,
+    fechaActualizacion: new Date(),
     monto: 0,
     plazoMeses: "",
     cuotaMensual: 0,
@@ -56,15 +57,19 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
     idTasa: 1,
   });
 
+  const [originalData, setOriginalData]: any = useState(null);
+  const [hasChanges, setHasChanges] = useState(false);
+
   useEffect(() => {
     const fetchData = async () => {
       const hasSession = authService.isAuthenticated();
       if (hasSession) {
         loadTasas();
         if (existingData) {
-          setFormData({
-            fechaCredito: existingData.fechaCredito || null,
-            fechaVencimiento: existingData.fechaVencimiento || null,
+          const initialData = {
+            fechaCredito: existingData.fechaCredito ? new Date(existingData.fechaCredito) : new Date(),
+            fechaVencimiento: existingData.fechaVencimiento ? new Date(existingData.fechaVencimiento) : null,
+            fechaActualizacion: mode === "approve" ? new Date() : (existingData.fechaActualizacion ? new Date(existingData.fechaActualizacion) : new Date()),
             monto: existingData.monto,
             plazoMeses: existingData.plazoMeses,
             cuotaMensual: existingData.cuotaMensual,
@@ -72,17 +77,36 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
             estado: existingData.estado || "SOLICITADO",
             observaciones: existingData.observaciones,
             idTasa: existingData.idTasa?.id,
-          });
+          };
+          setFormData(initialData);
+          setOriginalData(initialData);
         }
       }
     };
     fetchData();
-  }, [existingData, loadTasas]);
+  }, [existingData, loadTasas, mode]);
 
   const handleChange: any = (e: React.ChangeEvent<HTMLInputElement | { name?: string; value: unknown }>) => {
     const { name, value }: any = e.target;
-    setFormData({ ...formData, [name!]: value });
+    const newFormData = { ...formData, [name!]: value };
+    setFormData(newFormData);
     console.log(name, value);
+
+    // Detectar cambios comparando con datos originales
+    if (mode === "edit" && originalData) {
+      const changed = Object.keys(newFormData).some(key => {
+        if (key === 'fechaCredito' || key === 'fechaVencimiento') {
+          // Comparar fechas
+          const original = originalData[key];
+          const current = newFormData[key];
+          if (!original && !current) return false;
+          if (!original || !current) return true;
+          return new Date(original).getTime() !== new Date(current).getTime();
+        }
+        return originalData[key] !== newFormData[key];
+      });
+      setHasChanges(changed);
+    }
 
     if (name === "tasaInteres") {
       setTasaInteresMensual(parseFloat(value));
@@ -175,12 +199,12 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
           <Grid container spacing={2}>
             {/* Columna 3 */}
             <Grid size={{ xs: 12, md: 3 }} sx={{ display: mode === "approve" ? "none" : "block" }}>
-              <TextField label="Monto" name="monto" value={formData.monto} onChange={handleChange} fullWidth required type="number" onBlur={calculateCuotaMensual} disabled={mode === "approve"} />
+              <TextField label="Monto" name="monto" value={formData.monto} onChange={handleChange} fullWidth required type="number" onBlur={calculateCuotaMensual} disabled={mode === "approve"} size="small" />
             </Grid>
 
             {/* Columna 1 */}
             <Grid size={{ xs: 12, md: 3 }} sx={{ display: mode === "approve" ? "none" : "block" }}>
-              <FormControl fullWidth>
+              <FormControl fullWidth size="small">
                 <InputLabel id="plazo-label">Plazo (Meses)</InputLabel>
                 <Select labelId="plazo-label" value={formData.plazoMeses} name="plazoMeses" onChange={handleChange} label="Plazo (Meses)" required disabled={mode === "approve"}>
                   {plazosMeses.map((plazo) => (
@@ -194,7 +218,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
 
             {/* Columna 2 */}
             <Grid size={{ xs: 12, md: 3 }} sx={{ display: mode === "approve" ? "none" : "block" }}>
-              <FormControl fullWidth>
+              <FormControl fullWidth size="small">
                 <InputLabel id="tasa-label">Tasa de Interés</InputLabel>
                 <Select labelId="tasa-label" value={formData.tasa} name="tasaInteres" onChange={handleChange} label="Tasa de Interés" required disabled={mode === "approve"}>
                   {tasas.map((tasa: any) => (
@@ -208,13 +232,13 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
 
             {/* Columna 3 */}
             <Grid size={{ xs: 12, md: 3 }} sx={{ display: mode === "approve" ? "none" : "block" }}>
-              <TextField label="Cuota Mensual" name="cuotaMensual" value={formData.cuotaMensual} fullWidth disabled />
+              <TextField label="Cuota Mensual" name="cuotaMensual" value={formData.cuotaMensual} fullWidth disabled size="small" />
             </Grid>
 
             {/* Estado */}
             {formData.estado !== "SOLICITADO" && (
               <Grid size={{ xs: 12, md: 3 }}>
-                <FormControl fullWidth>
+                <FormControl fullWidth size="small">
                   <InputLabel id="estado-label">Estado</InputLabel>
                   <Select labelId="estado-label" value={formData.estado} name="estado" onChange={handleChange} label="Estado">
                     {estadosPrestamo.map((estado) => (
@@ -239,7 +263,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
                     } as any)
                   }
                   slotProps={{
-                    textField: { fullWidth: true },
+                    textField: { fullWidth: true, size: 'small' },
                   }}
                 />
               </LocalizationProvider>
@@ -253,15 +277,35 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
                   value={formData.fechaVencimiento}
                   onChange={() => {}}
                   slotProps={{
-                    textField: { fullWidth: true, disabled: true },
+                    textField: { fullWidth: true, disabled: true, size: 'small' },
                   }}
                 />
               </LocalizationProvider>
             </Grid>
 
+            {/* Fecha de Aprobación - Solo en modo approve */}
+            {mode === "approve" && (
+              <Grid size={{ xs: 12, md: 3 }}>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DatePicker
+                    label="Fecha de Aprobación"
+                    value={formData.fechaActualizacion}
+                    onChange={(newValue) =>
+                      handleChange({
+                        target: { name: "fechaActualizacion", value: newValue },
+                      } as any)
+                    }
+                    slotProps={{
+                      textField: { fullWidth: true, size: 'small' },
+                    }}
+                  />
+                </LocalizationProvider>
+              </Grid>
+            )}
+
             {/* Observaciones */}
             <Grid size={{ xs: 12, sm: formData.estado === "SOLICITADO" ? 6 : 12 }}>
-              <TextField label="Observaciones" name="observaciones" value={formData.observaciones ? formData.observaciones : ""} onChange={handleChange} fullWidth multiline rows={1} />
+              <TextField label="Observaciones" name="observaciones" value={formData.observaciones ? formData.observaciones : ""} onChange={handleChange} fullWidth multiline rows={1} size="small" />
             </Grid>
             {/* Mostrar el Plan de Pagos solo si el formulario está completo */}
             {isFormComplete() && <PaymentPlan monto={formData.monto} tasaInteres={parseFloat(formData.tasa)} plazoMeses={formData.plazoMeses} fechaCredito={formData.fechaCredito} mode={mode} />}
@@ -269,7 +313,13 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
             {/* Botón de Enviar */}
             <Grid size={{ xs: 12, md: 9 }}></Grid>
             <Grid size={{ xs: 12, md: 3 }}>
-              <Button type="submit" variant="contained" color="primary" fullWidth>
+              <Button 
+                type="submit" 
+                variant="contained" 
+                color="primary" 
+                fullWidth
+                disabled={mode === "edit" && !hasChanges}
+              >
                 {mode === "create" ? "Solicitar Crédito" : mode === "edit" ? "Actualizar Crédito" : "Aprobar Crédito"}
               </Button>
             </Grid>

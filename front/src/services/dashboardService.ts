@@ -60,5 +60,25 @@ export const dashboardService = {
       console.error('Error fetching pending payment supports:', error);
       throw error;
     }
+  },
+
+  async getSavingsProjection(): Promise<{projected: number, registered: number, percentage: number}> {
+    try {
+      const response = await axiosClient.get('/dashboard/savings-projection');
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('Error fetching savings projection:', error);
+      throw error;
+    }
+  },
+
+  async generateYearProjection(year: number): Promise<{message: string, created: number}> {
+    try {
+      const response = await axiosClient.get(`/dashboard/generate-projection/${year}`);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('Error generating year projection:', error);
+      throw error;
+    }
   }
 };

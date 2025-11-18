@@ -65,4 +65,14 @@ export const savingsService = {
       throw new Error("Error", error!);
     }
   },
+  async fetchAllUsersSavings() {
+    try {
+      const response = await axiosClient.get(baseURL + '/users-summary');
+      if (response?.data) {
+        return response.data?.data;
+      }
+    } catch (error) {
+      throw new Error("Error", error!);
+    }
+  },
 };

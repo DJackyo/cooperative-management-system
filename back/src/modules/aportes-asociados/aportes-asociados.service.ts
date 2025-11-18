@@ -133,4 +133,38 @@ export class AsocAportesAsociadosService {
 
     return response;
   }
+
+  // Método para obtener resumen de todos los usuarios con sus totales de ahorro
+  async getUsersSummary(): Promise<any> {
+    const result = await this.asociadosRepository
+      .createQueryBuilder('asociado')
+      .leftJoin('asociado.asocAportesAsociados', 'aporte')
+      .leftJoinAndSelect('asociado.idEstado', 'estado')
+      .select([
+        'asociado.id',
+        'asociado.nombre1',
+        'asociado.nombre2', 
+        'asociado.apellido1',
+        'asociado.apellido2',
+        'asociado.numeroDeIdentificacion',
+        'estado.estado'
+      ])
+      .addSelect('COALESCE(SUM(aporte.monto), 0)', 'totalAhorrado')
+      .groupBy('asociado.id')
+      .addGroupBy('estado.id')
+      .addGroupBy('estado.estado')
+      .getRawMany();
+
+    return result.map(row => ({
+      id: row.asociado_id,
+      nombres: [row.asociado_nombre1, row.asociado_nombre2, row.asociado_apellido1, row.asociado_apellido2]
+        .filter(name => name)
+        .join(' '),
+      numeroDeIdentificacion: row.asociado_numero_de_identificacion || row.asociado_numeroDeIdentificacion,
+      totalAhorrado: parseFloat(row.totalAhorrado) || 0,
+      idEstado: {
+        estado: row.estado_estado
+      }
+    }));
+  }
 }

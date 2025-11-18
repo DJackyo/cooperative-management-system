@@ -2,7 +2,6 @@
 "use client";
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { Card, CardContent, Typography, Grid, Box, Skeleton, useMediaQuery, Button } from "@mui/material";
-import AnimatedCard from "@/components/AnimatedCard";
 import InfoTooltip from "@/components/InfoTooltip";
 import { AttachMoney, CalendarToday, AccessTime, Person, BadgeOutlined } from "@mui/icons-material";
 import dynamic from "next/dynamic";
@@ -59,7 +58,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
     const series = [montoPagado, montoPendiente];
     setValorPagado(montoPagado);
 
-    return <Chart options={options} series={series} type="donut" width="250" />;
+    return <Chart options={options} series={series} type="donut" width="230" />;
   }, []);
 
   const loadCreditData = useCallback(async () => {
@@ -111,124 +110,117 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
 
   return (
     <Grid container spacing={3}>
-      {/* Información de la Solicitud */}
-      <Grid size={{ xs: 12, md: 5 }}>
-        <AnimatedCard variant="outlined" sx={{ boxShadow: 3 }} animationType="fade" delay={0}>
+      {/* Información del Usuario */}
+      <Grid size={{ xs: 12, md: 6 }}>
+        <Card variant="outlined" sx={{ boxShadow: 3, height: "fit-content" }}>
           <CardContent>
             <Typography variant="h5" color="primary" gutterBottom>
-              Información de la Solicitud
+              Información del Usuario
             </Typography>
             <Suspense fallback={<Skeleton variant="text" width="100%" />}>
               {userId > 0 && (
                 <>
-                  <Box>
-                    <Typography variant="h6" sx={{ marginTop: 0.5, marginBottom: 0.5 }} display="flex" alignItems="center">
-                      <Person sx={{ mr: 1 }} />
-                      {userId} - {userInfo.nombres}
-                    </Typography>
-                    <Typography variant="subtitle2" color="textSecondary" display="flex" alignItems="center">
-                      <BadgeOutlined sx={{ mr: 1, display: "inline-flex" }} />
-                      {userInfo.numeroDeIdentificacion}
-                    </Typography>
-                  </Box>
-                </>
-              )}
-              {credit ? (
-                <>
-                  <Typography display="flex" alignItems="center">
-                    <AttachMoney sx={{ mr: 1 }} />
-                    <strong>Monto Solicitado: </strong>$ {formatCurrencyFixed(credit.monto)}
+                  <Typography variant="body1" sx={{ mb: 1 }} display="flex" alignItems="center">
+                    <Person sx={{ mr: 1, color: "primary.main" }} />
+                    <strong>Nombre:</strong>&nbsp;{userInfo.nombres}
                   </Typography>
-                  <Typography display="flex" alignItems="center">
-                    <CalendarToday sx={{ mr: 1 }} />
-                    <strong>Fecha de Solicitud: </strong>
-                    {formatNameDate(credit.fechaSolicitud)}
-                  </Typography>
-                  <Typography display="flex" alignItems="center">
-                    <AccessTime sx={{ mr: 1 }} />
-                    <strong>Plazo: </strong>
-                    {credit.plazoMeses} meses
+                  <Typography variant="body1" display="flex" alignItems="center">
+                    <BadgeOutlined sx={{ mr: 1, color: "primary.main" }} />
+                    <strong>Identificación:</strong>&nbsp;{userInfo.numeroDeIdentificacion}
                   </Typography>
                 </>
-              ) : (
-                <Skeleton variant="text" width="100%" height={50} />
               )}
             </Suspense>
           </CardContent>
-        </AnimatedCard>
+        </Card>
       </Grid>
 
-      {/* Información del Crédito */}
-      <Grid size={{ xs: 12, md: 7 }}>
-        <AnimatedCard variant="outlined" sx={{ boxShadow: 3 }} animationType="fade" delay={200}>
+      {/* Información de la Solicitud */}
+      <Grid size={{ xs: 12, md: 6 }}>
+        <Card variant="outlined" sx={{ boxShadow: 3, height: "fit-content" }}>
           <CardContent>
+            <Typography variant="h5" color="primary" gutterBottom>
+              Información del Crédito
+            </Typography>
             <Suspense fallback={<Skeleton variant="text" width="100%" />}>
               {credit ? (
                 <>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: isMobile ? "column" : "row", // Columna en móvil, fila en escritorio
-                      gap: 2,
-                    }}
-                  >
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h5" color="primary" gutterBottom>
-                        Información del Crédito
-                      </Typography>
-                      <Typography display="flex" alignItems="center">
-                        <AttachMoney sx={{ mr: 1 }} />
-                        <strong>Monto Pagado </strong> ${formatCurrencyFixed(valorPagado)}
-                        <InfoTooltip title="Total de dinero que ya ha sido pagado del crédito" />
-                      </Typography>
-                      <Typography display="flex" alignItems="center">
-                        <AttachMoney sx={{ mr: 1 }} />
-                        <strong>Saldo Pendiente: </strong> ${formatCurrencyFixed(valorSaldoPendiente)}
-                        <InfoTooltip title="Monto total que aún falta por pagar del crédito" />
-                      </Typography>
-                      <Typography display="flex" alignItems="center">
-                        <CalendarToday sx={{ mr: 1 }} />
-                        <strong> Fecha de Vencimiento: </strong>
-                        {formatNameDate(credit.fechaVencimiento)}
-                      </Typography>
-                      <Typography display="flex" alignItems="center">
-                        <AccessTime sx={{ mr: 1 }} /> <strong>Plazo Restante: </strong>
-                        {valorCuotasPendiente} meses
-                        <InfoTooltip title="Número de cuotas que aún faltan por pagar" />
-                      </Typography>
-                    </Box>
-                    <Box
-                      sx={{
-                        flex: 1,
-                        paddingTop: 2,
-                      }}
-                    >
-                      {graficoPagos}
-                    </Box>
-                  </Box>
+                  <Typography variant="body1" display="flex" alignItems="center" sx={{ mb: 1 }}>
+                    <AttachMoney sx={{ mr: 1, color: "success.main" }} />
+                    <strong>Monto:</strong>&nbsp;${formatCurrencyFixed(credit.monto)}
+                  </Typography>
+                  <Typography variant="body1" display="flex" alignItems="center" sx={{ mb: 1 }}>
+                    <CalendarToday sx={{ mr: 1, color: "primary.main" }} />
+                    <strong>Fecha Solicitud:</strong>&nbsp;{formatNameDate(credit.fechaSolicitud)}
+                  </Typography>
+                  <Typography variant="body1" display="flex" alignItems="center">
+                    <AccessTime sx={{ mr: 1, color: "primary.main" }} />
+                    <strong>Plazo:</strong>&nbsp;{credit.plazoMeses} meses
+                  </Typography>
                 </>
               ) : (
-                <Skeleton variant="text" width="100%" height={50} />
+                <Skeleton variant="text" width="100%" height={80} />
               )}
             </Suspense>
           </CardContent>
-        </AnimatedCard>
+        </Card>
       </Grid>
-      {/* Gráfico de Pagos */}
 
-      {/* Historial de pagos */}
-      <Grid size={{ xs: 12, md: 12}}>
-        <AnimatedCard variant="outlined" sx={{ boxShadow: 3 }} animationType="slide" delay={400}>
+      {/* Estado del Crédito y Gráfico */}
+      <Grid size={{ xs: 12, md: 12 }}>
+        <Card variant="outlined" sx={{ boxShadow: 3 }}>
           <CardContent>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
-              <Typography variant="h5" color="primary" gutterBottom>
+            <Typography variant="h5" color="primary" gutterBottom>
+              Estado del Crédito
+            </Typography>
+            <Suspense fallback={<Skeleton variant="text" width="100%" />}>
+              {credit ? (
+                <Grid container spacing={3} alignItems="center">
+                  <Grid size={{ xs: 12, md: 8 }}>
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <Typography variant="body1" display="flex" alignItems="center">
+                        <AttachMoney sx={{ mr: 1, color: "success.main" }} />
+                        <strong>Monto Pagado:</strong>&nbsp;${formatCurrencyFixed(valorPagado)}
+                        <InfoTooltip title="Total de dinero que ya ha sido pagado del crédito" />
+                      </Typography>
+                      <Typography variant="body1" display="flex" alignItems="center">
+                        <AttachMoney sx={{ mr: 1, color: "warning.main" }} />
+                        <strong>Saldo Pendiente:</strong>&nbsp;${formatCurrencyFixed(valorSaldoPendiente)}
+                        <InfoTooltip title="Monto total que aún falta por pagar del crédito" />
+                      </Typography>
+                      <Typography variant="body1" display="flex" alignItems="center">
+                        <AccessTime sx={{ mr: 1, color: "primary.main" }} />
+                        <strong>Cuotas Restantes:</strong>&nbsp;{valorCuotasPendiente}
+                        <InfoTooltip title="Número de cuotas que aún faltan por pagar" />
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box sx={{ display: "flex", justifyContent: "center" }}>
+                      {graficoPagos}
+                    </Box>
+                  </Grid>
+                </Grid>
+              ) : (
+                <Skeleton variant="rectangular" width="100%" height={150} />
+              )}
+            </Suspense>
+          </CardContent>
+        </Card>
+      </Grid>
+      {/* Historial de pagos */}
+      <Grid size={{ xs: 12 }}>
+        <Card variant="outlined" sx={{ boxShadow: 3 }}>
+          <CardContent>
+            <Box display="flex" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+              <Typography variant="h5" color="primary">
                 Historial de Pagos
               </Typography>
-              <Button
-                variant="outlined"
-                color="primary"
-                onClick={loadCreditData}
-                disabled={refreshing}
+              <Button 
+                variant="outlined" 
+                color="primary" 
+                onClick={loadCreditData} 
+                disabled={refreshing} 
                 startIcon={<IconRefresh />}
               >
                 {refreshing ? "Actualizando..." : "Actualizar"}
@@ -239,15 +231,19 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
                 <PaymentHistoryTable 
                   presCuotas={credit.presCuotas ? credit.presCuotas : []} 
                   plazoMeses={credit.plazoMeses ? credit.plazoMeses : 10} 
-                  creditId={creditId}
-                  onPaymentSuccess={loadCreditData}
+                  creditId={creditId} 
+                  onPaymentSuccess={loadCreditData} 
                 />
               ) : (
-                <></>
+                <Box sx={{ textAlign: "center", py: 4 }}>
+                  <Typography variant="body1" color="text.secondary">
+                    No se encontró información del crédito
+                  </Typography>
+                </Box>
               )}
             </Suspense>
           </CardContent>
-        </AnimatedCard>
+        </Card>
       </Grid>
     </Grid>
   );

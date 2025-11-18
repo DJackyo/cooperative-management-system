@@ -23,8 +23,11 @@ const getTransactionColor = (type: string) => {
   }
 };
 
-const formatTime = (timestamp: string) => {
-  return new Date(timestamp).toLocaleTimeString('es-CO', {
+const formatDateTime = (timestamp: string) => {
+  const date = new Date(timestamp);
+  return date.toLocaleDateString('es-CO', {
+    month: 'short',
+    day: 'numeric',
     hour: '2-digit',
     minute: '2-digit'
   });
@@ -38,8 +41,20 @@ const TransactionsHistory = () => {
     const loadTransactions = async () => {
       try {
         const data = await dashboardService.getRecentTransactions();
-        console.log('Transactions data:', data);
-        setTransactions(Array.isArray(data) ? data : []);
+        console.log('Transactions response:', data);
+        
+        // Manejar diferentes formatos de respuesta
+        let transactionsArray = [];
+        if (Array.isArray(data)) {
+          transactionsArray = data;
+        } else if (data && Array.isArray(data.data)) {
+          transactionsArray = data.data;
+        } else if (data && data.data) {
+          transactionsArray = [data.data];
+        }
+        
+        console.log('Processed transactions:', transactionsArray);
+        setTransactions(transactionsArray);
       } catch (error) {
         console.error('Error loading transactions:', error);
         setTransactions([]);
@@ -100,7 +115,7 @@ const TransactionsHistory = () => {
             {transactions.map((transaction, index) => (
               <TimelineItem key={transaction.id}>
                 <TimelineOppositeContent>
-                  {formatTime(transaction.timestamp)}
+                  {formatDateTime(transaction.timestamp)}
                 </TimelineOppositeContent>
                 <TimelineSeparator>
                   <TimelineDot color={getTransactionColor(transaction.type)} variant="outlined" />
@@ -110,6 +125,11 @@ const TransactionsHistory = () => {
                   <Typography fontWeight={transaction.type === 'credit_approved' ? '600' : '400'}>
                     {transaction.description}
                   </Typography>
+                  {transaction.user && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      {transaction.user}
+                    </Typography>
+                  )}
                 </TimelineContent>
               </TimelineItem>
             ))}

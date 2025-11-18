@@ -68,20 +68,41 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const [tasas, setTasas] = useState<any[]>([]);
 
   const loadCredits = useCallback(async () => {
-    const response = userId === 0 ? await creditsService.fetchAll() : await creditsService.fetchByUser(userId);
-
-    setCredits(response);
-    if (response.length > 0) {
-      setUserInfo(response[0].idAsociado);
+    try {
+      const response = userId === 0 ? await creditsService.fetchAll() : await creditsService.fetchByUser(userId);
+      
+      if (response) {
+        setCredits(response);
+        if (response.length > 0) {
+          setUserInfo(response[0].idAsociado);
+        }
+      }
+    } catch (error: any) {
+      console.error('Error loading credits:', error);
+      if (error.response?.status === 401) {
+        // Redirigir al login si no está autenticado
+        router.push('/authentication/login');
+      } else {
+        setCredits([]);
+      }
     }
-  }, [userId]);
+  }, [userId, router]);
 
   const loadTasas = useCallback(async () => {
     if (!tasas || tasas.length === 0) {
-      const response = await creditsService.getTasas();
-      setTasas(response);
+      try {
+        const response = await creditsService.getTasas();
+        if (response) {
+          setTasas(response);
+        }
+      } catch (error: any) {
+        console.error('Error loading tasas:', error);
+        if (error.response?.status === 401) {
+          router.push('/authentication/login');
+        }
+      }
     }
-  }, [tasas]);
+  }, [tasas, router]);
 
   const fetchData = useCallback(async () => {
     const hasSession = authService.isAuthenticated();
@@ -157,11 +178,38 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
   const handleRequestSubmit = async (formData: any) => {
     if (formData.monto) {
+      // Mostrar loading
+      Swal.fire({
+        title: 'Procesando...',
+        text: 'Creando solicitud de crédito',
+        allowOutsideClick: false,
+        zIndex: 10000,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+
       formData.idAsociado = userInfo;
       const saved = await creditsService.create(formData);
+      
       if (saved) {
-        showMessage("Crédito Almacenado");
+        await Swal.fire({
+          title: '¡Solicitud Creada!',
+          text: `Su solicitud de crédito por $${formatCurrency(formData.monto)} ha sido enviada exitosamente.`,
+          icon: 'success',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#4caf50',
+          zIndex: 10000
+        });
         await loadCredits();
+      } else {
+        Swal.fire({
+          title: 'Error',
+          text: 'No se pudo crear la solicitud. Intente nuevamente.',
+          icon: 'error',
+          confirmButtonText: 'Entendido',
+          zIndex: 10000
+        });
       }
     }
     handleCloseRequestModal();
@@ -169,34 +217,232 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
   const handleModifySubmit = async (formData: any) => {
     if (selectedPrestamo) {
-      const saved = await creditsService.update(selectedPrestamo.id, formData);
-      if (saved) {
-        showMessage("Crédito Editado");
-        await loadCredits();
+      // Confirmación antes de editar
+      const result = await Swal.fire({
+        title: '¿Confirmar Cambios?',
+        text: 'Se actualizarán los datos del crédito seleccionado.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#1976d2',
+        cancelButtonColor: '#f44336',
+        confirmButtonText: 'Sí, Actualizar',
+        cancelButtonText: 'Cancelar',
+        zIndex: 10000
+      });
+
+      if (result.isConfirmed) {
+        // Mostrar loading
+        Swal.fire({
+          title: 'Procesando...',
+          text: 'Actualizando crédito',
+          allowOutsideClick: false,
+          zIndex: 10000,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        const saved = await creditsService.update(selectedPrestamo.id, formData);
+        
+        if (saved) {
+          await Swal.fire({
+            title: '¡Crédito Actualizado!',
+            text: 'Los cambios han sido guardados exitosamente.',
+            icon: 'success',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#4caf50',
+            zIndex: 10000
+          });
+          await loadCredits();
+          handleCloseModifyModal();
+        } else {
+          Swal.fire({
+            title: 'Error',
+            text: 'No se pudieron guardar los cambios. Intente nuevamente.',
+            icon: 'error',
+            confirmButtonText: 'Entendido',
+            zIndex: 10000
+          });
+        }
       }
-      handleCloseModifyModal();
     }
   };
 
   const handleApproveCredit = async (formData: any) => {
-    if (formData) {
-      formData.estado = "APROBADO";
-      formData.fechaCredito = formatDateTime(formData.fechaCredito);
-      formData.fechaVencimiento = formatDateTime(formData.fechaVencimiento);
-      formData.fechaActualizacion = formatDateTime(new Date());
-
-      const rs = await creditsService.approveCredit(selectedPrestamo!.id, formData);
-      if (rs) {
-        showMessage("Crédito Aprobado");
-        await loadCredits();
-      }
+    if (formData && selectedPrestamo) {
+      // Cerrar modal temporalmente para mostrar SweetAlert2
       handleCloseApproveModal();
-      setSelectedPrestamo(null);
+      
+      // Confirmación antes de aprobar
+      const result = await Swal.fire({
+        title: '¿Confirmar Aprobación?',
+        html: `
+          <div style="text-align: left; margin: 20px 0;">
+            <p><strong>Asociado:</strong> ${selectedPrestamo.idAsociado?.nombres}</p>
+            <p><strong>Monto:</strong> $${formatCurrency(selectedPrestamo.monto)}</p>
+            <p><strong>Plazo:</strong> ${selectedPrestamo.plazoMeses} meses</p>
+            <p><strong>Cuota Mensual:</strong> $${formatCurrency(formData.cuotaMensual || 0)}</p>
+          </div>
+          <p style="color: #666; font-size: 14px; margin-top: 15px;">
+            Esta acción no se puede deshacer. El crédito será aprobado inmediatamente.
+          </p>
+        `,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#4caf50',
+        cancelButtonColor: '#f44336',
+        confirmButtonText: 'Sí, Aprobar Crédito',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
+      });
+
+      if (result.isConfirmed) {
+        // Mostrar loading
+        Swal.fire({
+          title: 'Procesando...',
+          text: 'Aprobando el crédito',
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          }
+        });
+
+        formData.estado = "APROBADO";
+        formData.fechaCredito = formatDateTime(formData.fechaCredito);
+        formData.fechaVencimiento = formatDateTime(formData.fechaVencimiento);
+        formData.fechaActualizacion = formatDateTime(new Date());
+
+        const rs = await creditsService.approveCredit(selectedPrestamo.id, formData);
+        
+        if (rs) {
+          await Swal.fire({
+            title: '¡Crédito Aprobado!',
+            text: `El crédito de $${formatCurrency(selectedPrestamo.monto)} ha sido aprobado exitosamente.`,
+            icon: 'success',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#4caf50'
+          });
+          await loadCredits();
+          setSelectedPrestamo(null);
+        } else {
+          Swal.fire({
+            title: 'Error',
+            text: 'No se pudo aprobar el crédito. Intente nuevamente.',
+            icon: 'error',
+            confirmButtonText: 'Entendido'
+          });
+        }
+      } else {
+        // Si cancela, reabrir el modal
+        setOpenApproveModal(true);
+      }
     }
   };
 
-  const showMessage = (title: string) => {
-    Swal.fire({ title, icon: "info", confirmButtonText: "Aceptar" });
+  const showSuccessMessage = (title: string, text?: string) => {
+    Swal.fire({ 
+      title, 
+      text,
+      icon: "success", 
+      confirmButtonText: "Entendido",
+      confirmButtonColor: '#4caf50',
+      zIndex: 10000
+    });
+  };
+
+  const showErrorMessage = (title: string, text?: string) => {
+    Swal.fire({ 
+      title, 
+      text,
+      icon: "error", 
+      confirmButtonText: "Entendido",
+      confirmButtonColor: '#f44336',
+      zIndex: 10000
+    });
+  };
+
+  const showInfoMessage = (title: string, text?: string) => {
+    Swal.fire({ 
+      title, 
+      text,
+      icon: "info", 
+      confirmButtonText: "Entendido",
+      confirmButtonColor: '#1976d2',
+      zIndex: 10000
+    });
+  };
+
+  // Función para calcular el estado de pagos de un crédito
+  const getPaymentStatus = (prestamo: Prestamo) => {
+    // Si no es un crédito aprobado, retornar estado normal
+    if (!prestamo || prestamo.estado !== "APROBADO") {
+      return { status: "normal", pendingPayments: 0, overduePayments: 0 };
+    }
+
+    // Si tiene cuotas reales, usar esos datos
+    if (prestamo.presCuotas && prestamo.presCuotas.length > 0) {
+      const today = new Date();
+      const pendingPayments = prestamo.presCuotas.filter(cuota => cuota.estado === "PENDIENTE").length;
+      const overduePayments = prestamo.presCuotas.filter(cuota => {
+        if (cuota.estado !== "PENDIENTE") return false;
+        const dueDate = new Date(cuota.fechaVencimiento);
+        return dueDate < today;
+      }).length;
+
+      if (overduePayments > 0) return { status: "overdue", pendingPayments, overduePayments };
+      if (pendingPayments > 0) return { status: "pending", pendingPayments, overduePayments };
+      return { status: "completed", pendingPayments, overduePayments };
+    }
+
+    // Simular estado basado en fechas del crédito
+    const today = new Date();
+    const vencimiento = new Date(prestamo.fechaVencimiento);
+    const desembolso = prestamo.fechaDesembolso ? new Date(prestamo.fechaDesembolso) : new Date(prestamo.fechaCredito);
+    
+    // Calcular cuotas simuladas basadas en plazo
+    const mesesTranscurridos = Math.floor((today.getTime() - desembolso.getTime()) / (1000 * 60 * 60 * 24 * 30));
+    const cuotasPendientes = Math.max(0, prestamo.plazoMeses - mesesTranscurridos);
+    
+    // Si ya venció el crédito completo
+    if (today > vencimiento) {
+      return { status: "overdue", pendingPayments: cuotasPendientes, overduePayments: cuotasPendientes };
+    }
+    
+    // Si tiene cuotas pendientes
+    if (cuotasPendientes > 0) {
+      return { status: "pending", pendingPayments: cuotasPendientes, overduePayments: 0 };
+    }
+    
+    // Si está al día
+    return { status: "completed", pendingPayments: 0, overduePayments: 0 };
+  };
+
+  // Función para obtener el estilo de fila según el estado de pagos
+  const getRowStyle = (prestamo: Prestamo) => {
+    const paymentStatus = getPaymentStatus(prestamo);
+    
+    switch (paymentStatus.status) {
+      case "overdue":
+        return {
+          backgroundColor: "#ffebee",
+          borderLeft: "4px solid #f44336",
+          "&:hover": { backgroundColor: "#ffcdd2" }
+        };
+      case "pending":
+        return {
+          backgroundColor: "#fff3e0",
+          borderLeft: "4px solid #ff9800",
+          "&:hover": { backgroundColor: "#ffe0b2" }
+        };
+      case "completed":
+        return {
+          backgroundColor: "#e8f5e8",
+          borderLeft: "4px solid #4caf50",
+          "&:hover": { backgroundColor: "#c8e6c9" }
+        };
+      default:
+        return {};
+    }
   };
 
   const columns = [
@@ -208,17 +454,57 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     { field: "tasa", headerName: "Tasa", width: 130 },
     { field: "cuotaMensual", headerName: "Cuota mensual", width: 130 },
     { field: "estado", headerName: "Estado", width: 130 },
+    { field: "estadoPagos", headerName: "Estado Pagos", width: 140 },
   ];
 
   const filteredColumns = userId === 0 ? columns : columns.filter((column) => column.field !== "idAsociado");
 
-  const formatRules: Record<string, (value: any) => React.ReactNode> = {
+  const formatRules: Record<string, (value: any, row?: any) => React.ReactNode> = {
     fechaCredito: (value) => formatDateWithoutTime(value),
     monto: (value) => "$" + formatCurrency(value),
     cuotaMensual: (value) => "$" + formatCurrency(value),
     idAsociado: (value) => value?.nombres ?? "N/A",
     tasa: (value) => (value * 100).toFixed(2) + "%",
     estado: (value) => getEstadoChip(value),
+    estadoPagos: (value, row) => {
+      if (!row || row.estado !== "APROBADO") {
+        return <Typography variant="body2" color="text.secondary">N/A</Typography>;
+      }
+      
+      const paymentStatus = getPaymentStatus(row);
+      
+      switch (paymentStatus.status) {
+        case "overdue":
+          return (
+            <Box display="flex" alignItems="center" gap={0.5}>
+              <Box width={8} height={8} borderRadius="50%" bgcolor="#f44336" />
+              <Typography variant="body2" color="#f44336" fontWeight="medium">
+                {paymentStatus.overduePayments} vencidas
+              </Typography>
+            </Box>
+          );
+        case "pending":
+          return (
+            <Box display="flex" alignItems="center" gap={0.5}>
+              <Box width={8} height={8} borderRadius="50%" bgcolor="#ff9800" />
+              <Typography variant="body2" color="#ff9800" fontWeight="medium">
+                {paymentStatus.pendingPayments} pendientes
+              </Typography>
+            </Box>
+          );
+        case "completed":
+          return (
+            <Box display="flex" alignItems="center" gap={0.5}>
+              <Box width={8} height={8} borderRadius="50%" bgcolor="#4caf50" />
+              <Typography variant="body2" color="#4caf50" fontWeight="medium">
+                Al día
+              </Typography>
+            </Box>
+          );
+        default:
+          return <Typography variant="body2" color="text.secondary">N/A</Typography>;
+      }
+    },
   };
   
   const filteredTransactions = sortedTransactions.filter((transaction) => {
@@ -281,9 +567,11 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                   {/* Cuerpo de la tabla */}
                   <TableBody>
                     {paginatedRows.map((row: any) => (
-                      <TableRow key={row.id}>
+                      <TableRow key={row.id} sx={getRowStyle(row)}>
                         {filteredColumns.map((column) => (
-                          <TableCell key={column.field}>{formatRules[column.field] ? formatRules[column.field](row[column.field]) : row[column.field]}</TableCell>
+                          <TableCell key={column.field}>
+                            {formatRules[column.field] ? formatRules[column.field](row[column.field], row) : row[column.field]}
+                          </TableCell>
                         ))}
                         <TableCell>
                           <Box
@@ -337,12 +625,21 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
       {/* Modal para Solicitud de Préstamo */}
       <Dialog open={openRequestModal} onClose={handleCloseRequestModal} fullWidth maxWidth="md">
-        <DialogTitle> </DialogTitle>
+        <DialogTitle>
+          <Typography variant="h6" component="span">
+            Nueva Solicitud de Crédito
+          </Typography>
+        </DialogTitle>
         <DialogContent>
           <CreditForm mode="create" tasas={tasas} onSubmit={handleRequestSubmit} />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseRequestModal} color="secondary" variant="outlined">
+        <DialogActions sx={{ p: 3 }}>
+          <Button 
+            onClick={handleCloseRequestModal} 
+            color="secondary" 
+            variant="outlined"
+            startIcon={<IconX />}
+          >
             Cancelar
           </Button>
         </DialogActions>
@@ -350,12 +647,24 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
       {/* Modal para Modificación de Préstamo */}
       <Dialog open={openModifyModal} onClose={handleCloseModifyModal} fullWidth maxWidth="md">
-        <DialogTitle></DialogTitle>
+        <DialogTitle>
+          <Box display="flex" alignItems="center" gap={1}>
+            <IconPencilDollar color="#1976d2" />
+            <Typography variant="h6" component="span">
+              Editar Crédito
+            </Typography>
+          </Box>
+        </DialogTitle>
         <DialogContent>
           <CreditForm mode="edit" tasas={tasas} existingData={selectedPrestamo} onSubmit={handleModifySubmit} />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseModifyModal} color="secondary" variant="outlined">
+        <DialogActions sx={{ p: 3 }}>
+          <Button 
+            onClick={handleCloseModifyModal} 
+            color="secondary" 
+            variant="outlined"
+            startIcon={<IconX />}
+          >
             Cancelar
           </Button>
         </DialogActions>
@@ -363,17 +672,70 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
       {/* Modal para Aprobación de Préstamo */}
       <Dialog open={openApproveModal} onClose={handleCloseApproveModal} fullWidth maxWidth="md">
-        <DialogTitle></DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box display="flex" alignItems="center" gap={1}>
+            <IconChecks color="green" />
+            <Typography variant="h6" component="span">
+              Aprobar Solicitud de Crédito
+            </Typography>
+          </Box>
+        </DialogTitle>
 
-        <DialogContent>
+        <DialogContent sx={{ pt: 1 }}>
+          {selectedPrestamo && (
+            <Card variant="outlined" sx={{ mb: 3, bgcolor: "#f8f9fa" }}>
+              <CardContent sx={{ py: 2 }}>
+                <Typography variant="subtitle1" color="primary" gutterBottom>
+                  Información del Crédito a Aprobar
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Asociado
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium">
+                      {selectedPrestamo.idAsociado?.nombres}
+                    </Typography>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Monto Solicitado
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium" color="primary">
+                      ${formatCurrency(selectedPrestamo.monto)}
+                    </Typography>
+                  </Grid>
+                  <Grid size={{ xs: 6, sm: 4 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Plazo
+                    </Typography>
+                    <Typography variant="body1" fontWeight="medium">
+                      {selectedPrestamo.plazoMeses} meses
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </CardContent>
+            </Card>
+          )}
+          
+          <Typography variant="subtitle1" gutterBottom sx={{ mb: 2 }}>
+            Configurar Términos de Aprobación
+          </Typography>
           <CreditForm mode="approve" tasas={tasas} existingData={selectedPrestamo} onSubmit={handleApproveCredit} />
         </DialogContent>
 
-        <DialogActions sx={{ justifyContent: "flex-end", p: 3 }}>
-          <Button onClick={handleCloseApproveModal} color="secondary" variant="outlined">
-            <IconX />
+        <DialogActions sx={{ justifyContent: "space-between", p: 3, bgcolor: "#f8f9fa" }}>
+          <Button 
+            onClick={handleCloseApproveModal} 
+            color="secondary" 
+            variant="outlined"
+            startIcon={<IconX />}
+          >
             Cancelar
           </Button>
+          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
+            Revise cuidadosamente los términos antes de aprobar
+          </Typography>
         </DialogActions>
       </Dialog>
     </Grid>

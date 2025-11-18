@@ -87,6 +87,7 @@ const UserManagementModule = () => {
   const [anchorElUser, setAnchorElUser] = useState(null);
   const [anchorElLoans, setAnchorElLoans] = useState(null);
   const [anchorElSavings, setAnchorElSavings] = useState(null);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   // Estado para el usuario actual
   const [currentUser, setCurrentUser] = useState<LoggedUser>(defaultLoggedUser);
   //Aporte
@@ -240,16 +241,24 @@ const UserManagementModule = () => {
     }
   };
 
-  const handleClickUser = (event: any) => setAnchorElUser(event.currentTarget);
-  const handleClickLoans = (event: any) =>
+  const handleClickUser = (event: any, user: User) => {
+    setAnchorElUser(event.currentTarget);
+    setSelectedUser(user);
+  };
+  const handleClickLoans = (event: any, user: User) => {
     setAnchorElLoans(event.currentTarget);
-  const handleClickSavings = (event: any) =>
+    setSelectedUser(user);
+  };
+  const handleClickSavings = (event: any, user: User) => {
     setAnchorElSavings(event.currentTarget);
+    setSelectedUser(user);
+  };
 
   const handleClose = () => {
     setAnchorElUser(null);
     setAnchorElLoans(null);
     setAnchorElSavings(null);
+    setSelectedUser(null);
   };
 
   const handleCreditsAsociado = (user?: User) => {
@@ -340,6 +349,7 @@ const UserManagementModule = () => {
                 fullWidth
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                size="small"
               />
             </Grid>
 
@@ -353,6 +363,7 @@ const UserManagementModule = () => {
                   value={filterState}
                   label="Filtrar por estado"
                   onChange={(e) => setFilterState(e.target.value)}
+                  size="small"
                 >
                   <MenuItem value="">Todos</MenuItem>
                   <MenuItem value="ACTIVO">Activo</MenuItem>
@@ -462,7 +473,7 @@ const UserManagementModule = () => {
                           >
                             {/* Botón para acciones de Usuario */}
                             <ButtonGroup variant="outlined" size="small">
-                              <IconButton onClick={handleClickUser}>
+                              <IconButton onClick={(e) => handleClickUser(e, user)}>
                                 <IconUserCog />
                               </IconButton>
                             </ButtonGroup>
@@ -482,11 +493,17 @@ const UserManagementModule = () => {
                               >
                                 Usuario
                               </Typography>
-                              <MenuItem onClick={() => handleOpenModal(user)}>
+                              <MenuItem onClick={() => {
+                                handleOpenModal(selectedUser!);
+                                handleClose();
+                              }}>
                                 <IconUserEdit style={{ marginRight: "1rem" }} />
                                 Editar Usuario
                               </MenuItem>
-                              <MenuItem onClick={() => handleDeactivate(user)}>
+                              <MenuItem onClick={() => {
+                                handleDeactivate(selectedUser!);
+                                handleClose();
+                              }}>
                                 <IconUserCancel
                                   style={{ marginRight: "1rem" }}
                                 />
@@ -499,7 +516,10 @@ const UserManagementModule = () => {
                                 Asociado
                               </Typography>
                               <MenuItem
-                                onClick={() => handleOpenAsociado(user)}
+                                onClick={() => {
+                                  handleOpenAsociado(selectedUser!);
+                                  handleClose();
+                                }}
                               >
                                 <IconEditCircle
                                   style={{ marginRight: "1rem" }}
@@ -510,7 +530,7 @@ const UserManagementModule = () => {
 
                             {/* Botón para acciones de Préstamos */}
                             <ButtonGroup variant="outlined" size="small">
-                              <IconButton onClick={handleClickLoans}>
+                              <IconButton onClick={(e) => handleClickLoans(e, user)}>
                                 <IconDeviceIpadHorizontalDollar />
                               </IconButton>
                             </ButtonGroup>
@@ -527,7 +547,10 @@ const UserManagementModule = () => {
                                 Préstamos
                               </Typography>
                               <MenuItem
-                                onClick={() => handleCreditsAsociado(user)}
+                                onClick={() => {
+                                  handleCreditsAsociado(selectedUser!);
+                                  handleClose();
+                                }}
                               >
                                 <IconEditCircle
                                   style={{ marginRight: "1rem" }}
@@ -535,7 +558,10 @@ const UserManagementModule = () => {
                                 Crear Préstamo
                               </MenuItem>
                               <MenuItem
-                                onClick={() => handleCreditsAsociado(user)}
+                                onClick={() => {
+                                  handleCreditsAsociado(selectedUser!);
+                                  handleClose();
+                                }}
                               >
                                 <IconEyeDollar
                                   style={{ marginRight: "1rem" }}
@@ -546,7 +572,7 @@ const UserManagementModule = () => {
 
                             {/* Botón para acciones de Ahorros */}
                             <ButtonGroup variant="outlined" size="small">
-                              <IconButton onClick={handleClickSavings}>
+                              <IconButton onClick={(e) => handleClickSavings(e, user)}>
                                 <IconPigMoney />
                               </IconButton>
                             </ButtonGroup>
@@ -557,13 +583,19 @@ const UserManagementModule = () => {
                               elevation={1}
                             >
                               <MenuItem
-                                onClick={() => handleSavingsAsociado(user)}
+                                onClick={() => {
+                                  handleSavingsAsociado(selectedUser!);
+                                  handleClose();
+                                }}
                               >
                                 <IconCoins style={{ marginRight: "1rem" }} />
                                 Ver aportes
                               </MenuItem>
                               <MenuItem
-                                onClick={() => handleCreateAporteClick(user)}
+                                onClick={() => {
+                                  handleCreateAporteClick(selectedUser!);
+                                  handleClose();
+                                }}
                               >
                                 <IconUserDollar
                                   style={{ marginRight: "1rem" }}

@@ -63,6 +63,10 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const [selectedAporte, setSelectedAporte] = useState<Aporte | null>(null); // Estado para la fila seleccionada
 
   const [savings, setSavings] = useState<Aporte[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [usersPage, setUsersPage] = useState(0);
+  const [usersPageSize, setUsersPageSize] = useState(10);
+  const [usersSearch, setUsersSearch] = useState('');
   const [userInfo, setUserInfo] = useState<Asociado>({
     id: 0,
     nombres: "",
@@ -91,13 +95,20 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const loadSavingsRef = useRef<() => Promise<void>>();
   
   loadSavingsRef.current = async () => {
-    const filter = {
-      idAsociadoId: id ? id : 0,
-    };
-    const response = await savingsService.fetchByFilters(filter);
-    setSavings(response);
-    if (response.length > 0) {
-      setUserInfo(response[0].idAsociado);
+    if (id === 0) {
+      // Cargar todos los usuarios con sus totales de ahorro
+      const response = await savingsService.fetchAllUsersSavings();
+      setAllUsers(response);
+    } else {
+      // Cargar ahorros de un usuario específico
+      const filter = {
+        idAsociadoId: id,
+      };
+      const response = await savingsService.fetchByFilters(filter);
+      setSavings(response);
+      if (response.length > 0) {
+        setUserInfo(response[0].idAsociado);
+      }
     }
   };
 
@@ -234,6 +245,111 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     return <GenericLoadingSkeleton type="table" rows={5} />;
   }
 
+  // Si id es 0, mostrar listado de todos los usuarios
+  if (id === 0) {
+    // Filtrar usuarios por búsqueda global
+    const filteredUsers = allUsers.filter(user => {
+      const searchTerm = usersSearch.toLowerCase();
+      return (
+        user.id.toString().includes(searchTerm) ||
+        user.nombres.toLowerCase().includes(searchTerm) ||
+        user.numeroDeIdentificacion?.toLowerCase().includes(searchTerm) ||
+        user.idEstado?.estado?.toLowerCase().includes(searchTerm)
+      );
+    });
+
+    // Paginación para usuarios filtrados
+    const paginatedUsers = filteredUsers.slice(
+      usersPage * usersPageSize,
+      usersPage * usersPageSize + usersPageSize
+    );
+
+    const handleUsersPageChange = (event: unknown, newPage: number) => {
+      setUsersPage(newPage);
+    };
+
+    const handleUsersPageSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      setUsersPageSize(parseInt(event.target.value, 10));
+      setUsersPage(0);
+    };
+
+    const handleUsersSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+      setUsersSearch(event.target.value);
+      setUsersPage(0); // Resetear a la primera página al buscar
+    };
+
+    return (
+      <Grid container spacing={3}>
+        <Grid size={{ xs: 12 }}>
+          <Card variant="outlined" sx={{ boxShadow: 3 }}>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h5" color="primary">
+                  Gestión de Ahorros - Todos los Usuarios
+                </Typography>
+                <TextField
+                  label="Buscar usuarios"
+                  variant="outlined"
+                  size="small"
+                  value={usersSearch}
+                  onChange={handleUsersSearchChange}
+                  placeholder="ID, nombre, identificación o estado..."
+                  sx={{ minWidth: 300 }}
+                />
+              </Box>
+              
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>ID</TableCell>
+                      <TableCell>Nombre</TableCell>
+                      <TableCell>Identificación</TableCell>
+                      <TableCell>Total Ahorrado</TableCell>
+                      <TableCell>Estado</TableCell>
+                      <TableCell>Acciones</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {paginatedUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell>{user.id}</TableCell>
+                        <TableCell>{user.nombres}</TableCell>
+                        <TableCell>{user.numeroDeIdentificacion}</TableCell>
+                        <TableCell>{formatCurrency(user.totalAhorrado || 0)}</TableCell>
+                        <TableCell>{user.idEstado?.estado || 'N/A'}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            onClick={() => window.location.href = `/modules/savings?id=${user.id}`}
+                          >
+                            Ver Detalles
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              
+              <TablePagination
+                rowsPerPageOptions={[10, 25, 50]}
+                component="div"
+                count={filteredUsers.length}
+                rowsPerPage={usersPageSize}
+                page={usersPage}
+                onPageChange={handleUsersPageChange}
+                onRowsPerPageChange={handleUsersPageSizeChange}
+                labelRowsPerPage="Filas por página"
+              />
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    );
+  }
+
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Grid container spacing={3}>
@@ -298,6 +414,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   label="Fecha Inicio"
                   value={startDate}
                   onChange={(date) => setStartDate(date)}
+                  slotProps={{ textField: { size: 'small' } }}
                   />
                   {/* slots={{ textField: TextField }}
                   slotProps={{ textField: { fullWidth: true } }} */}
@@ -305,6 +422,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   label="Fecha Fin"
                   value={endDate}
                   onChange={(date) => setEndDate(date)}
+                  slotProps={{ textField: { size: 'small' } }}
                   />
                   {/* slots={{ textField: TextField }}
                   slotProps={{ textField: { fullWidth: true } }} */}

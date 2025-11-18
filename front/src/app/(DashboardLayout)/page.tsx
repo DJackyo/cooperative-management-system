@@ -11,6 +11,7 @@ import { useEffect, useState } from "react";
 import AdminDashboard from "./components/dashboard/AdminDashboard";
 import TransactionsHistory from "./components/dashboard/TransactionsHistory";
 import PaymentSupportsCard from "./components/dashboard/PaymentSupportsCard";
+import SavingsProjectionCard from "./components/dashboard/SavingsProjectionCard";
 import { useRouter } from "next/navigation";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
 import { authService } from "../authentication/services/authService";
@@ -38,6 +39,9 @@ const Dashboard = () => {
             <Grid container spacing={3}>
               <Grid size={{ xs: 12 }}>
                 <PaymentSupportsCard />
+              </Grid>
+              <Grid size={{ xs: 12 }}>
+                <SavingsProjectionCard />
               </Grid>
               <Grid size={{ xs: 12 }}>
                 <TransactionsHistory />
