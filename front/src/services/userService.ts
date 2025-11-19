@@ -15,6 +15,16 @@ export const userService = {
       throw new Error("Error", error!);
     }
   },
+  async fetchAllWithLoans() {
+    try {
+      const response = await axiosClient.get(`${baseURL}?includeLoans=true`);
+      if (response?.data) {
+        return response.data?.data;
+      }
+    } catch (error) {
+      throw new Error("Error", error!);
+    }
+  },
   async create(user: Omit<User, "id" | "status">) {
     try {
       const response = await axiosClient.post(baseURL, user);

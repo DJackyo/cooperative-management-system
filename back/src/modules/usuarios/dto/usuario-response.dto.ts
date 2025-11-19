@@ -10,4 +10,5 @@ export class UsuarioResponseDto {
     numeroDeIdentificacion: string | number;
     idEstado: object;
   };
+  activeLoansCount?: number;
 }

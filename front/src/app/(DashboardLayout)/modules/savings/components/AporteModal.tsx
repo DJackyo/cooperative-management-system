@@ -32,6 +32,47 @@ const AporteModal: React.FC<AporteModalProps> = ({
 }) => {
   const [aporte, setAporte] = useState<Aporte>(defaultValues);
   const [errors, setErrors] = useState<any>({});
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Función para calcular la próxima fecha de aporte
+  const calculateNextPaymentDate = async (asociadoId: number) => {
+    try {
+      const { savingsService } = await import('@/services/savingsService');
+      const aportes = await savingsService.fetchByFilters({ idAsociadoId: asociadoId });
+      
+      if (aportes && aportes.length > 0) {
+        // Ordenar por fecha más reciente
+        const sortedAportes = aportes.sort((a: any, b: any) => 
+          new Date(b.fechaAporte).getTime() - new Date(a.fechaAporte).getTime()
+        );
+        
+        const lastAporte = sortedAportes[0];
+        const lastDate = new Date(lastAporte.fechaAporte);
+        
+        // Calcular próxima fecha basada en el tipo de aporte
+        let nextDate = new Date(lastDate);
+        
+        switch (lastAporte.tipoAporte) {
+          case 'MENSUAL':
+            nextDate.setMonth(nextDate.getMonth() + 1);
+            break;
+          case 'ANUAL':
+            nextDate.setFullYear(nextDate.getFullYear() + 1);
+            break;
+          default:
+            // Para extraordinario, sugerir el próximo mes
+            nextDate.setMonth(nextDate.getMonth() + 1);
+        }
+        
+        return nextDate.toISOString().split('T')[0];
+      }
+    } catch (error) {
+      console.error('Error calculando próxima fecha:', error);
+    }
+    
+    // Si no hay aportes previos, usar fecha actual
+    return new Date().toISOString().split('T')[0];
+  };
 
   // Array de métodos de pago disponibles
   const paymentMethods = [
@@ -44,16 +85,32 @@ const AporteModal: React.FC<AporteModalProps> = ({
   const paymentMethodsWithComprobante = ["TRANSFERENCIA", "TARJETA"];
 
   useEffect(() => {
-    if (initialData) {
-      setAporte({
-        ...initialData,
-        fechaAporte: initialData.fechaAporte
-          ? formatDateToISO(initialData.fechaAporte)
-          : "", // Si ya tiene fecha, formatearla
-      });
-    } else {
-      setAporte(defaultValues);
-    }
+    const initializeAporte = async () => {
+      // Si es edición (tiene ID > 0), usar datos existentes
+      if (initialData && initialData.id > 0) {
+        setAporte({
+          ...initialData,
+          fechaAporte: initialData.fechaAporte
+            ? formatDateToISO(initialData.fechaAporte)
+            : "",
+        });
+      } else {
+        // Para nuevo aporte (ID = 0 o null), calcular fecha sugerida
+        const aporteData = initialData || defaultValues;
+        const aporteWithDate = { ...aporteData };
+        const asociadoId = aporteData.asociado?.idAsociado?.id || aporteData.asociado?.id;
+        
+        if (asociadoId) {
+          const suggestedDate = await calculateNextPaymentDate(asociadoId);
+          aporteWithDate.fechaAporte = suggestedDate;
+        } else {
+          aporteWithDate.fechaAporte = new Date().toISOString().split('T')[0];
+        }
+        setAporte(aporteWithDate);
+      }
+    };
+    
+    initializeAporte();
   }, [initialData]);
 
   const handleChange: any = (
@@ -115,15 +172,18 @@ const AporteModal: React.FC<AporteModalProps> = ({
 
   const handleSubmit = () => {
     if (validateForm()) {
-      onSubmit(aporte);
+      const aporteData = { ...aporte, file: selectedFile };
+      onSubmit(aporteData);
       onClose();
       setAporte(defaultValues);
+      setSelectedFile(null);
     }
   };
 
   const handleCancel = () => {
     onClose();
     setAporte(defaultValues);
+    setSelectedFile(null);
   };
 
   return (
@@ -151,22 +211,41 @@ const AporteModal: React.FC<AporteModalProps> = ({
         <form>
           <Grid container spacing={3}>
             {/* Primera columna */}
-            <Grid  size={{ xs: 12, md: 6 }}>
+            <Grid size={{ xs: 12, md: 6 }}>
               {/* Fecha de aporte */}
-              <TextField
-                label="Fecha del Aporte"
-                type="date"
-                fullWidth
-                name="fechaAporte"
-                value={aporte.fechaAporte}
-                onChange={handleChange}
-                sx={{ mt: 2 }}
-                InputLabelProps={{
-                  shrink: true,
-                }}
-                error={!!errors.fechaAporte}
-                helperText={errors.fechaAporte}
-              />
+              <Box sx={{ mt: 2 }}>
+                <TextField
+                  label="Fecha del Aporte"
+                  type="date"
+                  fullWidth
+                  name="fechaAporte"
+                  value={aporte.fechaAporte}
+                  onChange={handleChange}
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  error={!!errors.fechaAporte}
+                  helperText={errors.fechaAporte || (!initialData ? "Fecha calculada automáticamente" : "")}
+                  size="small"
+                  InputProps={{
+                    endAdornment: (
+                      <Button
+                        size="small"
+                        onClick={async () => {
+                          const asociadoId = aporte.asociado?.idAsociado?.id || aporte.asociado?.id;
+                          if (asociadoId) {
+                            const newDate = await calculateNextPaymentDate(asociadoId);
+                            setAporte({ ...aporte, fechaAporte: newDate });
+                          }
+                        }}
+                        sx={{ minWidth: 'auto', p: 0.5 }}
+                      >
+                        🔄
+                      </Button>
+                    )
+                  }}
+                />
+              </Box>
             </Grid>
             <Grid  size={{ xs: 12, md: 6 }}>
               {/* Monto */}
@@ -185,6 +264,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
                     <InputAdornment position="start">$</InputAdornment>
                   ),
                 }}
+                size="small"
               />
             </Grid>
 
@@ -197,6 +277,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
                   name="tipoAporte"
                   value={aporte.tipoAporte}
                   onChange={handleChange}
+                  size="small"
                 >
                   <MenuItem value="MENSUAL">Mensual</MenuItem>
                   <MenuItem value="ANUAL">Anual</MenuItem>
@@ -217,6 +298,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
                   name="metodoPago"
                   value={aporte.metodoPago}
                   onChange={handleChange}
+                  size="small"
                 >
                   {/* Mapeo dinámico de los métodos de pago */}
                   {paymentMethods.map((method) => (
@@ -233,17 +315,42 @@ const AporteModal: React.FC<AporteModalProps> = ({
 
             {/* Comprobante solo si es Transferencia o Tarjeta */}
             {paymentMethodsWithComprobante.includes(aporte.metodoPago) && (
-              <Grid  size={{ xs: 12, md: 12}}>
-                <TextField
-                  label="Comprobante"
-                  type="file"
-                  fullWidth
-                  name="comprobante"
-                  onChange={handleChange}
-                  sx={{ mt: 2 }}
-                  error={!!errors.comprobante}
-                  helperText={errors.comprobante}
-                />
+              <Grid size={{ xs: 12, md: 12 }}>
+                <Box sx={{ mt: 2 }}>
+                  <InputLabel sx={{ mb: 1, color: errors.comprobante ? 'error.main' : 'text.primary' }}>
+                    Comprobante *
+                  </InputLabel>
+                  <Button
+                    variant="outlined"
+                    component="label"
+                    fullWidth
+                    sx={{ 
+                      justifyContent: 'flex-start',
+                      textTransform: 'none',
+                      borderColor: errors.comprobante ? 'error.main' : 'grey.300',
+                      color: errors.comprobante ? 'error.main' : 'text.primary'
+                    }}
+                  >
+                    {selectedFile ? selectedFile.name : 'Seleccionar archivo'}
+                    <input
+                      type="file"
+                      hidden
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setSelectedFile(file);
+                          setAporte({ ...aporte, comprobante: file.name });
+                        }
+                      }}
+                    />
+                  </Button>
+                  {errors.comprobante && (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5, display: 'block' }}>
+                      {errors.comprobante}
+                    </Typography>
+                  )}
+                </Box>
               </Grid>
             )}
 
@@ -256,6 +363,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
                 value={aporte.observaciones || ""}
                 onChange={handleChange}
                 sx={{ mt: 2 }}
+                size="small"
               />
             </Grid>
           </Grid>

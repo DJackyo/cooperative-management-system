@@ -27,6 +27,7 @@ export interface User {
   fechaModificacion: string;
   roles: Rol[];
   idAsociado: Asociado;
+  activeLoansCount?: number;
 }
 
 export interface LoggedUser {

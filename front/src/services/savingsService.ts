@@ -27,7 +27,29 @@ export const savingsService = {
   },
   async create(saving: Omit<Aporte, "id" | "asociado">) {
     try {
-      const response = await axiosClient.post(baseURL, saving);
+      let response;
+      
+      if (saving.file) {
+        // Si hay archivo, usar FormData
+        const formData = new FormData();
+        Object.keys(saving).forEach(key => {
+          if (key === 'file') {
+            formData.append('comprobante', saving.file!);
+          } else if (saving[key as keyof typeof saving] !== null && saving[key as keyof typeof saving] !== undefined) {
+            formData.append(key, String(saving[key as keyof typeof saving]));
+          }
+        });
+        
+        response = await axiosClient.post(baseURL, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        // Sin archivo, envío normal
+        response = await axiosClient.post(baseURL, saving);
+      }
+      
       if (response?.data) {
         return response.data?.data;
       }

@@ -16,4 +16,5 @@ export interface Aporte {
     numeroDeIdentificacion: string;
   };
   idAsociado: number;
+  file?: File;
 }

@@ -6,6 +6,7 @@ import {
   Param,
   Put,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
@@ -23,8 +24,11 @@ export class UsuariosController {
   }
 
   @Get()
-  async findAll(): Promise<UsuarioResponseDto[]> {
-    const usuarios = await this.usuariosService.findAll();
+  async findAll(@Query('includeLoans') includeLoans?: string): Promise<UsuarioResponseDto[]> {
+    const usuarios = includeLoans === 'true' 
+      ? await this.usuariosService.findAllWithLoans()
+      : await this.usuariosService.findAll();
+    
     return usuarios.map((usuario) => ({
       ...usuario,
       contrasena: null,
@@ -43,6 +47,7 @@ export class UsuariosController {
         numeroDeIdentificacion: usuario.idAsociado.numeroDeIdentificacion,
         idEstado: usuario.idAsociado.idEstado
       },
+      activeLoansCount: usuario.activeLoansCount || 0,
     }));
   }
 
