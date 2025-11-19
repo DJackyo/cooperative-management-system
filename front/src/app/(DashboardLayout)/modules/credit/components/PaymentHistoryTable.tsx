@@ -31,6 +31,7 @@ import {
 import { Cuota } from "@/interfaces/Prestamo";
 import PresPagosForm from "./PresPagosForm";
 import InfoTooltip from "@/components/InfoTooltip";
+import StyledTable from "@/components/StyledTable";
 
 interface PaymentHistoryProps {
   presCuotas: Cuota[];
@@ -132,11 +133,11 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
   };
 
   const columns = [
-    { field: "numeroCuota", headerName: "# Cuota", width: 80 },
-    { field: "fechaVencimiento", headerName: "Vencimiento", width: 120 },
-    { field: "abonoCapital", headerName: "Abono Capital", width: 120 },
+    { field: "numeroCuota", headerName: "# Cuota", width: 40 },
+    { field: "fechaVencimiento", headerName: "Vencimiento", width: 100 },
+    { field: "abonoCapital", headerName: "Abono Capital", width: 100 },
     { field: "intereses", headerName: "Intereses", width: 100 },
-    { field: "diasEnMora", headerName: "Días Mora", width: 90 },
+    { field: "diasEnMora", headerName: "Días Mora", width: 70 },
     { field: "mora", headerName: "Mora", width: 100 },
     { field: "proteccionCartera", headerName: "Protección", width: 100 },
     { field: "monto", headerName: "Monto Total", width: 120 },
@@ -184,46 +185,20 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
 
   return (
     <>
-      <TableContainer>
-        <Table>
-          <TableHead>
-            <TableRow>
-              {columns.map((column) => (
-                <TableCell key={column.field} style={{ width: column.width }}>
-                  {column.headerName}
-                  {column.field === "diasEnMora" && (
-                    <InfoTooltip title="Número de días transcurridos después de la fecha de vencimiento" size="small" />
-                  )}
-                  {column.field === "proteccionCartera" && (
-                    <InfoTooltip title="Seguro que protege el crédito en caso de incumplimiento" size="small" />
-                  )}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {paginatedRows.map((row: any) => (
-              <TableRow key={row.id} sx={getRowStyle(row)}>
-                {columns.map((column) => (
-                  <TableCell key={column.field}>
-                    {formatRules[column.field] ? formatRules[column.field](row[column.field], row) : row[column.field]}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-      
-      <TablePagination
-        rowsPerPageOptions={[5, 10, 25]}
-        component="div"
-        count={sortedCuotas.length}
-        rowsPerPage={pageSize}
-        page={page}
-        onPageChange={handlePageChange}
-        onRowsPerPageChange={handlePageSizeChange}
-      />
+      <Box sx={{ width: '99%', overflow: 'auto', overflowX: 'auto', overflowY: 'hidden' }}>
+        <StyledTable
+          columns={columns}
+          rows={sortedCuotas}
+          withPagination={true}
+          pageSizeOptions={[5, 10, 25]}
+          renderCell={(column, row) => {
+            return formatRules[column.field] ? formatRules[column.field](row[column.field], row) : row[column.field];
+          }}
+          rowSx={(row) => {
+            return getRowStyle(row);
+          }}
+        />
+      </Box>
       {/* Modal para Registrar Pago */}
       <Dialog 
         open={open} 

@@ -9,20 +9,25 @@ import {
   Box,
   TextField,
   Button,
+  TablePagination,
+  Avatar,
+  IconButton,
+  Tooltip,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
-  TablePagination,
-  Avatar,
-  IconButton,
-  Tooltip,
+} from "@mui/material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from "@mui/material";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { AttachMoney } from "@mui/icons-material";
+import { AttachMoney, Close as CloseIcon, CheckCircle as CheckCircleIcon, PendingActions as PendingIcon } from "@mui/icons-material";
 import { Aporte } from "@/interfaces/Aporte";
 import { savingsService } from "@/services/savingsService";
 import { Asociado, LoggedUser } from "@/interfaces/User";
@@ -33,6 +38,7 @@ import {
   IconReceipt,
   IconUserDollar,
   IconUserExclamation,
+  IconFileText,
 } from "@tabler/icons-react";
 import AporteModal from "./components/AporteModal";
 import {
@@ -48,6 +54,7 @@ import { IconUser } from "@tabler/icons-react";
 import UserCard from "../../utilities/UserCard";
 import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
 import { usePageLoading } from "@/hooks/usePageLoading";
+import StyledTable from "@/components/StyledTable";
 
 // Agregar el tipo de las props
 interface SavingsModuleProps {
@@ -64,8 +71,6 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
 
   const [savings, setSavings] = useState<Aporte[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
-  const [usersPage, setUsersPage] = useState(0);
-  const [usersPageSize, setUsersPageSize] = useState(10);
   const [usersSearch, setUsersSearch] = useState('');
   const [userInfo, setUserInfo] = useState<Asociado>({
     id: 0,
@@ -174,9 +179,26 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     { field: "fechaAporte", headerName: "Fecha aporte", width: 150 },
     { field: "monto", headerName: "Monto", width: 150 },
     { field: "estado", headerName: "Estado", width: 130 },
-    { field: "metodoPago", headerName: "Metodo Pago", width: 130 },
+    { field: "metodoPago", headerName: "Método Pago", width: 130 },
     { field: "comprobante", headerName: "Comprobante", width: 130 },
   ];
+
+  // Helper para obtener color de estado
+  const getStatusColor = (estado: string) => {
+    const statusLower = estado?.toLowerCase() || '';
+    if (statusLower.includes('aprobado') || statusLower.includes('confirmado')) return '#4caf50';
+    if (statusLower.includes('pendiente')) return '#ff9800';
+    if (statusLower.includes('rechazado')) return '#f44336';
+    return '#9e9e9e';
+  };
+
+  // Helper para obtener icono de estado
+  const getStatusIcon = (estado: string) => {
+    const statusLower = estado?.toLowerCase() || '';
+    if (statusLower.includes('aprobado') || statusLower.includes('confirmado')) return <CheckCircleIcon sx={{ fontSize: 18 }} />;
+    if (statusLower.includes('pendiente')) return <PendingIcon sx={{ fontSize: 18 }} />;
+    return null;
+  };
 
   // Manejo de la paginación
   const handlePageChange = (event: unknown, newPage: number) => {
@@ -241,6 +263,37 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     setModalOpen(false); // Cerramos el modal
   };
 
+  const handleViewComprobante = (comprobantePath?: string) => {
+    // Validar que exista un comprobante
+    if (!comprobantePath) {
+      alert('No hay comprobante disponible para este aporte');
+      return;
+    }
+
+    // Preferir la URL de entorno, fallback al puerto donde corre el backend (5000)
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+
+    // Evitar que encodeURIComponent codifique las barras: codificamos por segmentos
+    const safePath = comprobantePath
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
+
+    const comprobanteUrl = `${baseUrl}/aportes-asociados/comprobante/${safePath}`;
+    // Abrir modal con el comprobante en vez de nueva pestaña
+    setComprobanteUrl(comprobanteUrl);
+    setComprobanteModalOpen(true);
+  };
+
+  // Estado para mostrar comprobante en modal
+  const [comprobanteModalOpen, setComprobanteModalOpen] = useState(false);
+  const [comprobanteUrl, setComprobanteUrl] = useState<string | null>(null);
+
+  const handleCloseComprobanteModal = () => {
+    setComprobanteModalOpen(false);
+    setComprobanteUrl(null);
+  };
+
   if (loading) {
     return <GenericLoadingSkeleton type="table" rows={5} />;
   }
@@ -248,7 +301,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   // Si id es 0, mostrar listado de todos los usuarios
   if (id === 0) {
     // Filtrar usuarios por búsqueda global
-    const filteredUsers = allUsers.filter(user => {
+    const filteredUsers = allUsers.filter((user: any) => {
       const searchTerm = usersSearch.toLowerCase();
       return (
         user.id.toString().includes(searchTerm) ||
@@ -258,24 +311,8 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
       );
     });
 
-    // Paginación para usuarios filtrados
-    const paginatedUsers = filteredUsers.slice(
-      usersPage * usersPageSize,
-      usersPage * usersPageSize + usersPageSize
-    );
-
-    const handleUsersPageChange = (event: unknown, newPage: number) => {
-      setUsersPage(newPage);
-    };
-
-    const handleUsersPageSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-      setUsersPageSize(parseInt(event.target.value, 10));
-      setUsersPage(0);
-    };
-
     const handleUsersSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       setUsersSearch(event.target.value);
-      setUsersPage(0); // Resetear a la primera página al buscar
     };
 
     return (
@@ -298,50 +335,60 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                 />
               </Box>
               
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>ID</TableCell>
-                      <TableCell>Nombre</TableCell>
-                      <TableCell>Identificación</TableCell>
-                      <TableCell>Total Ahorrado</TableCell>
-                      <TableCell>Estado</TableCell>
-                      <TableCell>Acciones</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {paginatedUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.id}</TableCell>
-                        <TableCell>{user.nombres}</TableCell>
-                        <TableCell>{user.numeroDeIdentificacion}</TableCell>
-                        <TableCell>{formatCurrency(user.totalAhorrado || 0)}</TableCell>
-                        <TableCell>{user.idEstado?.estado || 'N/A'}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            onClick={() => window.location.href = `/modules/savings?id=${user.id}`}
-                          >
-                            Ver Detalles
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-              
-              <TablePagination
-                rowsPerPageOptions={[10, 25, 50]}
-                component="div"
-                count={filteredUsers.length}
-                rowsPerPage={usersPageSize}
-                page={usersPage}
-                onPageChange={handleUsersPageChange}
-                onRowsPerPageChange={handleUsersPageSizeChange}
-                labelRowsPerPage="Filas por página"
+              <StyledTable
+                columns={[
+                  { field: "id", headerName: "ID", width: 70 },
+                  { field: "nombres", headerName: "Nombre", width: 150 },
+                  { field: "numeroDeIdentificacion", headerName: "Identificación", width: 150 },
+                  { field: "totalAhorrado", headerName: "Total Ahorrado", width: 150 },
+                  { field: "idEstado.estado", headerName: "Estado", width: 120 },
+                ]}
+                rows={filteredUsers}
+                withPagination={true}
+                pageSizeOptions={[10, 25, 50]}
+                renderCell={(column, user) => {
+                  switch (column.field) {
+                    case "id":
+                      return user.id;
+                    case "nombres":
+                      return user.nombres;
+                    case "numeroDeIdentificacion":
+                      return user.numeroDeIdentificacion;
+                    case "totalAhorrado":
+                      return (
+                        <Box sx={{ fontWeight: 600, color: '#2e7d32' }}>
+                          💵 {formatCurrency(user.totalAhorrado || 0)}
+                        </Box>
+                      );
+                    case "idEstado.estado":
+                      return (
+                        <Box
+                          sx={{
+                            display: 'inline-block',
+                            padding: '6px 12px',
+                            borderRadius: '20px',
+                            backgroundColor: user.idEstado?.estado?.toLowerCase().includes('activo') ? '#c8e6c9' : '#ffcdd2',
+                            color: user.idEstado?.estado?.toLowerCase().includes('activo') ? '#2e7d32' : '#c62828',
+                            fontWeight: 600,
+                            fontSize: '0.85rem',
+                          }}
+                        >
+                          {user.idEstado?.estado || 'N/A'}
+                        </Box>
+                      );
+                    default:
+                      return user[column.field];
+                  }
+                }}
+                actions={(user) => (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => window.location.href = `/modules/savings?id=${user.id}`}
+                  >
+                    Ver Detalles
+                  </Button>
+                )}
               />
             </CardContent>
           </Card>
@@ -466,67 +513,109 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
               </Box>
 
               {/* Tabla */}
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      {columns.map((column) => (
-                        <TableCell
-                          key={column.field}
-                          style={{ width: column.width }}
-                          onClick={() =>
-                            column.field === "fechaAporte" &&
-                            handleRequestSort(column.field)
-                          }
+              <StyledTable
+                columns={columns}
+                rows={paginatedRows}
+                renderCell={(column, row, index) => {
+                  if (column.field === "fechaAporte") {
+                    return (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer' }} onClick={() => handleRequestSort(column.field)}>
+                        📅 {formatDateWithoutTime(row[column.field])}
+                      </Box>
+                    );
+                  } else if (column.field === "monto") {
+                    return (
+                      <Box
+                        sx={{
+                          fontWeight: 600,
+                          color: '#2e7d32',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.5,
+                        }}
+                      >
+                        💵 {formatCurrency(row[column.field])}
+                      </Box>
+                    );
+                  } else if (column.field === "estado") {
+                    return (
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.8,
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          backgroundColor: getStatusColor(row[column.field]) + '20',
+                          color: getStatusColor(row[column.field]),
+                          fontWeight: 600,
+                          fontSize: '0.85rem',
+                          width: 'fit-content',
+                        }}
+                      >
+                        {getStatusIcon(row[column.field])}
+                        {row[column.field]}
+                      </Box>
+                    );
+                  } else {
+                    return (
+                      <Typography sx={{ fontSize: '0.8rem' }}>
+                        {row[column.field]}
+                      </Typography>
+                    );
+                  }
+                }}
+                actions={(row: any) => (
+                  <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                    {currentUser?.role?.includes("administrador") && (
+                      <Tooltip title="Editar" arrow>
+                        <IconButton
+                          onClick={() => handleEditClick(row)}
+                          color="primary"
+                          size="small"
+                          aria-label="Editar"
+                          sx={{
+                            '&:hover': { backgroundColor: '#e3f2fd', transform: 'scale(1.1)' },
+                            transition: 'all 0.2s ease',
+                          }}
                         >
-                          {column.headerName}
-                        </TableCell>
-                      ))}
-                      <TableCell>Acción</TableCell>
-                    </TableRow>
-                  </TableHead>
-
-                  {/* Cuerpo de la tabla */}
-                  <TableBody>
-                    {paginatedRows.map((row: any) => (
-                      <TableRow key={row.id}>
-                        {columns.map((column) => (
-                          <TableCell key={column.field}>
-                            {column.field === "fechaAporte"
-                              ? formatDateWithoutTime(row[column.field])
-                              : column.field === "monto"
-                              ? formatCurrency(row[column.field])
-                              : row[column.field]}
-                          </TableCell>
-                        ))}
-                        <TableCell>
-                          {/* Aquí mostramos solo el botón si currentUser tiene el rol "administrador" */}
-                          {currentUser?.role?.includes("administrador") && (
-                            <Tooltip title="Editar" arrow>
-                              <IconButton
-                                onClick={() => handleEditClick(row)}
-                                color="primary"
-                                aria-label="Editar"
-                              >
-                                <IconPencilDollar />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          <Tooltip title="Ver recibo" arrow>
-                            <IconButton
-                              onClick={() => handleOpenReceiptModal(row)}
-                              color="secondary"
-                              aria-label="Ver recibo"
-                            >
-                              <IconReceipt />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+                          <IconPencilDollar />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    <Tooltip title="Ver recibo" arrow>
+                      <IconButton
+                        onClick={() => handleOpenReceiptModal(row)}
+                        color="secondary"
+                        size="small"
+                        aria-label="Ver recibo"
+                        sx={{
+                          '&:hover': { backgroundColor: '#f3e5f5', transform: 'scale(1.1)' },
+                          transition: 'all 0.2s ease',
+                        }}
+                      >
+                        <IconReceipt />
+                      </IconButton>
+                    </Tooltip>
+                    {row.comprobante && (
+                      <Tooltip title="Ver comprobante" arrow>
+                        <IconButton
+                          onClick={() => handleViewComprobante(row.comprobante)}
+                          color="warning"
+                          size="small"
+                          aria-label="Ver comprobante"
+                          sx={{
+                            '&:hover': { backgroundColor: '#fff3e0', transform: 'scale(1.1)' },
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <IconFileText />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Box>
+                )}
+              />
 
               {/* Paginación */}
               <TablePagination
@@ -550,6 +639,30 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
         onSubmit={handleAporteSubmit}
         initialData={selectedAporte || null}
       />
+      {/* Modal para visualizar comprobante (PDF o imagen) */}
+      <Dialog open={comprobanteModalOpen} onClose={handleCloseComprobanteModal} fullWidth maxWidth="lg">
+        <DialogTitle>
+          Comprobante
+          <IconButton
+            aria-label="close"
+            onClick={handleCloseComprobanteModal}
+            sx={{ position: 'absolute', right: 8, top: 8 }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent dividers>
+          {comprobanteUrl ? (
+            comprobanteUrl.toLowerCase().endsWith('.pdf') ? (
+              <iframe src={comprobanteUrl} title="comprobante" width="100%" height={600} />
+            ) : (
+              <img src={comprobanteUrl} alt="comprobante" style={{ maxWidth: '100%', height: 'auto' }} />
+            )
+          ) : (
+            <Typography>No hay comprobante disponible</Typography>
+          )}
+        </DialogContent>
+      </Dialog>
       {/* Modal de Recibo */}
       <ReceiptModal
         open={receiptModalOpen}

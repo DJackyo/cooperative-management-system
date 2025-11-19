@@ -41,15 +41,18 @@ import {
   IconUserDollar,
   IconPigMoney,
   IconDeviceIpadHorizontalDollar,
+  IconRefresh,
 } from "@tabler/icons-react";
 import { authService } from "@/app/authentication/services/authService";
 import { defaultAporteValue } from "../../utilities/AportesUtils";
 import { defaultLoggedUser } from "../../utilities/utils";
 import { Aporte } from "@/interfaces/Aporte";
 import AporteModal from "../savings/components/AporteModal";
+import StyledTable from "@/components/StyledTable";
 import { savingsService } from "@/services/savingsService";
 import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
 import { usePageLoading } from "@/hooks/usePageLoading";
+import { Badge } from "@mui/material";
 
 const UserManagementModule = () => {
   const router = useRouter();
@@ -80,8 +83,6 @@ const UserManagementModule = () => {
 
   const [order, setOrder] = useState<"asc" | "desc">("asc");
   const [orderBy, setOrderBy] = useState<string>("idAsociado.nombres");
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
   const [filterState, setFilterState] = useState<string>("ACTIVO");
 
   const [anchorElUser, setAnchorElUser] = useState(null);
@@ -93,12 +94,25 @@ const UserManagementModule = () => {
   //Aporte
   const [selectedAporte, setSelectedAporte] = useState<Aporte | null>(null); // Estado para la fila seleccionada
   const [openAporteModal, setOpenAporteModal] = useState(false);
+  const [loadingLoans, setLoadingLoans] = useState(false);
+
+  const refreshUsersWithLoans = async () => {
+    setLoadingLoans(true);
+    try {
+      const response = await userService.fetchAllWithLoans();
+      setUsers(response);
+    } catch (error) {
+      console.error('Error al actualizar préstamos:', error);
+    } finally {
+      setLoadingLoans(false);
+    }
+  };
 
   useEffect(() => {
     const loadUsers = async () => {
       const hasSession = authService.isAuthenticated();
       if (hasSession) {
-        const response = await userService.fetchAll();
+        const response = await userService.fetchAllWithLoans();
         setUsers(response);
         const count = response.filter(
           (user: User) => user.idAsociado?.idEstado.estado === "ACTIVO"
@@ -145,20 +159,6 @@ const UserManagementModule = () => {
     }
     return 0;
   });
-
-  const handleChangePage: any = (
-    event: React.ChangeEvent<unknown>,
-    value: number
-  ) => {
-    setPage(value);
-  };
-
-  const handleChangeRowsPerPage = (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    setPage(0);
-  };
 
   const statusColors: any = {
     ACTIVO: "success",
@@ -291,7 +291,13 @@ const UserManagementModule = () => {
       aporte.idAsociado = aporte.asociado?.id;
       let saved = await savingsService.create(aporte);
       if (saved) {
-        alert("registro almacenado!");
+        const Swal = (await import('sweetalert2')).default;
+        Swal.fire({
+          title: '¡Éxito!',
+          text: 'Registro almacenado correctamente',
+          icon: 'success',
+          confirmButtonText: 'OK'
+        });
       }
     }
   };
@@ -390,239 +396,249 @@ const UserManagementModule = () => {
               <Typography variant="h5" color="primary" gutterBottom>
                 Listado de usuarios
               </Typography>
-              <Button variant="outlined" onClick={() => handleOpenModal()}>
-                Crear Asociado
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button 
+                  variant="outlined" 
+                  onClick={refreshUsersWithLoans}
+                  disabled={loadingLoans}
+                  startIcon={<IconRefresh />}
+                  size="small"
+                >
+                  {loadingLoans ? 'Actualizando...' : 'Actualizar Préstamos'}
+                </Button>
+                <Button variant="outlined" onClick={() => handleOpenModal()}>
+                  Crear Asociado
+                </Button>
+              </Box>
             </Box>
 
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>
-                      <TableSortLabel
-                        active={orderBy === "id"}
-                        direction={orderBy === "id" ? order : "asc"}
-                        onClick={() => handleRequestSort("id")}
-                      >
-                        ID
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell>
-                      <TableSortLabel
-                        active={orderBy === "idAsociado.nombres"}
-                        direction={
-                          orderBy === "idAsociado.nombres" ? order : "asc"
-                        }
-                        onClick={() => handleRequestSort("idAsociado.nombres")}
-                      >
-                        Nombres
-                      </TableSortLabel>
-                    </TableCell>
-                    <TableCell>Correo</TableCell>
-                    <TableCell>Rol</TableCell>
-                    <TableCell>Estado</TableCell>
-                    <TableCell>Acciones</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {sortedUsers
-                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                    .map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell>{user.id}</TableCell>
-                        <TableCell>
-                          {user.idAsociado
-                            ? user.idAsociado.nombres
-                            : "Sin asociado"}
-                        </TableCell>
-                        <TableCell>
-                          {user.correoElectronico || "No disponible"}
-                        </TableCell>
-                        <TableCell>
-                          {user.roles.length > 0
-                            ? user.roles.map((role) => (
-                                <Chip
-                                  key={role.id}
-                                  label={role.nombre || "Nombre no disponible"}
-                                  style={{ margin: "2px" }}
-                                  size="small"
-                                  color={getRoleColor(role.nombre)}
-                                />
-                              ))
-                            : "Sin rol"}
-                        </TableCell>
-                        <TableCell>
-                          {user.idAsociado ? (
-                            <Chip
-                              label={user.idAsociado.idEstado.estado}
-                              color={getStatusColor(
-                                user.idAsociado.idEstado.estado
-                              )}
-                              size="small"
-                            />
-                          ) : (
-                            "Sin estado"
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Box
+            <StyledTable
+              columns={[
+                { field: "id", headerName: "ID", width: 70 },
+                { field: "idAsociado.nombres", headerName: "Nombres", width: 150 },
+                { field: "correoElectronico", headerName: "Correo", width: 180 },
+                { field: "roles", headerName: "Rol", width: 150 },
+                { field: "estado", headerName: "Estado", width: 120 },
+                { field: "prestamos", headerName: "Préstamos", width: 130 },
+                { field: "acciones", headerName: "Acciones", width: 200 },
+              ]}
+              rows={sortedUsers}
+              withPagination={true}
+              pageSizeOptions={[10, 25, 50]}
+              renderCell={(column, user) => {
+                switch (column.field) {
+                  case "id":
+                    return user.id;
+                  case "idAsociado.nombres":
+                    return user.idAsociado ? user.idAsociado.nombres : "Sin asociado";
+                  case "correoElectronico":
+                    return user.correoElectronico || "No disponible";
+                  case "roles":
+                    return user.roles.length > 0
+                      ? user.roles.map((role: any) => (
+                          <Chip
+                            key={role.id}
+                            label={role.nombre || "Nombre no disponible"}
+                            style={{ margin: "2px" }}
+                            size="small"
+                            color={getRoleColor(role.nombre)}
+                          />
+                        ))
+                      : "Sin rol";
+                  case "estado":
+                    return user.idAsociado ? (
+                      <Chip
+                        label={user.idAsociado.idEstado.estado}
+                        color={getStatusColor(user.idAsociado.idEstado.estado)}
+                        size="small"
+                      />
+                    ) : (
+                      "Sin estado"
+                    );
+                  case "prestamos":
+                    return (user.activeLoansCount || 0) > 0 ? (
+                      <Chip
+                        label={`${user.activeLoansCount} activo(s)`}
+                        color="primary"
+                        size="small"
+                        icon={<IconDeviceIpadHorizontalDollar />}
+                      />
+                    ) : (
+                      <Chip
+                        label="Sin préstamos"
+                        color="default"
+                        size="small"
+                        variant="outlined"
+                      />
+                    );
+                  case "acciones":
+                    return (
+                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'wrap' }}>
+                        {/* Botón para acciones de Usuario */}
+                        <ButtonGroup variant="outlined" size="small">
+                          <IconButton onClick={(e) => handleClickUser(e, user)}>
+                            <IconUserCog />
+                          </IconButton>
+                        </ButtonGroup>
+
+                        {/* Botón para acciones de Préstamos */}
+                        <ButtonGroup variant="outlined" size="small">
+                          <IconButton 
+                            onClick={(e) => handleClickLoans(e, user)}
                             sx={{
-                              width: 123, 
+                              backgroundColor: (user.activeLoansCount || 0) > 0 ? '#e3f2fd' : 'transparent',
+                              '&:hover': {
+                                backgroundColor: (user.activeLoansCount || 0) > 0 ? '#bbdefb' : 'rgba(0, 0, 0, 0.04)'
+                              }
                             }}
                           >
-                            {/* Botón para acciones de Usuario */}
-                            <ButtonGroup variant="outlined" size="small">
-                              <IconButton onClick={(e) => handleClickUser(e, user)}>
-                                <IconUserCog />
-                              </IconButton>
-                            </ButtonGroup>
-                            <Menu
-                              anchorEl={anchorElUser}
-                              open={Boolean(anchorElUser)}
-                              onClose={handleClose}
-                              sx={{
-                                boxShadow:
-                                  "rgba(0, 0, 0, 0.07) 0px 4px 10px -2px, rgba(0, 0, 0, 0.04) 0px 6px 12px -4px !important",
-                              }}
-                              elevation={1}
+                            <Badge 
+                              badgeContent={user.activeLoansCount || 0} 
+                              color="primary"
+                              invisible={!(user.activeLoansCount || 0)}
                             >
-                              <Typography
-                                variant="subtitle2"
-                                sx={{ padding: "8px 16px", fontWeight: "bold" }}
-                              >
-                                Usuario
-                              </Typography>
-                              <MenuItem onClick={() => {
-                                handleOpenModal(selectedUser!);
-                                handleClose();
-                              }}>
-                                <IconUserEdit style={{ marginRight: "1rem" }} />
-                                Editar Usuario
-                              </MenuItem>
-                              <MenuItem onClick={() => {
-                                handleDeactivate(selectedUser!);
-                                handleClose();
-                              }}>
-                                <IconUserCancel
-                                  style={{ marginRight: "1rem" }}
-                                />
-                                Inactivar Usuario
-                              </MenuItem>
-                              <Typography
-                                variant="subtitle2"
-                                sx={{ padding: "8px 16px", fontWeight: "bold" }}
-                              >
-                                Asociado
-                              </Typography>
-                              <MenuItem
-                                onClick={() => {
-                                  handleOpenAsociado(selectedUser!);
-                                  handleClose();
-                                }}
-                              >
-                                <IconEditCircle
-                                  style={{ marginRight: "1rem" }}
-                                />
-                                Editar Asociado
-                              </MenuItem>
-                            </Menu>
+                              <IconDeviceIpadHorizontalDollar 
+                                color={(user.activeLoansCount || 0) > 0 ? '#1976d2' : undefined}
+                              />
+                            </Badge>
+                          </IconButton>
+                        </ButtonGroup>
 
-                            {/* Botón para acciones de Préstamos */}
-                            <ButtonGroup variant="outlined" size="small">
-                              <IconButton onClick={(e) => handleClickLoans(e, user)}>
-                                <IconDeviceIpadHorizontalDollar />
-                              </IconButton>
-                            </ButtonGroup>
-                            <Menu
-                              anchorEl={anchorElLoans}
-                              open={Boolean(anchorElLoans)}
-                              onClose={handleClose}
-                              elevation={1}
-                            >
-                              <Typography
-                                variant="subtitle2"
-                                sx={{ padding: "8px 16px", fontWeight: "bold" }}
-                              >
-                                Préstamos
-                              </Typography>
-                              <MenuItem
-                                onClick={() => {
-                                  handleCreditsAsociado(selectedUser!);
-                                  handleClose();
-                                }}
-                              >
-                                <IconEditCircle
-                                  style={{ marginRight: "1rem" }}
-                                />
-                                Crear Préstamo
-                              </MenuItem>
-                              <MenuItem
-                                onClick={() => {
-                                  handleCreditsAsociado(selectedUser!);
-                                  handleClose();
-                                }}
-                              >
-                                <IconEyeDollar
-                                  style={{ marginRight: "1rem" }}
-                                />
-                                Ver Préstamos
-                              </MenuItem>
-                            </Menu>
-
-                            {/* Botón para acciones de Ahorros */}
-                            <ButtonGroup variant="outlined" size="small">
-                              <IconButton onClick={(e) => handleClickSavings(e, user)}>
-                                <IconPigMoney />
-                              </IconButton>
-                            </ButtonGroup>
-                            <Menu
-                              anchorEl={anchorElSavings}
-                              open={Boolean(anchorElSavings)}
-                              onClose={handleClose}
-                              elevation={1}
-                            >
-                              <MenuItem
-                                onClick={() => {
-                                  handleSavingsAsociado(selectedUser!);
-                                  handleClose();
-                                }}
-                              >
-                                <IconCoins style={{ marginRight: "1rem" }} />
-                                Ver aportes
-                              </MenuItem>
-                              <MenuItem
-                                onClick={() => {
-                                  handleCreateAporteClick(selectedUser!);
-                                  handleClose();
-                                }}
-                              >
-                                <IconUserDollar
-                                  style={{ marginRight: "1rem" }}
-                                />
-                                Crear aporte
-                              </MenuItem>
-                            </Menu>
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-
-            {/* Paginación */}
-
-            <TablePagination
-              rowsPerPageOptions={[10, 25, 50]}
-              component="div"
-              count={filteredUsers.length}
-              rowsPerPage={rowsPerPage}
-              page={page}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-              labelRowsPerPage="Filas por página"
+                        {/* Botón para acciones de Ahorros */}
+                        <ButtonGroup variant="outlined" size="small">
+                          <IconButton onClick={(e) => handleClickSavings(e, user)}>
+                            <IconPigMoney />
+                          </IconButton>
+                        </ButtonGroup>
+                      </Box>
+                    );
+                  default:
+                    return user[column.field];
+                }
+              }}
             />
+
+            {/* Menús contextuales */}
+            <Menu
+              anchorEl={anchorElUser}
+              open={Boolean(anchorElUser)}
+              onClose={handleClose}
+              sx={{
+                boxShadow:
+                  "rgba(0, 0, 0, 0.07) 0px 4px 10px -2px, rgba(0, 0, 0, 0.04) 0px 6px 12px -4px !important",
+              }}
+              elevation={1}
+            >
+              <Typography
+                variant="subtitle2"
+                sx={{ padding: "8px 16px", fontWeight: "bold" }}
+              >
+                Usuario
+              </Typography>
+              <MenuItem onClick={() => {
+                handleOpenModal(selectedUser!);
+                handleClose();
+              }}>
+                <IconUserEdit style={{ marginRight: "1rem" }} />
+                Editar Usuario
+              </MenuItem>
+              <MenuItem onClick={() => {
+                handleDeactivate(selectedUser!);
+                handleClose();
+              }}>
+                <IconUserCancel
+                  style={{ marginRight: "1rem" }}
+                />
+                Inactivar Usuario
+              </MenuItem>
+              <Typography
+                variant="subtitle2"
+                sx={{ padding: "8px 16px", fontWeight: "bold" }}
+              >
+                Asociado
+              </Typography>
+              <MenuItem
+                onClick={() => {
+                  handleOpenAsociado(selectedUser!);
+                  handleClose();
+                }}
+              >
+                <IconEditCircle
+                  style={{ marginRight: "1rem" }}
+                />
+                Editar Asociado
+              </MenuItem>
+            </Menu>
+
+            <Menu
+              anchorEl={anchorElLoans}
+              open={Boolean(anchorElLoans)}
+              onClose={handleClose}
+              elevation={1}
+            >
+              <Typography
+                variant="subtitle2"
+                sx={{ padding: "8px 16px", fontWeight: "bold" }}
+              >
+                Préstamos
+              </Typography>
+              <MenuItem
+                onClick={() => {
+                  handleCreditsAsociado(selectedUser!);
+                  handleClose();
+                }}
+              >
+                <IconEditCircle
+                  style={{ marginRight: "1rem" }}
+                />
+                Crear Préstamo
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  handleCreditsAsociado(selectedUser!);
+                  handleClose();
+                }}
+                disabled={!(selectedUser?.activeLoansCount || 0)}
+                sx={{
+                  opacity: !(selectedUser?.activeLoansCount || 0) ? 0.5 : 1
+                }}
+              >
+                <IconEyeDollar
+                  style={{ marginRight: "1rem" }}
+                />
+                Ver Préstamos
+              </MenuItem>
+            </Menu>
+
+            <Menu
+              anchorEl={anchorElSavings}
+              open={Boolean(anchorElSavings)}
+              onClose={handleClose}
+              elevation={1}
+            >
+              <MenuItem
+                onClick={() => {
+                  handleSavingsAsociado(selectedUser!);
+                  handleClose();
+                }}
+              >
+                <IconCoins style={{ marginRight: "1rem" }} />
+                Ver aportes
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  handleCreateAporteClick(selectedUser!);
+                  handleClose();
+                }}
+              >
+                <IconUserDollar
+                  style={{ marginRight: "1rem" }}
+                />
+                Crear aporte
+              </MenuItem>
+            </Menu>
+
+            {/* Paginación ahora manejada internamente por StyledTable */}
           </Box>
         </DashboardCard>
       </Grid>

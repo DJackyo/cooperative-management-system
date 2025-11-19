@@ -34,6 +34,7 @@ import { creditsService } from "@/services/creditRequestService";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
 import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
 import { usePageLoading } from "@/hooks/usePageLoading";
+import StyledTable from "@/components/StyledTable";
 
 // Componente cargado dinámicamente
 const CreditForm = dynamic(() => import("./components/CreditForm"), {
@@ -61,8 +62,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const [selectedPrestamo, setSelectedPrestamo] = useState<Prestamo | null>(null);
   const [currentUser, setCurrentUser] = useState<LoggedUser>(defaultLoggedUser);
   const [isUserAdmin, setIsUserAdmin] = useState(false);
-  const [page, setPage] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [orderBy, setOrderBy] = useState<string>("fechaPrestamo");
   const [tasas, setTasas] = useState<any[]>([]);
@@ -143,16 +142,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   };
 
   const sortedTransactions = stableSort(credits, getComparator(order, orderBy));
-  const paginatedRows = sortedTransactions.slice(page * pageSize, page * pageSize + pageSize);
-
-  const handlePageChange = (_: unknown, newPage: number) => {
-    setPage(newPage);
-  };
-
-  const handlePageSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setPageSize(parseInt(event.target.value, 10));
-    setPage(0);
-  };
 
   const handleOpenRequestModal = () => setOpenRequestModal(true);
   const handleCloseRequestModal = () => setOpenRequestModal(false);
@@ -551,72 +540,69 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
             </Box>
             <Suspense fallback={<Skeleton variant="rectangular" width="100%" height={300} />}>
               {/* Tabla */}
-              <TableContainer>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      {filteredColumns.map((column) => (
-                        <TableCell key={column.field} style={{ width: column.width }} onClick={() => column.field === "fechaCredito" && handleRequestSort(column.field)}>
-                          {column.headerName}
-                        </TableCell>
-                      ))}
-                      <TableCell>Acción</TableCell>
-                    </TableRow>
-                  </TableHead>
-
-                  {/* Cuerpo de la tabla */}
-                  <TableBody>
-                    {paginatedRows.map((row: any) => (
-                      <TableRow key={row.id} sx={getRowStyle(row)}>
-                        {filteredColumns.map((column) => (
-                          <TableCell key={column.field}>
-                            {formatRules[column.field] ? formatRules[column.field](row[column.field], row) : row[column.field]}
-                          </TableCell>
-                        ))}
-                        <TableCell>
-                          <Box
-                            sx={{
-                              width: 123,
-                            }}
-                          >
-                            {isUserAdmin && (
-                              <Tooltip title="Editar" arrow>
-                                <IconButton onClick={() => handleEditClick(row)} color="info" aria-label="Editar">
-                                  <IconPencilDollar />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                            {isUserAdmin && row["estado"] === "SOLICITADO" && (
-                              <Tooltip title="Aprobar" arrow>
-                                <IconButton onClick={() => handleApproveClick(row)} color="success" aria-label="Aprobar">
-                                  <IconChecks />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                            {isUserAdmin && row["estado"] !== "SOLICITADO" && (
-                              <Tooltip title="Ver préstamo" arrow>
-                                <IconButton onClick={() => handleOpenDetail(row)} color="warning" aria-label="Ver préstamo">
-                                  <IconEyeDollar />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                          </Box>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-
-              {/* Paginación */}
-              <TablePagination
-                rowsPerPageOptions={[10, 25, 50]}
-                component="div"
-                count={filteredTransactions.length}
-                rowsPerPage={pageSize}
-                page={page}
-                onPageChange={handlePageChange}
-                onRowsPerPageChange={handlePageSizeChange}
+              <StyledTable
+                columns={filteredColumns}
+                rows={filteredTransactions}
+                withPagination={true}
+                pageSizeOptions={[10, 25, 50]}
+                renderCell={(column, row) => {
+                  return formatRules[column.field] ? formatRules[column.field](row[column.field], row) : row[column.field];
+                }}
+                rowSx={(row) => {
+                  return getRowStyle(row);
+                }}
+                actions={(row: any) => (
+                  <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                    {isUserAdmin && (
+                      <Tooltip title="Editar" arrow>
+                        <IconButton
+                          onClick={() => handleEditClick(row)}
+                          color="info"
+                          size="small"
+                          aria-label="Editar"
+                          sx={{
+                            '&:hover': { backgroundColor: '#e1f5fe', transform: 'scale(1.1)' },
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <IconPencilDollar />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {isUserAdmin && row["estado"] === "SOLICITADO" && (
+                      <Tooltip title="Aprobar" arrow>
+                        <IconButton
+                          onClick={() => handleApproveClick(row)}
+                          color="success"
+                          size="small"
+                          aria-label="Aprobar"
+                          sx={{
+                            '&:hover': { backgroundColor: '#e8f5e9', transform: 'scale(1.1)' },
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <IconChecks />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {isUserAdmin && row["estado"] !== "SOLICITADO" && (
+                      <Tooltip title="Ver préstamo" arrow>
+                        <IconButton
+                          onClick={() => handleOpenDetail(row)}
+                          color="warning"
+                          size="small"
+                          aria-label="Ver préstamo"
+                          sx={{
+                            '&:hover': { backgroundColor: '#fff3e0', transform: 'scale(1.1)' },
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <IconEyeDollar />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Box>
+                )}
               />
             </Suspense>
           </CardContent>
