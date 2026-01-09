@@ -62,10 +62,21 @@ export class PagosService {
 
       // Crear la entidad con relaciones
       const nuevoPago = manager.create(PresPagos, {
-        ...createPagoDto,
         idCuota: cuota,
         metodoPago: metodoPago,
         idPrestamo: prestamo.id,
+        diaDePago: createPagoDto.diaDePago,
+        diasEnMora: createPagoDto.diasEnMora,
+        mora: createPagoDto.mora,
+        abonoExtra: createPagoDto.abonoExtra,
+        abonoCapital: createPagoDto.abonoCapital,
+        intereses: createPagoDto.intereses,
+        monto: createPagoDto.monto,
+        totalPagado: createPagoDto.totalPagado,
+        proteccionCartera: createPagoDto.proteccionCartera,
+        comprobante: createPagoDto.comprobante,
+        numCuota: createPagoDto.numCuota,
+        fechaVencimiento: createPagoDto.fechaVencimiento,
       });
 
       // Guardar el pago

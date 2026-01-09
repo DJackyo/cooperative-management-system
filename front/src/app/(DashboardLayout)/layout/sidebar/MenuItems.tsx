@@ -30,7 +30,7 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
-    title: "Gestión del ahorro",
+    title: "Gestionar ahorros",
     icon: IconAdjustmentsDollar,
     href: "/modules/savings?id=0",
     roles: roleAdmin,
@@ -48,7 +48,7 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
-    title: "Gestión del crédito",
+    title: "Gestionar crédito",
     icon: IconAdjustmentsDollar,
     href: "/modules/credit?userId=0",
     roles: roleAdmin,
@@ -67,7 +67,7 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
-    title: "Gestión de usuarios",
+    title: "Asociados",
     icon: IconUserCog,
     href: "/modules/users",
     roles: roleSuperAdmin,

@@ -19,6 +19,10 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import {
   Dialog,
@@ -28,6 +32,7 @@ import {
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { AttachMoney, Close as CloseIcon, CheckCircle as CheckCircleIcon, PendingActions as PendingIcon } from "@mui/icons-material";
+import Swal from "sweetalert2";
 import { Aporte } from "@/interfaces/Aporte";
 import { savingsService } from "@/services/savingsService";
 import { Asociado, LoggedUser } from "@/interfaces/User";
@@ -41,11 +46,14 @@ import {
   IconFileText,
 } from "@tabler/icons-react";
 import AporteModal from "./components/AporteModal";
+import BulkAporteModal from "./components/BulkAporteModal";
 import {
   defaultLoggedUser,
   formatCurrency,
   formatDateWithoutTime,
   getComparator,
+  validateRoles,
+  roleAdmin,
 } from "../../utilities/utils";
 import { authService } from "@/app/authentication/services/authService";
 import ReceiptModal from "./components/ReceiptModal";
@@ -72,6 +80,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const [savings, setSavings] = useState<Aporte[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [usersSearch, setUsersSearch] = useState('');
+  const [estadoFilter, setEstadoFilter] = useState<string>('ACTIVO');
   const [userInfo, setUserInfo] = useState<Asociado>({
     id: 0,
     nombres: "",
@@ -96,23 +105,32 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   // Estado para la fila seleccionada
   const [selectedRow, setSelectedRow] = useState<any>(defaultAporteValue);
   const [receiptModalOpen, setModalOpen] = useState(false);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
 
   const loadSavingsRef = useRef<() => Promise<void>>();
   
   loadSavingsRef.current = async () => {
+    // Siempre cargar todos los usuarios para el modal bulk
+    const allUsersResponse = await savingsService.fetchAllUsersSavings();
+    setAllUsers(allUsersResponse || []);
+
     if (id === 0) {
-      // Cargar todos los usuarios con sus totales de ahorro
-      const response = await savingsService.fetchAllUsersSavings();
-      setAllUsers(response);
+      // Vista de administrador - ya cargamos los usuarios arriba
     } else {
       // Cargar ahorros de un usuario específico
       const filter = {
         idAsociadoId: id,
       };
       const response = await savingsService.fetchByFilters(filter);
-      setSavings(response);
-      if (response.length > 0) {
+      setSavings(response || []);
+      if (response && response.length > 0) {
         setUserInfo(response[0].idAsociado);
+      } else {
+        // Si no hay aportes, cargar la información del usuario directamente
+        const user = allUsersResponse.find((u: any) => u.id === id);
+        if (user) {
+          setUserInfo(user);
+        }
       }
     }
   };
@@ -180,7 +198,6 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     { field: "monto", headerName: "Monto", width: 150 },
     { field: "estado", headerName: "Estado", width: 130 },
     { field: "metodoPago", headerName: "Método Pago", width: 130 },
-    { field: "comprobante", headerName: "Comprobante", width: 130 },
   ];
 
   // Helper para obtener color de estado
@@ -227,11 +244,15 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
 
   const handleEditClick = (row: any) => {
     console.log(row);
-    row.asociado = row.idAsociado;
-    row.idAsociado = row.asociado?.id;
-    row.idUsuarioRegistro = currentUser.userId;
-    console.log(row);
-    setSelectedAporte(row);
+    // Crear una copia del objeto para no mutar el original
+    const rowCopy = {
+      ...row,
+      asociado: row.idAsociado,
+      idAsociado: row.idAsociado?.id || row.idAsociado,
+      idUsuarioRegistro: currentUser.userId
+    };
+    console.log(rowCopy);
+    setSelectedAporte(rowCopy);
     setOpenAporteModal(true);
   };
 
@@ -243,9 +264,29 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     console.log("Aporte registrado:", aporte);
     if (aporte.monto) {
       aporte.idAsociado = aporte.asociado?.id;
-      let saved = await savingsService.create(aporte);
+      
+      // Convertir estado de string a boolean si es necesario
+      if (typeof aporte.estado === 'string') {
+        aporte.estado = aporte.estado.toLowerCase() === 'activo' || aporte.estado === 'true';
+      }
+      
+      let saved;
+      if (aporte.id && aporte.id > 0) {
+        // Es una edición, usar update
+        saved = await savingsService.update(aporte.id, aporte);
+      } else {
+        // Es un nuevo registro, usar create
+        saved = await savingsService.create(aporte);
+      }
+      
       if (saved) {
-        alert("registro almacenado!");
+        await Swal.fire({
+          icon: 'success',
+          title: aporte.id ? 'Aporte actualizado' : 'Registro almacenado',
+          text: aporte.id ? 'El aporte ha sido actualizado exitosamente' : 'El aporte ha sido creado exitosamente',
+          timer: 2000,
+          showConfirmButton: false
+        });
         loadSavings();
       }
     }
@@ -253,9 +294,13 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
 
   const handleOpenReceiptModal = (row: any) => {
     console.log(row);
-    row.asociado = row.idAsociado;
-    row.idAsociado = row.asociado.id;
-    setSelectedRow(row);
+    // Crear una copia del objeto para no mutar el original
+    const rowCopy = {
+      ...row,
+      asociado: row.idAsociado,
+      idAsociado: row.idAsociado?.id || row.idAsociado
+    };
+    setSelectedRow(rowCopy);
     setModalOpen(true);
   };
 
@@ -266,7 +311,12 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const handleViewComprobante = (comprobantePath?: string) => {
     // Validar que exista un comprobante
     if (!comprobantePath) {
-      alert('No hay comprobante disponible para este aporte');
+      Swal.fire({
+        icon: 'warning',
+        title: 'Comprobante no disponible',
+        text: 'No hay comprobante disponible para este aporte',
+        confirmButtonText: 'Entendido'
+      });
       return;
     }
 
@@ -300,16 +350,29 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
 
   // Si id es 0, mostrar listado de todos los usuarios
   if (id === 0) {
-    // Filtrar usuarios por búsqueda global
-    const filteredUsers = allUsers.filter((user: any) => {
-      const searchTerm = usersSearch.toLowerCase();
-      return (
-        user.id.toString().includes(searchTerm) ||
-        user.nombres.toLowerCase().includes(searchTerm) ||
-        user.numeroDeIdentificacion?.toLowerCase().includes(searchTerm) ||
-        user.idEstado?.estado?.toLowerCase().includes(searchTerm)
-      );
-    });
+    // Filtrar usuarios por búsqueda global y estado
+    const filteredUsers = allUsers
+      .filter((user: any) => {
+        const searchTerm = usersSearch.toLowerCase();
+        const matchesSearch = (
+          user.id.toString().includes(searchTerm) ||
+          user.nombres.toLowerCase().includes(searchTerm) ||
+          user.numeroDeIdentificacion?.toLowerCase().includes(searchTerm) ||
+          user.idEstado?.estado?.toLowerCase().includes(searchTerm)
+        );
+        
+        // Filtro por estado
+        if (estadoFilter === 'TODOS') {
+          return matchesSearch;
+        }
+        
+        const estadoUser = user.idEstado?.estado?.toUpperCase() || "";
+        return matchesSearch && estadoUser === estadoFilter;
+      })
+      .sort((a: any, b: any) => {
+        // Ordenar alfabéticamente por nombre
+        return a.nombres.localeCompare(b.nombres);
+      });
 
     const handleUsersSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       setUsersSearch(event.target.value);
@@ -324,15 +387,39 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                 <Typography variant="h5" color="primary">
                   Gestión de Ahorros - Todos los Usuarios
                 </Typography>
-                <TextField
-                  label="Buscar usuarios"
-                  variant="outlined"
-                  size="small"
-                  value={usersSearch}
-                  onChange={handleUsersSearchChange}
-                  placeholder="ID, nombre, identificación o estado..."
-                  sx={{ minWidth: 300 }}
-                />
+                <Box display="flex" gap={2} alignItems="center">
+                  <FormControl size="small" sx={{ minWidth: 150 }}>
+                    <InputLabel id="estado-filter-label">Estado</InputLabel>
+                    <Select
+                      labelId="estado-filter-label"
+                      value={estadoFilter}
+                      onChange={(e) => setEstadoFilter(e.target.value)}
+                      label="Estado"
+                    >
+                      <MenuItem value="TODOS">Todos</MenuItem>
+                      <MenuItem value="ACTIVO">Activos</MenuItem>
+                      <MenuItem value="RSD">Retirados</MenuItem>
+                      <MenuItem value="SUS">Suspendidos</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={() => setBulkModalOpen(true)}
+                    startIcon={<IconCoins />}
+                  >
+                    Crear Aportes en Masa
+                  </Button>
+                  <TextField
+                    label="Buscar usuarios"
+                    variant="outlined"
+                    size="small"
+                    value={usersSearch}
+                    onChange={handleUsersSearchChange}
+                    placeholder="ID, nombre, identificación o estado..."
+                    sx={{ minWidth: 300 }}
+                  />
+                </Box>
               </Box>
               
               <StyledTable
@@ -341,6 +428,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   { field: "nombres", headerName: "Nombre", width: 150 },
                   { field: "numeroDeIdentificacion", headerName: "Identificación", width: 150 },
                   { field: "totalAhorrado", headerName: "Total Ahorrado", width: 150 },
+                  { field: "ultimaFechaAporte", headerName: "Último Aporte", width: 130 },
                   { field: "idEstado.estado", headerName: "Estado", width: 120 },
                 ]}
                 rows={filteredUsers}
@@ -357,20 +445,22 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                     case "totalAhorrado":
                       return (
                         <Box sx={{ fontWeight: 600, color: '#2e7d32' }}>
-                          💵 {formatCurrency(user.totalAhorrado || 0)}
+                          $ {formatCurrency(user.totalAhorrado || 0)}
                         </Box>
                       );
+                    case "ultimaFechaAporte":
+                      return user.ultimaFechaAporte ? formatDateWithoutTime(user.ultimaFechaAporte) : '-';
                     case "idEstado.estado":
                       return (
                         <Box
                           sx={{
                             display: 'inline-block',
-                            padding: '6px 12px',
+                            padding: '6px 10px',
                             borderRadius: '20px',
                             backgroundColor: user.idEstado?.estado?.toLowerCase().includes('activo') ? '#c8e6c9' : '#ffcdd2',
                             color: user.idEstado?.estado?.toLowerCase().includes('activo') ? '#2e7d32' : '#c62828',
                             fontWeight: 600,
-                            fontSize: '0.85rem',
+                            fontSize: '0.7rem',
                           }}
                         >
                           {user.idEstado?.estado || 'N/A'}
@@ -393,6 +483,15 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
             </CardContent>
           </Card>
         </Grid>
+        {/* Modal de Creación en Masa */}
+        <BulkAporteModal
+          open={bulkModalOpen}
+          onClose={() => setBulkModalOpen(false)}
+          onSuccess={() => {
+            loadSavings();
+          }}
+          allUsers={allUsers}
+        />
       </Grid>
     );
   }
@@ -534,7 +633,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                           gap: 0.5,
                         }}
                       >
-                        💵 {formatCurrency(row[column.field])}
+                        $ {formatCurrency(row[column.field])}
                       </Box>
                     );
                   } else if (column.field === "estado") {
@@ -567,7 +666,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                 }}
                 actions={(row: any) => (
                   <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                    {currentUser?.role?.includes("administrador") && (
+                    {validateRoles(roleAdmin, currentUser?.role?.map((r: any) => r.nombre) || []) && (
                       <Tooltip title="Editar" arrow>
                         <IconButton
                           onClick={() => handleEditClick(row)}
@@ -668,6 +767,15 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
         open={receiptModalOpen}
         onClose={handleCloseReceiptModal}
         data={{ selectedRow, savings }}
+      />
+      {/* Modal de Creación en Masa */}
+      <BulkAporteModal
+        open={bulkModalOpen}
+        onClose={() => setBulkModalOpen(false)}
+        onSuccess={() => {
+          loadSavings();
+        }}
+        allUsers={allUsers}
       />
     </LocalizationProvider>
   );

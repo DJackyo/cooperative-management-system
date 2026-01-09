@@ -7,6 +7,9 @@ import { Repository } from 'typeorm';
 import { PresAprobacionPrestamos } from 'src/entities/entities/PresAprobacionPrestamos';
 import { PresCuotas } from 'src/entities/entities/PresCuotas';
 import { EstadosAprobacion } from 'src/entities/entities/EstadosAprobacion';
+import { PresCancelaciones } from 'src/entities/entities/PresCancelaciones';
+import { PresHistorialPrestamos } from 'src/entities/entities/PresHistorialPrestamos';
+import { PresPagos } from 'src/entities/entities/PresPagos';
 
 @Injectable()
 export class PrestamosService {
@@ -22,11 +25,25 @@ export class PrestamosService {
 
     @InjectRepository(EstadosAprobacion)
     private readonly estadosAprobacionRepository: Repository<EstadosAprobacion>,
+
+    @InjectRepository(PresCancelaciones)
+    private readonly cancelacionesRepository: Repository<PresCancelaciones>,
+
+    @InjectRepository(PresHistorialPrestamos)
+    private readonly historialPrestamosRepository: Repository<PresHistorialPrestamos>,
+
+    @InjectRepository(PresPagos)
+    private readonly pagosRepository: Repository<PresPagos>,
   ) {}
   /* Obtener todos los prestamos, incluyendo las relaciones */
   async getAll(): Promise<Prestamos[]> {
     return this.prestamosRepository.find({
-      relations: ['idTasa', 'idAsociado'],
+      relations: [
+        'idTasa', 
+        'idAsociado', 
+        'presCuotas',
+        'presCuotas.presPagos'
+      ],
     });
   }
 
@@ -63,13 +80,38 @@ export class PrestamosService {
     return this.prestamosRepository.save(prestamo); // Guardamos el prestamo actualizado
   }
 
-  // Eliminar un prestamo por id
+  // Eliminar un prestamo por id y todas sus relaciones
   async deleteOne(id: number): Promise<Prestamos> {
     const prestamo = await this.prestamosRepository.findOne({ where: { id } });
     if (!prestamo) {
       throw new NotFoundException('Prestamo no encontrado');
     }
-    return this.prestamosRepository.remove(prestamo); // Eliminamos el prestamo encontrado
+
+    // 1. Eliminar pagos de todas las cuotas
+    const cuotas = await this.cuotasRepository.find({ 
+      where: { idPrestamo: { id } },
+      relations: ['presPagos']
+    });
+    
+    for (const cuota of cuotas) {
+      // Eliminar todos los pagos de la cuota
+      await this.pagosRepository.delete({ idCuota: { id: cuota.id } });
+    }
+
+    // 2. Eliminar todas las cuotas
+    await this.cuotasRepository.delete({ idPrestamo: { id } });
+
+    // 3. Eliminar aprobaciones
+    await this.aprobacionPrestamoRepository.delete({ idPrestamo: { id } });
+
+    // 4. Eliminar cancelaciones
+    await this.cancelacionesRepository.delete({ idPrestamo: { id } });
+
+    // 5. Eliminar historial
+    await this.historialPrestamosRepository.delete({ idPrestamo: { id } });
+
+    // 6. Finalmente eliminar el préstamo
+    return this.prestamosRepository.remove(prestamo);
   }
 
   // Obtener los prestamos por id de usuario, incluyendo las relaciones
@@ -242,6 +284,7 @@ export class PrestamosService {
         .leftJoinAndSelect('prestamos.idAsociado', 'asociados')
         .leftJoinAndSelect('prestamos.presCuotas', 'cuotas') // 🔹 Relación con PresCuotas
         .leftJoinAndSelect('cuotas.presPagos', 'pagos') // 🔹 Relación entre cuotas y pagos
+        .leftJoinAndSelect('pagos.metodoPago', 'metodoPago') // 🔹 Relación con método de pago
         .where('asociados.id = :userId AND prestamos.id = :creditId', {
           userId: filter.userId,
           creditId: filter.creditId,

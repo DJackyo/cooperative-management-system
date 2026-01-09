@@ -37,4 +37,6 @@ export interface Cuota {
   estado: "PENDIENTE" | "PAGADO";
   presPagos: Pago[];
   pagado: boolean;
+  abonoCapital?: number;
+  intereses?: number;
 }

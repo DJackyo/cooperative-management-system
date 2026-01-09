@@ -14,7 +14,7 @@ const SidebarWrapper = styled("div")(() => ({
   position: "relative",
   zIndex: 1200,
   flexShrink: 0,
-  minWidth: "235px",
+  minWidth: "220px",
   willChange: "auto",
 }));
 

@@ -25,11 +25,10 @@ export const formatDateWithoutTime = (date: string | Date) => {
     console.error("Fecha inválida:", date);
     return "";
   }
-  return new Intl.DateTimeFormat("es-ES", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(d);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 export const formatNameDate = (date: string | Date) => {
@@ -38,16 +37,10 @@ export const formatNameDate = (date: string | Date) => {
     console.error("Fecha inválida:", date);
     return "";
   }
-  const options: Intl.DateTimeFormatOptions = {
-    day: "2-digit", // Formato para el día con 2 dígitos
-    month: "short", // Mes abreviado
-    year: "numeric", // Año en formato numérico
-  };
-
-  return new Intl.DateTimeFormat("es-ES", options)
-    .format(d)
-    .toString()
-    .toLocaleUpperCase();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 };
 
 // Función para formatear el monto

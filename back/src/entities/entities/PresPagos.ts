@@ -97,6 +97,13 @@ export class PresPagos {
   })
   totalPagado: number | null;
 
+  @Column("varchar", {
+    name: "comprobante",
+    nullable: true,
+    length: 255,
+  })
+  comprobante: string | null;
+
   @ManyToOne(() => PresCuotas, (presCuotas) => presCuotas.presPagos)
   @JoinColumn([{ name: "id_cuota", referencedColumnName: "id" }])
   idCuota: PresCuotas;

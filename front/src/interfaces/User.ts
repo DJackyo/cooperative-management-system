@@ -16,6 +16,10 @@ export interface Asociado {
   nombres: string;
   numeroDeIdentificacion: string;
   idEstado: Estado;
+  nombre1?: string;
+  nombre2?: string;
+  apellido1?: string;
+  apellido2?: string;
 }
 
 export interface User {

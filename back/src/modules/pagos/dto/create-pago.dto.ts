@@ -14,4 +14,5 @@ export class CreatePagoDto {
   totalPagado?: number | null;
   idCuota?: number; // Solo el ID de la cuota para evitar ciclos de referencia
   metodoPagoId?: number; // Solo el ID del método de pago para simplificar
+  comprobante?: string; // Ruta del archivo de comprobante
 }

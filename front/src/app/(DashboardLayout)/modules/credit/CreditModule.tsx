@@ -24,12 +24,13 @@ import {
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
+import * as XLSX from 'xlsx-js-style';
 import UserCard from "../../utilities/UserCard";
 import { Asociado, LoggedUser } from "@/interfaces/User";
 import { Prestamo } from "@/interfaces/Prestamo";
 import { authService } from "@/app/authentication/services/authService";
 import { defaultLoggedUser, formatCurrency, formatDateTime, formatDateWithoutTime, getComparator, getEstadoChip, roleAdmin, validateRoles } from "../../utilities/utils";
-import { IconChecks, IconEyeDollar, IconPencilDollar, IconX } from "@tabler/icons-react";
+import { IconChecks, IconEyeDollar, IconPencilDollar, IconX, IconTrash, IconFileReport, IconFileDownload } from "@tabler/icons-react";
 import { creditsService } from "@/services/creditRequestService";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
 import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
@@ -52,6 +53,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const [openRequestModal, setOpenRequestModal] = useState(false);
   const [openModifyModal, setOpenModifyModal] = useState(false);
   const [openApproveModal, setOpenApproveModal] = useState(false);
+  const [openReportModal, setOpenReportModal] = useState(false);
   const [userInfo, setUserInfo] = useState<Asociado>({
     id: 0,
     nombres: "",
@@ -147,6 +149,8 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const handleCloseRequestModal = () => setOpenRequestModal(false);
   const handleCloseModifyModal = () => setOpenModifyModal(false);
   const handleCloseApproveModal = () => setOpenApproveModal(false);
+  const handleOpenReportModal = () => setOpenReportModal(true);
+  const handleCloseReportModal = () => setOpenReportModal(false);
 
   const handleEditClick = (row: Prestamo) => {
     setSelectedPrestamo(row);
@@ -325,6 +329,318 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         // Si cancela, reabrir el modal
         setOpenApproveModal(true);
       }
+    }
+  };
+
+  const handleDelete = async (prestamo: Prestamo) => {
+    const result = await Swal.fire({
+      title: '¿Eliminar crédito?',
+      html: `
+        <div style="text-align: left;">
+          <p><strong>Asociado:</strong> ${prestamo.idAsociado?.nombres}</p>
+          <p><strong>Monto:</strong> $${formatCurrency(prestamo.monto)}</p>
+          <p><strong>Estado:</strong> ${prestamo.estado}</p>
+          <p style="color: #d32f2f; margin-top: 16px;"><strong>⚠️ Esta acción eliminará:</strong></p>
+          <ul style="color: #d32f2f; text-align: left;">
+            <li>El registro del crédito</li>
+            <li>Todas las cuotas asociadas</li>
+            <li>Todos los pagos realizados</li>
+            <li>El historial completo</li>
+          </ul>
+          <p style="color: #d32f2f; font-weight: bold;">Esta acción no se puede deshacer.</p>
+        </div>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d32f2f',
+      cancelButtonColor: '#757575',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+      reverseButtons: true
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await creditsService.delete(prestamo.id);
+        await Swal.fire({
+          icon: 'success',
+          title: 'Crédito eliminado',
+          text: 'El crédito y todos sus registros han sido eliminados exitosamente',
+          timer: 2000,
+          showConfirmButton: false
+        });
+        await loadCredits();
+      } catch (error) {
+        console.error('Error al eliminar crédito:', error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error al eliminar',
+          text: 'No se pudo eliminar el crédito. Por favor, intente nuevamente.',
+          confirmButtonText: 'Entendido',
+          confirmButtonColor: '#d32f2f'
+        });
+      }
+    }
+  };
+
+  const handleExportToExcel = () => {
+    try {
+      const creditosAprobados = credits.filter(c => c.estado === 'APROBADO');
+      
+      if (creditosAprobados.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Sin datos',
+          text: 'No hay cr\u00e9ditos aprobados para exportar',
+          confirmButtonText: 'Entendido'
+        });
+        return;
+      }
+
+      // Preparar datos para Excel
+      const excelData = [];
+      
+      // Encabezados
+      excelData.push([
+        'COD',
+        'IDENTIFICACI\u00d3N',
+        'NOMBRES COMPLETOS',
+        'VALOR CR\u00c9DITO',
+        'PLAZO MESES',
+        'CUOTAS PAGADAS',
+        'MESES FALTANTES',
+        'CUOTAS ATRASADAS',
+        'MESES CON PAGO',
+        'ABONO CAPITAL',
+        'INTERESES'
+      ]);
+
+      // Datos de cada crédito
+      creditosAprobados.forEach((credit) => {
+        const cuotasPagadas = credit.presCuotas?.filter(c => c.estado === 'PAGADO').length || 0;
+        const mesesFaltantes = credit.plazoMeses - cuotasPagadas;
+        const today = new Date();
+        const cuotasAtrasadas = credit.presCuotas?.filter(c => 
+          c.estado === 'PENDIENTE' && new Date(c.fechaVencimiento) < today
+        ).length || 0;
+        const mesesConPago = new Set(
+          credit.presCuotas
+            ?.filter(c => c.presPagos && c.presPagos.length > 0)
+            .map(c => new Date(c.fechaVencimiento).getMonth())
+        ).size || 0;
+        const abonoCapital = credit.presCuotas
+          ?.filter(c => c.estado === 'PAGADO')
+          .reduce((sum, c) => sum + (Number(c.abonoCapital) || 0), 0) || 0;
+        const intereses = credit.presCuotas
+          ?.filter(c => c.estado === 'PAGADO')
+          .reduce((sum, c) => sum + (Number(c.intereses) || 0), 0) || 0;
+
+        const asociado = credit.idAsociado;
+        const apellido1 = asociado?.apellido1 || '';
+        const apellido2 = asociado?.apellido2 || '';
+        const nombre1 = asociado?.nombre1 || '';
+        const nombre2 = asociado?.nombre2 || '';
+        const nombreCompleto = [apellido1, apellido2, nombre1, nombre2]
+          .filter(n => n)
+          .join(' ') || asociado?.nombres || 'N/A';
+
+        excelData.push([
+          credit.id,
+          asociado?.numeroDeIdentificacion || 'N/A',
+          nombreCompleto,
+          Number(credit.monto),
+          credit.plazoMeses,
+          cuotasPagadas,
+          mesesFaltantes,
+          cuotasAtrasadas,
+          mesesConPago,
+          abonoCapital,
+          intereses
+        ]);
+      });
+
+      // Fila de totales
+      const totalCredito = creditosAprobados.reduce((sum, c) => sum + Number(c.monto), 0);
+      const totalAbonoCapital = creditosAprobados.reduce((sum, c) => {
+        return sum + (c.presCuotas?.filter(cu => cu.estado === 'PAGADO')
+          .reduce((s, cu) => s + (Number(cu.abonoCapital) || 0), 0) || 0);
+      }, 0);
+      const totalIntereses = creditosAprobados.reduce((sum, c) => {
+        return sum + (c.presCuotas?.filter(cu => cu.estado === 'PAGADO')
+          .reduce((s, cu) => s + (Number(cu.intereses) || 0), 0) || 0);
+      }, 0);
+      const totalCuotasPagadas = creditosAprobados.reduce((sum, c) => {
+        return sum + (c.presCuotas?.filter(cu => cu.estado === 'PAGADO').length || 0);
+      }, 0);
+      const totalCuotasAtrasadas = creditosAprobados.reduce((sum, c) => {
+        const today = new Date();
+        return sum + (c.presCuotas?.filter(cu => 
+          cu.estado === 'PENDIENTE' && new Date(cu.fechaVencimiento) < today
+        ).length || 0);
+      }, 0);
+
+      excelData.push([
+        'TOTALES',
+        '',
+        '',
+        totalCredito,
+        creditosAprobados.length,
+        totalCuotasPagadas,
+        '',
+        totalCuotasAtrasadas,
+        '',
+        totalAbonoCapital,
+        totalIntereses
+      ]);
+
+      // Crear libro de Excel
+      const worksheet = XLSX.utils.aoa_to_sheet(excelData);
+      
+      // Aplicar estilos de columnas (anchos)
+      worksheet['!cols'] = [
+        { wch: 8 },  // COD
+        { wch: 15 }, // IDENTIFICACIÓN
+        { wch: 35 }, // NOMBRES COMPLETOS
+        { wch: 15 }, // VALOR CRÉDITO
+        { wch: 12 }, // PLAZO MESES
+        { wch: 15 }, // CUOTAS PAGADAS
+        { wch: 15 }, // MESES FALTANTES
+        { wch: 16 }, // CUOTAS ATRASADAS
+        { wch: 15 }, // MESES CON PAGO
+        { wch: 15 }, // ABONO CAPITAL
+        { wch: 15 }  // INTERESES
+      ];
+
+      // Aplicar estilos a las celdas (encabezados y datos)
+      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1');
+      
+      // Estilos para encabezados (fila 1)
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_col(C) + '1';
+        if (!worksheet[address]) continue;
+        
+        // Aplicar estilo según columna
+        worksheet[address].s = {
+          fill: {
+            fgColor: { 
+              rgb: C === 8 ? '4CAF50' :  // CUOTAS PAGADAS - verde
+                   C === 9 ? 'FF9800' :  // MESES FALTANTES - naranja
+                   C === 10 ? 'F44336' : // CUOTAS ATRASADAS - rojo
+                   '1976D2'              // Resto - azul
+            }
+          },
+          font: { 
+            bold: true, 
+            color: { rgb: 'FFFFFF' },
+            sz: 11
+          },
+          alignment: { 
+            horizontal: 'center', 
+            vertical: 'center' 
+          }
+        };
+      }
+
+      // Aplicar estilos condicionales a las filas de datos
+      for (let R = range.s.r + 1; R < range.e.r; ++R) { // Excluir última fila (totales)
+        const cuotasAtrasadasAddr = XLSX.utils.encode_col(7) + (R + 1); // Columna H (índice 7)
+        const cuotasPagadasAddr = XLSX.utils.encode_col(5) + (R + 1); // Columna F (índice 5)
+        const plazoMesesAddr = XLSX.utils.encode_col(4) + (R + 1); // Columna E (índice 4)
+        
+        const cuotasAtrasadas = worksheet[cuotasAtrasadasAddr]?.v || 0;
+        const cuotasPagadas = worksheet[cuotasPagadasAddr]?.v || 0;
+        const plazoMeses = worksheet[plazoMesesAddr]?.v || 0;
+        const isCompleted = cuotasPagadas === plazoMeses && plazoMeses > 0;
+        
+        // Colorear toda la fila según estado
+        const bgColor = cuotasAtrasadas > 0 ? 'FFEBEE' : 
+                       isCompleted ? 'E8F5E9' : 
+                       'FFFFFF';
+        
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const address = XLSX.utils.encode_col(C) + (R + 1);
+          if (!worksheet[address]) continue;
+          
+          worksheet[address].s = {
+            fill: { fgColor: { rgb: bgColor } },
+            alignment: { 
+              horizontal: C >= 3 ? 'right' : 'left',
+              vertical: 'center' 
+            }
+          };
+          
+          // Color especial para celda de cuotas atrasadas
+          if (C === 7 && cuotasAtrasadas > 0) {
+            worksheet[address].s.font = { 
+              bold: true, 
+              color: { rgb: 'D32F2F' } // #d32f2f
+            };
+            worksheet[address].s.fill = { 
+              fgColor: { rgb: 'FFCDD2' } // #ffcdd2
+            };
+          }
+          
+          // Color verde para cuotas pagadas (texto)
+          if (C === 5 && cuotasPagadas > 0) {
+            worksheet[address].s.font = { 
+              bold: true, 
+              color: { rgb: '4CAF50' } // #4caf50
+            };
+          }
+          
+          // Color para meses faltantes (texto)
+          if (C === 6) {
+            const mesesFaltantes = worksheet[address].v || 0;
+            worksheet[address].s.font = { 
+              color: { rgb: mesesFaltantes > 0 ? 'FF9800' : '4CAF50' } // #ff9800 o #4caf50
+            };
+          }
+        }
+      }
+
+      // Estilo para fila de totales (última fila)
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const address = XLSX.utils.encode_col(C) + (range.e.r + 1);
+        if (!worksheet[address]) continue;
+        
+        worksheet[address].s = {
+          fill: { fgColor: { rgb: 'E3F2FD' } },
+          font: { bold: true, sz: 11 },
+          alignment: { 
+            horizontal: C >= 3 ? 'right' : 'left',
+            vertical: 'center' 
+          },
+          border: {
+            top: { style: 'medium', color: { rgb: '1976D2' } }
+          }
+        };
+      }
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte Préstamos');
+      
+      // Descargar archivo
+      const fecha = new Date().toISOString().split('T')[0];
+      XLSX.writeFile(workbook, `reporte_prestamos_${fecha}.xlsx`, { 
+        bookType: 'xlsx',
+        cellStyles: true 
+      });
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Archivo descargado',
+        text: 'El reporte se ha exportado exitosamente en formato Excel',
+        timer: 2000,
+        showConfirmButton: false
+      });
+    } catch (error) {
+      console.error('Error al exportar:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo exportar el reporte',
+        confirmButtonText: 'Entendido'
+      });
     }
   };
 
@@ -533,10 +849,20 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       <Grid size={{ xs: 12, md: 12 }}>
         <Card variant="outlined" sx={{ boxShadow: 3 }}>
           <CardContent>
-            <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
               <Typography variant="h5" color="primary" gutterBottom>
                 Historial de Préstamos
               </Typography>
+              {userId === 0 && isUserAdmin && (
+                <Button 
+                  variant="contained" 
+                  color="success"
+                  startIcon={<IconFileReport />}
+                  onClick={handleOpenReportModal}
+                >
+                  Generar Reporte
+                </Button>
+              )}
             </Box>
             <Suspense fallback={<Skeleton variant="rectangular" width="100%" height={300} />}>
               {/* Tabla */}
@@ -598,6 +924,22 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                           }}
                         >
                           <IconEyeDollar />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    {isUserAdmin && (
+                      <Tooltip title="Eliminar" arrow>
+                        <IconButton
+                          onClick={() => handleDelete(row)}
+                          color="error"
+                          size="small"
+                          aria-label="Eliminar"
+                          sx={{
+                            '&:hover': { backgroundColor: '#ffebee', transform: 'scale(1.1)' },
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          <IconTrash />
                         </IconButton>
                       </Tooltip>
                     )}
@@ -722,6 +1064,229 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
           <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
             Revise cuidadosamente los términos antes de aprobar
           </Typography>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de Reporte de Préstamos */}
+      <Dialog open={openReportModal} onClose={handleCloseReportModal} fullWidth maxWidth="xl">
+        <DialogTitle sx={{ bgcolor: '#f5f5f5', borderBottom: '2px solid #4caf50' }}>
+          <Box display="flex" alignItems="center" justifyContent="space-between">
+            <Box display="flex" alignItems="center" gap={1}>
+              <IconFileReport color="#4caf50" size={28} />
+              <Box>
+                <Typography variant="h5" component="span" fontWeight="bold">
+                  Reporte de Préstamos Aprobados
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Total de créditos: {credits.filter(c => c.estado === 'APROBADO').length}
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {credits.filter(c => c.estado === 'APROBADO').length === 0 ? (
+            <Box sx={{ p: 8, textAlign: 'center' }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No hay créditos aprobados
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Cuando se aprueben créditos, aparecerán en este reporte
+              </Typography>
+            </Box>
+          ) : (
+            <TableContainer sx={{ maxHeight: 600 }}>
+              <Table stickyHeader size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ fontWeight: 'bold', bgcolor: '#1976d2', color: 'white', fontSize: '0.75rem' }}>COD</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', bgcolor: '#1976d2', color: 'white', fontSize: '0.75rem' }}>IDENTIFICACIÓN</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold', bgcolor: '#1976d2', color: 'white', fontSize: '0.75rem', minWidth: 200 }}>NOMBRES COMPLETOS</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: '#1976d2', color: 'white', fontSize: '0.75rem' }}>VALOR CRÉDITO</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#1976d2', color: 'white', fontSize: '0.75rem' }}>PLAZO<br/>MESES</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#4caf50', color: 'white', fontSize: '0.75rem' }}>CUOTAS<br/>PAGADAS</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#ff9800', color: 'white', fontSize: '0.75rem' }}>MESES<br/>FALTANTES</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#f44336', color: 'white', fontSize: '0.75rem' }}>CUOTAS<br/>ATRASADAS</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 'bold', bgcolor: '#1976d2', color: 'white', fontSize: '0.75rem' }}>MESES<br/>CON PAGO</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: '#1976d2', color: 'white', fontSize: '0.75rem' }}>ABONO<br/>CAPITAL</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 'bold', bgcolor: '#1976d2', color: 'white', fontSize: '0.75rem' }}>INTERESES</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                {credits
+                  .filter(credit => credit.estado === 'APROBADO')
+                  .map((credit) => {
+                    const cuotasPagadas = credit.presCuotas?.filter(c => c.estado === 'PAGADO').length || 0;
+                    const mesesFaltantes = credit.plazoMeses - cuotasPagadas;
+                    const today = new Date();
+                    const cuotasAtrasadas = credit.presCuotas?.filter(c => 
+                      c.estado === 'PENDIENTE' && new Date(c.fechaVencimiento) < today
+                    ).length || 0;
+                    const mesesConPago = new Set(
+                      credit.presCuotas
+                        ?.filter(c => c.presPagos && c.presPagos.length > 0)
+                        .map(c => new Date(c.fechaVencimiento).getMonth())
+                    ).size || 0;
+                    // Sumar solo el abono capital e intereses de las cuotas PAGADAS
+                    const abonoCapital = credit.presCuotas
+                      ?.filter(c => c.estado === 'PAGADO')
+                      .reduce((sum, c) => sum + (Number(c.abonoCapital) || 0), 0) || 0;
+                    const intereses = credit.presCuotas
+                      ?.filter(c => c.estado === 'PAGADO')
+                      .reduce((sum, c) => sum + (Number(c.intereses) || 0), 0) || 0;
+
+                    // Extraer nombres del asociado
+                    const asociado = credit.idAsociado;
+                    const apellido1 = asociado?.apellido1 || '';
+                    const apellido2 = asociado?.apellido2 || '';
+                    const nombre1 = asociado?.nombre1 || '';
+                    const nombre2 = asociado?.nombre2 || '';
+                    const nombreCompleto = [apellido1, apellido2, nombre1, nombre2]
+                      .filter(n => n)
+                      .join(' ') || asociado?.nombres || 'N/A';
+                    
+                    // Determinar color de fila según estado
+                    const rowBgColor = cuotasAtrasadas > 0 
+                      ? '#ffebee' 
+                      : cuotasPagadas === credit.plazoMeses 
+                      ? '#e8f5e9' 
+                      : '#fff';
+
+                    return (
+                      <TableRow 
+                        key={credit.id} 
+                        hover
+                        sx={{ 
+                          bgcolor: rowBgColor,
+                          '&:hover': { 
+                            bgcolor: cuotasAtrasadas > 0 
+                              ? '#ffcdd2' 
+                              : cuotasPagadas === credit.plazoMeses 
+                              ? '#c8e6c9' 
+                              : '#f5f5f5' 
+                          }
+                        }}
+                      >
+                        <TableCell sx={{ fontWeight: 'medium' }}>{credit.id}</TableCell>
+                        <TableCell>{asociado?.numeroDeIdentificacion || 'N/A'}</TableCell>
+                        <TableCell>{nombreCompleto}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'medium' }}>
+                          ${formatCurrency(credit.monto)}
+                        </TableCell>
+                        <TableCell align="center">{credit.plazoMeses}</TableCell>
+                        <TableCell 
+                          align="center" 
+                          sx={{ 
+                            fontWeight: 'bold', 
+                            color: cuotasPagadas > 0 ? '#4caf50' : 'text.secondary' 
+                          }}
+                        >
+                          {cuotasPagadas}
+                        </TableCell>
+                        <TableCell 
+                          align="center"
+                          sx={{ 
+                            fontWeight: 'medium',
+                            color: mesesFaltantes > 0 ? '#ff9800' : '#4caf50' 
+                          }}
+                        >
+                          {mesesFaltantes}
+                        </TableCell>
+                        <TableCell 
+                          align="center" 
+                          sx={{ 
+                            fontWeight: 'bold',
+                            color: cuotasAtrasadas > 0 ? '#d32f2f' : '#4caf50',
+                            bgcolor: cuotasAtrasadas > 0 ? '#ffcdd2' : 'transparent'
+                          }}
+                        >
+                          {cuotasAtrasadas > 0 ? `⚠️ ${cuotasAtrasadas}` : cuotasAtrasadas}
+                        </TableCell>
+                        <TableCell align="center">{mesesConPago}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'medium' }}>
+                          ${formatCurrency(abonoCapital)}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'medium' }}>
+                          ${formatCurrency(intereses)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {/* Fila de totales */}
+                  {(() => {
+                    const creditosAprobados = credits.filter(c => c.estado === 'APROBADO');
+                    const totalCredito = creditosAprobados.reduce((sum, c) => sum + Number(c.monto), 0);
+                    const totalAbonoCapital = creditosAprobados.reduce((sum, c) => {
+                      return sum + (c.presCuotas?.filter(cu => cu.estado === 'PAGADO')
+                        .reduce((s, cu) => s + (Number(cu.abonoCapital) || 0), 0) || 0);
+                    }, 0);
+                    const totalIntereses = creditosAprobados.reduce((sum, c) => {
+                      return sum + (c.presCuotas?.filter(cu => cu.estado === 'PAGADO')
+                        .reduce((s, cu) => s + (Number(cu.intereses) || 0), 0) || 0);
+                    }, 0);
+                    const totalCuotasPagadas = creditosAprobados.reduce((sum, c) => {
+                      return sum + (c.presCuotas?.filter(cu => cu.estado === 'PAGADO').length || 0);
+                    }, 0);
+                    const totalCuotasAtrasadas = creditosAprobados.reduce((sum, c) => {
+                      const today = new Date();
+                      return sum + (c.presCuotas?.filter(cu => 
+                        cu.estado === 'PENDIENTE' && new Date(cu.fechaVencimiento) < today
+                      ).length || 0);
+                    }, 0);
+
+                    return (
+                      <TableRow sx={{ bgcolor: '#e3f2fd', borderTop: '2px solid #1976d2' }}>
+                        <TableCell colSpan={3} sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+                          TOTALES
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+                          ${formatCurrency(totalCredito)}
+                        </TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold' }}>
+                          {creditosAprobados.length}
+                        </TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', color: '#4caf50' }}>
+                          {totalCuotasPagadas}
+                        </TableCell>
+                        <TableCell align="center">-</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 'bold', color: totalCuotasAtrasadas > 0 ? '#d32f2f' : '#4caf50' }}>
+                          {totalCuotasAtrasadas > 0 ? `⚠️ ${totalCuotasAtrasadas}` : totalCuotasAtrasadas}
+                        </TableCell>
+                        <TableCell align="center">-</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+                          ${formatCurrency(totalAbonoCapital)}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 'bold', fontSize: '0.95rem' }}>
+                          ${formatCurrency(totalIntereses)}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })()}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2, bgcolor: '#f5f5f5', borderTop: '1px solid #e0e0e0' }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mr: 'auto', fontStyle: 'italic' }}>
+            💡 Filas en rojo indican cuotas atrasadas • Filas en verde indican crédito completado
+          </Typography>
+          <Button 
+            onClick={handleCloseReportModal} 
+            color="secondary" 
+            variant="outlined"
+            startIcon={<IconX />}
+          >
+            Cerrar
+          </Button>
+          <Button 
+            variant="contained" 
+            color="primary"
+            startIcon={<IconFileDownload />}
+            onClick={handleExportToExcel}
+          >
+            Exportar a Excel
+          </Button>
         </DialogActions>
       </Dialog>
     </Grid>

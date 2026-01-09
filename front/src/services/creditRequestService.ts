@@ -61,7 +61,7 @@ export const creditsService = {
   },
   async deactivate(id: number, credit: Omit<Prestamo, "id">) {
     try {
-      const response = await axiosClient.patch(`/${baseURL}/${id}`, credit);
+      const response = await axiosClient.patch(`${baseURL}/${id}`, credit);
       if (response?.data) {
         return response.data?.data;
       }
@@ -71,7 +71,7 @@ export const creditsService = {
   },
   async delete(id: number) {
     try {
-      const response = await axiosClient.delete(`/${baseURL}/${id}`);
+      const response = await axiosClient.delete(`${baseURL}/${id}`);
       if (response?.data) {
         return response.data?.data;
       }

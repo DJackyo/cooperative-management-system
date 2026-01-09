@@ -29,12 +29,20 @@ export const savingsService = {
     try {
       let response;
       
+      // Convertir estado a boolean antes de enviar
+      if (typeof saving.estado === 'string') {
+        saving.estado = saving.estado.toLowerCase() === 'activo' || saving.estado === 'true' || saving.estado === '1';
+      }
+      
       if (saving.file) {
         // Si hay archivo, usar FormData
         const formData = new FormData();
         Object.keys(saving).forEach(key => {
           if (key === 'file') {
             formData.append('comprobante', saving.file!);
+          } else if (key === 'estado') {
+            // Enviar estado como boolean
+            formData.append(key, String(saving.estado === true));
           } else if (saving[key as keyof typeof saving] !== null && saving[key as keyof typeof saving] !== undefined) {
             formData.append(key, String(saving[key as keyof typeof saving]));
           }
@@ -59,7 +67,37 @@ export const savingsService = {
   },
   async update(id: number, saving: Omit<Aporte, "id" | "asociado">) {
     try {
-      const response = await axiosClient.put(`/${baseURL}/${id}`, saving);
+      let response;
+      
+      // Convertir estado a boolean antes de enviar
+      if (typeof saving.estado === 'string') {
+        saving.estado = saving.estado.toLowerCase() === 'activo' || saving.estado === 'true' || saving.estado === '1';
+      }
+      
+      if (saving.file) {
+        // Si hay archivo, usar FormData
+        const formData = new FormData();
+        Object.keys(saving).forEach(key => {
+          if (key === 'file') {
+            formData.append('comprobante', saving.file!);
+          } else if (key === 'estado') {
+            // Enviar estado como boolean
+            formData.append(key, String(saving.estado === true));
+          } else if (saving[key as keyof typeof saving] !== null && saving[key as keyof typeof saving] !== undefined) {
+            formData.append(key, String(saving[key as keyof typeof saving]));
+          }
+        });
+        
+        response = await axiosClient.put(`${baseURL}/${id}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+      } else {
+        // Sin archivo, envío normal
+        response = await axiosClient.put(`${baseURL}/${id}`, saving);
+      }
+      
       if (response?.data) {
         return response.data?.data;
       }

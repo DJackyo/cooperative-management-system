@@ -101,10 +101,55 @@ export class AsocAportesAsociadosController {
 
   // Actualizar un aporte
   @Put(':id')
+  @UseInterceptors(
+    FileInterceptor('comprobante', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const fechaAporte = req.body.fechaAporte;
+          const idAsociado = req.body.idAsociado;
+          
+          // Obtener año de la fecha de aporte
+          const year = new Date(fechaAporte).getFullYear();
+          
+          // Crear estructura: uploads/comprobantes/año/idAsociado
+          const uploadPath = join('./uploads/comprobantes', year.toString(), idAsociado.toString());
+          
+          // Crear directorios si no existen
+          if (!existsSync(uploadPath)) {
+            mkdirSync(uploadPath, { recursive: true });
+          }
+          
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const fechaAporte = req.body.fechaAporte;
+          const formattedDate = new Date(fechaAporte).toISOString().split('T')[0];
+          const fileExt = extname(file.originalname);
+          cb(null, `comprobante-${formattedDate}${fileExt}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        if (file.mimetype.match(/\/(jpg|jpeg|png|gif|pdf)$/)) {
+          cb(null, true);
+        } else {
+          cb(new Error('Tipo de archivo no permitido'), false);
+        }
+      },
+    }),
+  )
   update(
     @Param('id') id: number,
     @Body() updateAsocAportesAsociadosDto: UpdateAsocAportesAsociadosDto,
+    @UploadedFile() file?: any,
   ): Promise<AsocAportesAsociados> {
+    if (file) {
+      const fechaAporte = updateAsocAportesAsociadosDto.fechaAporte;
+      const idAsociado = updateAsocAportesAsociadosDto.idAsociado;
+      const year = new Date(fechaAporte).getFullYear();
+      
+      // Guardar ruta relativa en la base de datos
+      updateAsocAportesAsociadosDto.comprobante = `${year}/${idAsociado}/${file.filename}`;
+    }
     return this.AsocAportesAsociadosService.update(id, updateAsocAportesAsociadosDto);
   }
 

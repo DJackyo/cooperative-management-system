@@ -11,6 +11,9 @@ import { PresAprobacionPrestamos } from 'src/entities/entities/PresAprobacionPre
 import { PresCuotas } from 'src/entities/entities/PresCuotas';
 import { AuthModule } from 'src/auth/auth.module';
 import { Asociados } from 'src/entities/entities/Asociados';
+import { PresCancelaciones } from 'src/entities/entities/PresCancelaciones';
+import { PresHistorialPrestamos } from 'src/entities/entities/PresHistorialPrestamos';
+import { PresPagos } from 'src/entities/entities/PresPagos';
 
 @Module({
   imports: [
@@ -21,6 +24,9 @@ import { Asociados } from 'src/entities/entities/Asociados';
       PresCuotas,
       EstadosAprobacion,
       Asociados,
+      PresCancelaciones,
+      PresHistorialPrestamos,
+      PresPagos,
     ]),
     AuthModule,
   ],

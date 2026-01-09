@@ -150,6 +150,7 @@ export class AsocAportesAsociadosService {
         'estado.estado'
       ])
       .addSelect('COALESCE(SUM(aporte.monto), 0)', 'totalAhorrado')
+      .addSelect('MAX(aporte.fechaAporte)', 'ultimaFechaAporte')
       .groupBy('asociado.id')
       .addGroupBy('estado.id')
       .addGroupBy('estado.estado')
@@ -162,6 +163,7 @@ export class AsocAportesAsociadosService {
         .join(' '),
       numeroDeIdentificacion: row.asociado_numero_de_identificacion || row.asociado_numeroDeIdentificacion,
       totalAhorrado: parseFloat(row.totalAhorrado) || 0,
+      ultimaFechaAporte: row.ultimaFechaAporte || null,
       idEstado: {
         estado: row.estado_estado
       }

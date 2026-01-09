@@ -6,7 +6,7 @@ import { Box, Typography } from "@mui/material";
 
 const UserManagementPage = () => {
   return (
-    <Box sx={{ padding: 4 }}>
+    <Box sx={{ padding: 0 }}>
       <Typography variant="h4" color="primary" gutterBottom>
         Gestión de Usuarios
       </Typography>

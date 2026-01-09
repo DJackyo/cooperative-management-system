@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Modal, Box, Button, Typography, Table, TableBody, TableCell, TableHead, TableRow, Grid } from "@mui/material";
+import { Modal, Box, Button, Typography, Table, TableBody, TableCell, TableHead, TableRow, Grid, CircularProgress, Divider, Paper } from "@mui/material";
 import { formatCurrency, formatDateToISO, numeroALetras } from "@/app/(DashboardLayout)/utilities/utils";
 import { logoBase64 } from "@/app/(DashboardLayout)/utilities/logoBase64";
 import { obtenerInformacionAportes } from "@/app/(DashboardLayout)/utilities/AportesUtils";
-import { IconPrinter } from "@tabler/icons-react";
+import { IconPrinter, IconFileTypePdf } from "@tabler/icons-react";
 
 interface ReceiptModalProps {
   open: boolean;
@@ -14,6 +14,7 @@ interface ReceiptModalProps {
 const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
   const [fechaAporte, setFechaAporte] = useState<string>("fechaAporte");
   const [anyoAporte, setAnyoAporte] = useState<number>(0);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   const selectedRow = data?.selectedRow;
   const savings = data?.savings;
@@ -57,12 +58,12 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
       @page {
         margin: 20mm; 
       }
-        body { font-family: Roboto, sans-serif; padding: 10px; }
+        body { font-size: 11px; font-family: Roboto, sans-serif; padding: 0.7rem; }
         .MuiTypography-h6.MuiTypography-alignCenter {
             margin: 0;
             font-weight: 600;
             font-size: 0.9rem;
-            line-height: 1.2rem;              
+            line-height: 1.1rem;              
             text-align: center;
             margin-bottom: 0.35em;
             margin-bottom: 1rem;
@@ -82,7 +83,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
             font-size: 0.7rem;
             letter-spacing: 0rem;
             font-weight: 500;
-            line-height: 1.5rem;
+            line-height: 1.2rem;
             display: table-cell;
             vertical-align: inherit;
             color: #2A3547;
@@ -147,6 +148,64 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
     }
   };
 
+  const handleDownloadPDF = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      // Cargar html2pdf dinámicamente
+      const html2pdf = (await import("html2pdf.js")).default;
+
+      const element = document.getElementById("modal-content");
+      if (!element) {
+        alert("No se pudo encontrar el contenido del recibo");
+        return;
+      }
+
+      const opt = {
+        margin: 10,
+        filename: `recibo_aporte_${selectedRow.asociado?.nombres}_${formatDateToISO(selectedRow.fechaCreacion)}.pdf`,
+        image: { type: "jpeg" as const, quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm" as const, format: "letter" as const, orientation: "portrait" as const },
+      };
+
+      // Crear una copia del elemento para agregar el encabezado y estilos
+      const container = document.createElement("div");
+      container.innerHTML = `
+        <style>
+          body { font-family: Roboto, sans-serif; font-size: 13px; }
+          .MuiTypography-h6 { font-size: 12px; font-weight: 600; text-align: center; margin-bottom: 8px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 8px; font-size: 11px; }
+          td, th { border: 1px solid #CCC; padding: 4px; vertical-align: middle; }
+          th { font-weight: 600; background-color: #f5f5f5; }
+          strong { font-weight: 600; }
+        </style>
+        <div style="display: flex; align-items: center; justify-content: flex-start; margin-bottom: 11px;">
+          <div style="width: 80px; height: 80px; margin-right: 25px; background-image: ${logoBase64}; background-size: cover;"></div>
+          <div style="font-size: 13px; font-weight: bold; text-align: center; padding: 0 11px;">
+            COOPERATIVA MULTIACTIVA DE PRODUCCIÓN Y PRESTACIÓN DE SERVICIOS<br />
+            INTEGRACIÓN SIGLO XXI<br />
+            Nit. 08301055337
+          </div>
+        </div>
+        ${element.innerHTML}
+      `;
+
+      // Generar el PDF y abrirlo en una nueva pestaña
+      const pdf = await html2pdf().set(opt).from(container).outputPdf("blob");
+      const blobUrl = URL.createObjectURL(pdf);
+      const newWindow = window.open(blobUrl, "_blank");
+
+      if (!newWindow) {
+        alert("Por favor, permite ventanas emergentes para ver el PDF");
+      }
+    } catch (error) {
+      console.error("Error al generar PDF:", error);
+      alert("Error al generar el PDF. Por favor, intente con el botón Imprimir.");
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
+
   return (
     <Modal open={open} onClose={onClose}>
       <Box
@@ -155,186 +214,222 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          backgroundColor: "white",
-          padding: 3,
-          boxShadow: 24,
           maxWidth: 1000,
           width: "100%",
+          maxHeight: "90vh",
+          overflow: "auto",
         }}
       >
-        <div id="modal-content">
-          <Typography variant="h6" gutterBottom align="center" sx={{ marginBottom: 2 }}>
-            RECIBO MENSUAL DE APORTES
-          </Typography>
-          <Grid container spacing={3}>
-            {/* Primera columna */}
-            <Grid size={{ xs: 12, md: 12 }}>
-              <Table
-                size="small"
-                sx={{
-                  "&:last-child td, &:last-child th": {
-                    border: 1,
-                    borderColor: "#CCC",
-                  },
-                }}
-              >
-                <TableHead>
-                  <TableRow>
-                    <TableCell>
-                      <strong>Código</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>Nº DE IDENTIFICACIÓN</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>NOMBRES Y APELLIDOS</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>TIPO DE APORTE</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>MONTO</strong>
-                    </TableCell>
-                    <TableCell>
-                      <strong>FECHA DE PAGO</strong>
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  <TableRow>
-                    <TableCell>{selectedRow.asociado?.id || "#N/A"}</TableCell>
-                    <TableCell>{selectedRow.asociado?.numeroDeIdentificacion || "#N/A"}</TableCell>
-                    <TableCell>{selectedRow.asociado?.nombres || "#N/A"}</TableCell>
-                    <TableCell>{selectedRow.tipoAporte || "#N/A"}</TableCell>
-                    <TableCell>${formatCurrency(selectedRow.monto)}</TableCell>
-                    <TableCell>{formatDateToISO(selectedRow.fechaCreacion)}</TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell colSpan={2}>
-                      <strong>APORTE CORRESPONDIENTE A: </strong>
-                    </TableCell>
-                    <TableCell colSpan={4}>{fechaAporte}</TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+        <Paper elevation={8} sx={{ padding: 4 }}>
+          <div id="modal-content">
+            {/* TÍTULO */}
+            <Typography
+              variant="h6"
+              align="center"
+              sx={{
+                mb: 2,
+                fontWeight: 600,
+                letterSpacing: 1,
+              }}
+            >
+              RECIBO MENSUAL DE APORTES
+            </Typography>
+
+            {/* DATOS DEL ASOCIADO */}
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              {/* DATOS DEL ASOCIADO */}
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Table
+                  size="small"
+                  sx={{
+                    "& td": {
+                      border: "1px solid #E0E0E0",
+                      fontSize: "11px",
+                      py: 0.8,
+                    },
+                    "& th": {
+                      border: "1px solid #E0E0E0",
+                    },
+                    "& td:first-of-type": {
+                      backgroundColor: "#F7F7F7",
+                      fontWeight: 600,
+                      width: "45%",
+                    },
+                  }}
+                >
+                  <TableHead>
+                    <TableRow>
+                      <TableCell colSpan={2} align="center" sx={{ fontWeight: 600, backgroundColor: '#f5f5f5' }}>
+                        DATOS DEL ASOCIADO
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>Código</TableCell>
+                      <TableCell>{selectedRow.asociado?.id}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>No. Identificación</TableCell>
+                      <TableCell>{selectedRow.asociado?.numeroDeIdentificacion}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Nombre</TableCell>
+                      <TableCell>{selectedRow.asociado?.nombres}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Grid>
+
+              {/* DATOS DEL APORTE */}
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Table
+                  size="small"
+                  sx={{
+                    "& td": {
+                      border: "1px solid #E0E0E0",
+                      fontSize: "11px",
+                      py: 0.8,
+                    },
+                    "& th": {
+                      border: "1px solid #E0E0E0",
+                    },
+                    "& td:first-of-type": {
+                      backgroundColor: "#F7F7F7",
+                      fontWeight: 600,
+                      width: "45%",
+                    },
+                  }}
+                >
+                  <TableHead>
+                    <TableRow>
+                      <TableCell colSpan={2} align="center" sx={{ fontWeight: 600, backgroundColor: '#f5f5f5' }}>
+                        DATOS DEL APORTE
+                      </TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>Tipo de aporte</TableCell>
+                      <TableCell>{selectedRow.tipoAporte}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Periodo</TableCell>
+                      <TableCell>{fechaAporte}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Fecha de pago</TableCell>
+                      <TableCell>{formatDateToISO(selectedRow.fechaCreacion)}</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>Monto</TableCell>
+                      <TableCell>${formatCurrency(selectedRow.monto)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Grid>
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Table
-                size="small"
-                sx={{
-                  "&:last-child td, &:last-child th": {
-                    border: 1,
-                    borderColor: "#CCC",
-                    paddingLeft: 0.5,
-                    paddingRight: 0.5,
-                  },
-                }}
-              >
-                <TableHead>
-                  <TableRow>
-                    <TableCell align="center" colSpan={4}>
-                      <strong>ESTADO DE APORTES</strong>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell align="center">
-                      <strong>
-                        A DICIEMBRE <br></br>DE 2021
-                      </strong>
-                    </TableCell>
-                    <TableCell align="center">
-                      <strong>
-                        APORTE <br></br>
-                        {fechaAporte}
-                      </strong>
-                    </TableCell>
-                    <TableCell align="center">
-                      <strong>TOTAL {anyoAporte}</strong>
-                    </TableCell>
-                    <TableCell align="center">
-                      <strong>TOTAL APORTES</strong>
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  <TableRow>
-                    <TableCell align="center">
-                      <Typography variant="body2" component="strong">
-                        ${formatCurrency(estadoAportes.montoDiciembre2021)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Typography variant="body2" component="strong">
-                        ${formatCurrency(selectedRow.monto)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Typography variant="body2" component="strong">
-                        ${formatCurrency(estadoAportes.sumatoriaAportesAnoCreacion)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <Typography variant="body2" component="strong">
-                        ${formatCurrency(estadoAportes.sumatoriaAportesHastaFechaCreacion)}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
+
+            <Grid container spacing={2} sx={{ mb: 2 }}>
+              {/* ESTADO DE APORTES */}
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Table
+                  size="small"
+                  sx={{
+                    "& th, & td": {
+                      border: "1px solid #E0E0E0",
+                      fontSize: "11px",
+                      py: 0.8,
+                      textAlign: "center",
+                    },
+                    "& th": {
+                      backgroundColor: "#F5F5F5",
+                      fontWeight: 600,
+                    },
+                  }}
+                >
+                  <TableHead>
+                    <TableRow>
+                      <TableCell colSpan={4}>ESTADO DE APORTES</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>A dic. 2021</TableCell>
+                      <TableCell>{fechaAporte}</TableCell>
+                      <TableCell>Total {anyoAporte}</TableCell>
+                      <TableCell>Total histórico</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell>${formatCurrency(estadoAportes.montoDiciembre2021)}</TableCell>
+                      <TableCell>${formatCurrency(selectedRow.monto)}</TableCell>
+                      <TableCell>${formatCurrency(estadoAportes.sumatoriaAportesAnoCreacion)}</TableCell>
+                      <TableCell>${formatCurrency(estadoAportes.sumatoriaAportesHastaFechaCreacion)}</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+              </Grid>
+
+              {/* VALOR DEL APORTE */}
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    height: "100%",
+                    borderColor: "#E0E0E0",
+                    p: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "center",
+                    textAlign: "center",
+                  }}
+                >
+                  <Typography variant="subtitle2" sx={{ fontSize: "11px", letterSpacing: 1, mb: 1 }}>
+                    VALOR DEL APORTE {fechaAporte}
+                  </Typography>
+
+                  <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>
+                    ${formatCurrency(selectedRow.monto)}
+                  </Typography>
+
+                  <Typography variant="body2" sx={{ fontSize: "10px" }}>
+                    ({numeroALetras(selectedRow.monto, true)})
+                  </Typography>
+                </Paper>
+              </Grid>
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}>
-              <Table
-                size="small"
-                sx={{
-                  "&:last-child td, &:last-child th": {
-                    border: 1,
-                    borderColor: "#CCC",
-                    paddingLeft: 0.5,
-                    paddingRight: 0.5,
-                  },
-                }}
+          </div>
+          <Divider sx={{ my: 3 }} />
+
+          {/* Botones de acción */}
+          <Box display="flex" justifyContent="space-between" alignItems="center" gap={2} flexWrap="wrap">
+            <Box display="flex" gap={2} flexWrap="wrap">
+              {/* <Button 
+              color="secondary" 
+              variant="contained" 
+              onClick={handlePrint} 
+              startIcon={<IconPrinter />}
+              disabled={isGeneratingPDF}
+              size="large"
+            >
+              Imprimir
+            </Button> */}
+              <Button
+                color="error"
+                variant="contained"
+                onClick={handleDownloadPDF}
+                startIcon={isGeneratingPDF ? <CircularProgress size={20} color="inherit" /> : <IconFileTypePdf />}
+                disabled={isGeneratingPDF}
+                size="large"
               >
-                <TableHead>
-                  <TableRow>
-                    <TableCell align="center" colSpan={4}>
-                      <strong>INFORMACIÓN DEL APORTE</strong>
-                    </TableCell>
-                  </TableRow>
-                  <TableRow>
-                    <TableCell align="center">
-                      <strong>
-                        TOTAL RECIBIDO <br></br>
-                        {fechaAporte}
-                      </strong>
-                    </TableCell>
-                    <TableCell align="center">
-                      <strong>${formatCurrency(selectedRow.monto)}</strong>
-                    </TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  <TableRow>
-                    <TableCell align="center">
-                      <strong>TOTAL RECIBIDO (LETRAS):</strong>{" "}
-                    </TableCell>
-                    <TableCell align="center">
-                      <strong>{numeroALetras(selectedRow.monto, true)}</strong>
-                    </TableCell>
-                  </TableRow>
-                </TableBody>
-              </Table>
-            </Grid>
-          </Grid>
-        </div>
-        {/* Botones de acción */}
-        <Box display="flex" justifyContent="space-between" sx={{ mt: 3 }}>
-          <Button color="secondary" variant="contained" onClick={handlePrint} sx={{ mt: 2 }} startIcon={<IconPrinter />}>
-            Imprimir
-          </Button>
-          <Button onClick={onClose} variant="contained" color="primary" sx={{ marginTop: 2 }}>
-            Cerrar
-          </Button>
-        </Box>
+                {isGeneratingPDF ? "Generando PDF..." : "Ver PDF"}
+              </Button>
+            </Box>
+            <Button onClick={onClose} variant="outlined" color="primary" disabled={isGeneratingPDF} size="large">
+              Cerrar
+            </Button>
+          </Box>
+        </Paper>
       </Box>
     </Modal>
   );
