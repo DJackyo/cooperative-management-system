@@ -3,6 +3,7 @@ import {
   IconAdjustmentsDollar,
   IconListDetails,
   IconUserCog,
+  IconDatabase,
 } from "@tabler/icons-react";
 import { uniqueId } from "lodash";
 import {
@@ -70,6 +71,13 @@ const Menuitems = [
     title: "Asociados",
     icon: IconUserCog,
     href: "/modules/users",
+    roles: roleSuperAdmin,
+  },
+  {
+    id: uniqueId(),
+    title: "Backups",
+    icon: IconDatabase,
+    href: "/modules/admin/backups",
     roles: roleSuperAdmin,
   },
   // {
