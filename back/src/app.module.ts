@@ -34,6 +34,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { PagosModule } from './modules/pagos/pagos.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
+import { BackupModule } from './modules/backup/backup.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     PagosModule,
     DashboardModule,
     SchedulerModule,
+    BackupModule,
   ],
   controllers: [AppController],
   providers: [AppService],
