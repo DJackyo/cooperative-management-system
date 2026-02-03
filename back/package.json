@@ -86,4 +86,10 @@
         "coverageDirectory": "../coverage",
         "testEnvironment": "node"
     }
+    ,
+    "pnpm": {
+        "overrides": {
+            "@isaacs/brace-expansion": "^5.0.1"
+        }
+    }
 }
