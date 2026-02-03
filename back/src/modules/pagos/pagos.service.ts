@@ -60,6 +60,12 @@ export class PagosService {
       if (!metodoPago) throw new Error('Método de pago no encontrado');
       if (!prestamo) throw new Error('Préstamo no encontrado');
 
+      console.log('🔍 Datos que se van a guardar:', {
+        comprobante: createPagoDto.comprobante,
+        metodoPagoId: metodoPago.id,
+        idCuota: cuota.id,
+      });
+
       // Crear la entidad con relaciones
       const nuevoPago = manager.create(PresPagos, {
         idCuota: cuota,
@@ -79,8 +85,12 @@ export class PagosService {
         fechaVencimiento: createPagoDto.fechaVencimiento,
       });
 
+      console.log('🔍 Entidad creada:', nuevoPago);
+
       // Guardar el pago
       const pagoGuardado = await manager.save(PresPagos, nuevoPago);
+
+      console.log('✅ Pago guardado:', pagoGuardado);
 
       // Actualizar el estado de la cuota a PAGADO
       await manager.update(PresCuotas, cuota.id, {
