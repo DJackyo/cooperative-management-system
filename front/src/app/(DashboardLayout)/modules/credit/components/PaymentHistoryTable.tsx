@@ -1,3 +1,4 @@
+"use client";
 import {
   Box,
   Button,
@@ -21,6 +22,7 @@ import {
   Typography,
   Grid,
 } from "@mui/material";
+import React from "react";
 import { useState } from "react";
 import { CheckCircle, Warning, AccessTime, Payment, AttachFile, Visibility, KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
 import {
@@ -42,6 +44,7 @@ interface PaymentHistoryProps {
   presCuotas: Cuota[];
   plazoMeses: number;
   creditId: number;
+  idAsociado: number;
   onPaymentSuccess?: () => void;
 }
 
@@ -49,6 +52,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
   presCuotas,
   plazoMeses,
   creditId,
+  idAsociado,
   onPaymentSuccess,
 }) => {
   const [open, setOpen] = useState(false);
@@ -74,8 +78,14 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
     onPaymentSuccess?.();
   };
 
-  const handleOpenComprobante = (filename: string) => {
-    setSelectedComprobante(filename);
+  const handleOpenComprobante = (filename: unknown) => {
+    const filenameStr = typeof filename === 'string' ? filename : '';
+    const isValid = !!filenameStr && /\.(pdf|png|jpg|jpeg)$/i.test(filenameStr);
+    if (!isValid) {
+      console.warn('Comprobante inválido o no disponible:', filename);
+      return;
+    }
+    setSelectedComprobante(filenameStr);
     setComprobanteDialogOpen(true);
   };
 
@@ -84,8 +94,20 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
     setSelectedComprobante(null);
   };
 
-  const getComprobanteUrl = (filename: string) => {
-    return `http://localhost:3001/uploads/comprobantes-pagos/${filename}`;
+  const getComprobanteUrl = (value: string) => {
+    const base = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001').replace(/\/$/, '');
+    if (!value) return '';
+    const parts = value.split('/');
+    if (parts.length === 3) {
+      let [loan, year, name] = parts;
+      // Normalize to loan-first; if we accidentally receive year-first, reorder
+      if (/^\d{4}$/.test(loan) && /^\d+$/.test(year)) {
+        [loan, year] = [year, loan];
+      }
+      return `${base}/pagos/comprobante/${encodeURIComponent(loan)}/${encodeURIComponent(year)}/${encodeURIComponent(name)}`;
+    }
+    // Legacy flat filename
+    return `${base}/pagos/comprobante/${encodeURIComponent(value)}`;
   };
 
   const toggleRowExpansion = (rowId: number) => {
@@ -103,7 +125,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
   let sortedCuotas = [...presCuotas].sort(
     (a: any, b: any) => a.numeroCuota - b.numeroCuota
   );
-  console.log("sortedCuotas->", sortedCuotas);
+  // console.debug("sortedCuotas->", sortedCuotas);
 
   sortedCuotas = sortedCuotas.map((cuota) => ({
     ...cuota,
@@ -280,18 +302,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       );
     },
     estado: (value) => getEstadoChip(value),
-    fechaPago: (value, row) => {
-      const fechaPago = row?.presPagos?.[0]?.diaDePago;
-      return fechaPago ? (
-        <Typography variant="body2" color="success.main" fontWeight="medium">
-          {formatNameDate(fechaPago)}
-        </Typography>
-      ) : (
-        <Typography variant="body2" color="text.secondary" fontStyle="italic">
-          Pendiente
-        </Typography>
-      );
-    },
+    // fechaPago handled below (single definition)
     metodoPago: (value, row) => {
       const metodoPago = row?.presPagos?.[0]?.metodoPago?.nombre;
       return metodoPago ? (
@@ -308,7 +319,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       );
     },
     fechaPago: (value, row) => {
-      const fechaPago = row?.presPagos?.[0]?.diaDePago;
+      const fechaPago = (row as any)?.presPagos?.[0]?.diaDePago;
       return fechaPago ? (
         <Box display="flex" alignItems="center" gap={0.5}>
           <CheckCircle sx={{ fontSize: 18, color: 'success.main' }} />
@@ -324,7 +335,8 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       const currentIndex = sortedCuotas.findIndex((c) => c.id === row.id);
       const previousCuota = sortedCuotas[currentIndex - 1];
       const isEnabled = !previousCuota || previousCuota.estado === "PAGADO";
-      const comprobante = row?.presPagos?.[0]?.comprobante;
+      const comprobante = (row as any)?.presPagos?.[0]?.comprobante;
+      const hasValidComprobante = typeof comprobante === 'string' && /\.(pdf|png|jpg|jpeg)$/i.test(comprobante);
 
       return (
         <Box display="flex" gap={1} alignItems="center">
@@ -339,7 +351,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
             >
               Registrar
             </Button>
-          ) : comprobante ? (
+          ) : hasValidComprobante ? (
             <Tooltip title="Ver comprobante">
               <IconButton
                 color="primary"
@@ -410,10 +422,9 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
               </TableRow>
             </TableHead>
             <TableBody>
-              {paginatedRows.map((row) => (
-                <>
+              {paginatedRows.map((row: any) => (
+                <React.Fragment key={row.id}>
                   <TableRow
-                    key={row.id}
                     sx={{
                       ...getRowStyle(row),
                       '& > *': { borderBottom: expandedRows.has(row.id) ? 'none' : undefined }
@@ -421,9 +432,9 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
                   >
                     {columns.map((column) => (
                       <TableCell key={column.field}>
-                        {formatRules[column.field]
-                          ? formatRules[column.field](row[column.field], row)
-                          : row[column.field]}
+                        {(formatRules as any)[column.field]
+                          ? (formatRules as any)[column.field]((row as any)[column.field], row as any)
+                          : (row as any)[column.field]}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -432,7 +443,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
                       <TableCell colSpan={columns.length} sx={{ py: 3, px: 0 }}>
                         <Box sx={{ width: '100%', px: 3 }}>
                           <Grid container spacing={2} sx={{ width: '100%' }}>
-                            <Grid item xs={12} sm={6} md={4}>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                               <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #1976d2' }}>
                                 <Typography variant="caption" color="text.secondary" fontWeight="bold">
                                   Abono Capital
@@ -442,7 +453,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
                                 </Typography>
                               </Paper>
                             </Grid>
-                            <Grid item xs={12} sm={6} md={4}>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                               <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #1976d2' }}>
                                 <Typography variant="caption" color="text.secondary" fontWeight="bold">
                                   Intereses
@@ -452,37 +463,37 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
                                 </Typography>
                               </Paper>
                             </Grid>
-                            <Grid item xs={12} sm={6} md={4}>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                               <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #4caf50' }}>
                                 <Typography variant="caption" color="text.secondary" fontWeight="bold">
                                   Protección Cartera
                                 </Typography>
                                 <Typography variant="h6" fontWeight="medium" color="success.main" sx={{ mt: 0.5 }}>
-                                  {row.proteccionCartera ? "$" + formatCurrency(formatNumber(redondearHaciaArriba(row.proteccionCartera))) : "$0.00"}
+                                  {(row as any).proteccionCartera ? "$" + formatCurrency(formatNumber(redondearHaciaArriba((row as any).proteccionCartera))) : "$0.00"}
                                 </Typography>
                               </Paper>
                             </Grid>
-                            <Grid item xs={12} sm={6} md={4}>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                               <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #f44336' }}>
                                 <Typography variant="caption" color="text.secondary" fontWeight="bold">
                                   Días en Mora
                                 </Typography>
                                 <Box sx={{ mt: 0.5 }}>
-                                  {formatRules.diasEnMora(row.diasEnMora, row)}
+                                  {(formatRules as any).diasEnMora((row as any).diasEnMora, row as any)}
                                 </Box>
                               </Paper>
                             </Grid>
-                            <Grid item xs={12} sm={6} md={4}>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                               <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #d32f2f' }}>
                                 <Typography variant="caption" color="text.secondary" fontWeight="bold">
                                   Mora
                                 </Typography>
                                 <Box sx={{ mt: 0.5 }}>
-                                  {formatRules.mora(row.mora, row)}
+                                  {(formatRules as any).mora((row as any).mora, row as any)}
                                 </Box>
                               </Paper>
                             </Grid>
-                            <Grid item xs={12} sm={6} md={4}>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                               <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #ff9800' }}>
                                 <Typography variant="caption" color="text.secondary" fontWeight="bold">
                                   Método de Pago
@@ -492,8 +503,8 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
                                 </Box>
                               </Paper>
                             </Grid>
-                            {row?.presPagos?.[0]?.comprobante && (
-                              <Grid item xs={12} sm={6} md={4}>
+                            {(row as any)?.presPagos?.[0]?.comprobante && typeof (row as any).presPagos[0].comprobante === 'string' && /\.(pdf|png|jpg|jpeg)$/i.test((row as any).presPagos[0].comprobante) && (
+                              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
                                 <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #9c27b0' }}>
                                   <Typography variant="caption" color="text.secondary" fontWeight="bold">
                                     Comprobante
@@ -505,7 +516,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
                                         color="primary"
                                         size="small"
                                         startIcon={<AttachFile fontSize="small" />}
-                                        onClick={() => handleOpenComprobante(row.presPagos[0].comprobante)}
+                                        onClick={() => handleOpenComprobante((row as any).presPagos[0].comprobante)}
                                         sx={{ textTransform: 'none' }}
                                       >
                                         Ver archivo
@@ -520,7 +531,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
                       </TableCell>
                     </TableRow>
                   )}
-                </>
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>
@@ -556,7 +567,8 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
         <DialogContent sx={{ mt: 2 }}>
           <PresPagosForm 
             pago={selectedRow} 
-            creditId={creditId} 
+            creditId={creditId}
+            idAsociado={idAsociado}
             onSuccess={handlePaymentSuccess}
           />
         </DialogContent>
@@ -581,7 +593,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
         <DialogContent sx={{ mt: 2, textAlign: 'center' }}>
           {selectedComprobante && (
             <Box>
-              {selectedComprobante.toLowerCase().endsWith('.pdf') ? (
+              {selectedComprobante.toLowerCase().endsWith('.pdf') ? (                
                 <iframe
                   src={getComprobanteUrl(selectedComprobante)}
                   width="100%"

@@ -3,7 +3,7 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
 
-const apiUrl = process.env.REACT_APP_API_URL || "http://localhost:5000/";
+const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").replace(/\/$/, "");
 
 // Comprobar si la variable se carga correctamente
 if (!apiUrl) {
@@ -12,9 +12,6 @@ if (!apiUrl) {
 
 const axiosClient = axios.create({
   baseURL: apiUrl,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 // Interceptor para agregar el token de autenticación a cada solicitud
@@ -58,9 +55,6 @@ export const setupAxiosInterceptors = (router: any) => {
 // instancia separada sin interceptores
 const axiosNoAuth = axios.create({
   baseURL: apiUrl,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 export { axiosClient, axiosNoAuth };

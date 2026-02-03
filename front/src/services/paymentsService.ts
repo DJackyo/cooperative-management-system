@@ -38,9 +38,12 @@ export const pagosService = {
       throw new Error("Error", error!);
     }
   },
-  async create(creditId: number, pago: Cuota) {
+  async create(creditId: number, payload: FormData) {
     try {
-      const response = await axiosClient.post(`${baseURL}/createByCredit/${creditId}`, pago);
+      const response = await axiosClient.post(
+        `${baseURL}/createByCredit/${creditId}`,
+        payload
+      );
       if (response?.data) {
         return response.data?.data;
       }

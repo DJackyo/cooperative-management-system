@@ -151,7 +151,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
   }
 
   return (
-    <Box sx={{ position: 'relative', width: '100%', overflowX: 'hidden', maxWidth: isMobile ? '99%' : 'calc(99% - 40px)', padding: isMobile ? 2 : 3 }}>
+    <Box sx={{ position: 'relative', width: '100%', overflowX: 'hidden' }}>
       {refreshing && (
         <LinearProgress sx={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 1000 }} />
       )}
@@ -378,7 +378,8 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
                     <PaymentHistoryTable 
                       presCuotas={credit.presCuotas ? credit.presCuotas : []} 
                       plazoMeses={credit.plazoMeses ? credit.plazoMeses : 10} 
-                      creditId={creditId} 
+                      creditId={creditId}
+                      idAsociado={userInfo.id}
                       onPaymentSuccess={loadCreditData} 
                     />
                   ) : (

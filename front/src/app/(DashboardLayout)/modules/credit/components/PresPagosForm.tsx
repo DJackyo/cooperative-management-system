@@ -48,10 +48,11 @@ type PresPagosFormData = z.infer<typeof presPagosSchema>;
 interface PresPagosFormProps {
   pago?: PresPagosFormData;
   creditId: number;
+  idAsociado: number;
   onSuccess?: () => void;
 }
 
-export default function PresPagosForm({ pago, creditId, onSuccess }: PresPagosFormProps) {
+export default function PresPagosForm({ pago, creditId, idAsociado, onSuccess }: PresPagosFormProps) {
   const [metodoSeleccionado, setMetodoSeleccionado] = useState<number | "">("");
   const [loading, setLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -86,7 +87,7 @@ export default function PresPagosForm({ pago, creditId, onSuccess }: PresPagosFo
   const mora = watch("mora", 0);
   const abonoExtra = watch("abonoExtra", 0) || 0;
   const totalPagar = watch("totalPagar") || 0;
-  const diasEnMoraValue = watch("diasEnMora", 0);
+  const diasEnMoraValue = watch("diasEnMora", 0) ?? 0;
 
   // 📌 Cargar valores de `pago` en el formulario cuando cambie
   useEffect(() => {
@@ -125,8 +126,8 @@ export default function PresPagosForm({ pago, creditId, onSuccess }: PresPagosFo
 
   // 📌 Recalcular mora cuando cambien los días en mora manualmente
   useEffect(() => {
-    if (editarDiasMora && diasEnMoraValue >= 0 && monto > 0) {
-      const moraCalculada = calcularMora(monto, diasEnMoraValue);
+    if (editarDiasMora && Number(diasEnMoraValue) >= 0 && Number(monto) > 0) {
+      const moraCalculada = calcularMora(Number(monto), Number(diasEnMoraValue));
       setValue("mora", moraCalculada);
     }
   }, [diasEnMoraValue, monto, editarDiasMora, setValue]);
@@ -141,7 +142,7 @@ export default function PresPagosForm({ pago, creditId, onSuccess }: PresPagosFo
 
   // 📌 Función de envío de datos
   const onSubmit = async (data: any) => {
-    if (!metodoSeleccionado || metodoSeleccionado === "") {
+    if (metodoSeleccionado === "" || typeof metodoSeleccionado !== "number") {
       showNotification("Debe seleccionar un método de pago", "warning");
       return;
     }
@@ -165,13 +166,17 @@ export default function PresPagosForm({ pago, creditId, onSuccess }: PresPagosFo
       // Crear FormData si hay comprobante
       const formData = new FormData();
 
-      // Agregar el comprobante si existe
-      if (comprobante) {
+      // Agregar el comprobante solo si existe y es un archivo válido
+      if (comprobante && comprobante instanceof File) {
         formData.append("comprobante", comprobante);
+        console.log("📎 Archivo agregado:", comprobante.name);
+      } else {
+        console.log("⚠️ No hay archivo para adjuntar");
       }
 
       // Agregar los demás datos
       formData.append("idCuota", String(pago?.id || ""));
+      formData.append("idAsociado", String(idAsociado));
       formData.append("metodoPagoId", String(metodoSeleccionado));
       formData.append("diaDePago", pendingData.diaDePago);
       formData.append("diasEnMora", String(pendingData.diasEnMora || 0));
@@ -183,9 +188,10 @@ export default function PresPagosForm({ pago, creditId, onSuccess }: PresPagosFo
       formData.append("proteccionCartera", String(pendingData.proteccionCartera || 0));
       formData.append("monto", String(pago?.monto || 0));
       formData.append("numCuota", String(pago?.numeroCuota || 0));
-      formData.append("fechaVencimiento", pago?.fechaVencimiento || "");
+      formData.append("fechaVencimiento", String(pago?.fechaVencimiento || ""));
 
-      console.log("Datos enviados:", Object.fromEntries(formData));
+      // console.debug("FormData prepared", Array.from(formData.entries()));
+      
       const pagoRequest = await pagosService.create(creditId, formData);
       console.log("Pago enviado:", pagoRequest);
 
@@ -251,7 +257,7 @@ export default function PresPagosForm({ pago, creditId, onSuccess }: PresPagosFo
         <Grid size={{ xs: 6 }}>
           <Alert severity="info" icon={<Info />} sx={{ mb: 3 }}>
             <strong>Nota:</strong> El "Valor de la cuota" es informativo. El <strong>Total a Pagar</strong> se calcula sumando: <strong>Abono Capital + Intereses</strong>
-            {incluirMora && mora > 0 && <strong> + Mora</strong>}
+            {incluirMora && (Number(mora) || 0) > 0 && <strong> + Mora</strong>}
             {incluirProteccion && <strong> + Protección de Cartera</strong>}
             <strong> + Abono Extra</strong>
           </Alert>
@@ -312,7 +318,7 @@ export default function PresPagosForm({ pago, creditId, onSuccess }: PresPagosFo
               sx={{ backgroundColor: editarDiasMora ? "#fff3e0" : "#f5f5f5" }}
               InputProps={{
                 sx: { textAlign: "right" },
-                inputProps: { style: { textAlign: "right", min: 0 } },
+                inputProps: { style: { textAlign: "right" } },
               }}
             />
             <FormControlLabel
@@ -399,13 +405,13 @@ export default function PresPagosForm({ pago, creditId, onSuccess }: PresPagosFo
               type="number"
               disabled
               value={watch("mora") || 0}
-              sx={{ backgroundColor: incluirMora ? (mora > 0 ? "#ffebee" : "#e8f5e9") : "#f5f5f5" }}
+              sx={{ backgroundColor: incluirMora ? ((Number(mora) || 0) > 0 ? "#ffebee" : "#e8f5e9") : "#f5f5f5" }}
               InputProps={{
                 startAdornment: <InputAdornment position="start">$</InputAdornment>,
                 sx: {
                   textAlign: "right",
-                  color: mora > 0 && incluirMora ? "error.main" : "inherit",
-                  fontWeight: mora > 0 && incluirMora ? "bold" : "normal",
+                  color: (Number(mora) || 0) > 0 && incluirMora ? "error.main" : "inherit",
+                  fontWeight: (Number(mora) || 0) > 0 && incluirMora ? "bold" : "normal",
                 },
                 inputProps: { style: { textAlign: "right" } },
               }}
