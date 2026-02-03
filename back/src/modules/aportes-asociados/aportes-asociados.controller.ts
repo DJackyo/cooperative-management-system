@@ -22,6 +22,7 @@ import { CreateAsocAportesAsociadosDto } from './dto/create-aportes-asociado.dto
 import { UpdateAsocAportesAsociadosDto } from './dto/update-aportes-asociado.dto';
 import { AsocAportesAsociados } from '../../entities/entities/AsocAportesAsociados';
 
+const PATH_AHORROS = join(process.cwd(), 'uploads', 'comprobantes', 'ahorros');
 @Controller('aportes-asociados')
 export class AsocAportesAsociadosController {
   constructor(
@@ -40,8 +41,8 @@ export class AsocAportesAsociadosController {
           // Obtener año de la fecha de aporte
           const year = new Date(fechaAporte).getFullYear();
           
-          // Crear estructura: uploads/comprobantes/año/idAsociado
-          const uploadPath = join('./uploads/comprobantes', year.toString(), idAsociado.toString());
+          // Crear estructura: uploads/comprobantes/ahorros/año/idAsociado
+          const uploadPath = join(PATH_AHORROS, year.toString(), idAsociado.toString());
           
           // Crear directorios si no existen
           if (!existsSync(uploadPath)) {
@@ -111,8 +112,8 @@ export class AsocAportesAsociadosController {
           // Obtener año de la fecha de aporte
           const year = new Date(fechaAporte).getFullYear();
           
-          // Crear estructura: uploads/comprobantes/año/idAsociado
-          const uploadPath = join('./uploads/comprobantes', year.toString(), idAsociado.toString());
+          // Crear estructura: uploads/comprobantes/ahorros/año/idAsociado
+          const uploadPath = join(PATH_AHORROS, year.toString(), idAsociado.toString());
           
           // Crear directorios si no existen
           if (!existsSync(uploadPath)) {
@@ -179,7 +180,7 @@ export class AsocAportesAsociadosController {
     // Log básico para depuración
     console.log('[serveComprobante] requested:', { filepath, originalUrl: req.originalUrl, params: req.params });
 
-    const fullPath = join(process.cwd(), 'uploads', 'comprobantes', filepath);
+    const fullPath = join(PATH_AHORROS, filepath);
 
     // Verificar que el archivo exista antes de intentar enviarlo
     if (!existsSync(fullPath)) {
