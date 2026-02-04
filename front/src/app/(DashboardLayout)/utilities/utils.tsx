@@ -231,6 +231,7 @@ export const getEstadoChip = (estado: string) => {
     RECHAZADO: { label: "Rechazado", color: "error" },
     PENDIENTE: { label: "Pendiente", color: "warning" },
     PAGADO: { label: "Pagado", color: "success" },
+    CANCELADO: { label: "Cancelado", color: "info" },
   };
 
   return (
