@@ -287,6 +287,9 @@ export class PagosService {
       // Calcular intereses sobre el saldo actual
       const nuevosIntereses = saldoCapitalActual * tasa;
       
+      // Calcular protección de cartera sobre el saldo actual
+      const nuevaProteccionCartera = saldoCapitalTmp * porcentajeProteccionCartera;
+      
       // Calcular abono a capital: cuota - intereses
       let nuevoAbonoCapital = cuotaMensualOriginal - nuevosIntereses;
       
@@ -294,12 +297,11 @@ export class PagosService {
       let montoFinal = cuotaMensualOriginal;
       if (nuevoAbonoCapital >= saldoCapitalActual) {
         nuevoAbonoCapital = saldoCapitalActual;
-        montoFinal = nuevoAbonoCapital + nuevosIntereses; // Última cuota ajustada
+        // 🔥 IMPORTANTE: Última cuota = abono capital + intereses + protección de cartera
+        montoFinal = nuevoAbonoCapital + nuevosIntereses + nuevaProteccionCartera;
         ultimaCuotaEncontrada = true; // Marcar que esta es la última cuota
         console.log(`🎯 Cuota ${cuota.numeroCuota} será la ÚLTIMA (cuota ajustada: $${Math.round(montoFinal * 100) / 100})`);
       }
-      
-      const nuevaProteccionCartera = saldoCapitalTmp * porcentajeProteccionCartera;
 
       // 🔥 Redondear a 2 decimales para evitar problemas de precisión con REAL/FLOAT
       const montoRedondeado = Math.round(montoFinal * 100) / 100;
