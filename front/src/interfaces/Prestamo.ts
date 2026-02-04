@@ -34,7 +34,7 @@ export interface Cuota {
   numeroCuota: number;
   fechaVencimiento: string;
   monto: number;
-  estado: "PENDIENTE" | "PAGADO";
+  estado: "PENDIENTE" | "PAGADO" | "CANCELADO";
   presPagos: Pago[];
   pagado: boolean;
   abonoCapital?: number;
