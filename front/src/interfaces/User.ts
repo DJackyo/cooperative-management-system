@@ -20,6 +20,13 @@ export interface Asociado {
   nombre2?: string;
   apellido1?: string;
   apellido2?: string;
+  // additional details
+  tipoIdentificacionId?: number | null;
+  fechaDeExpedicion?: string | null;
+  fechaDeNacimiento?: string | null;
+  genero?: string | null;
+  estadoCivil?: string | null;
+  esAsociado?: boolean | null;
 }
 
 export interface User {

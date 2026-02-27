@@ -1,6 +1,26 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { generateBackup, listBackups, downloadBackup, triggerFileDownload, BackupItem } from "@/services/backupService";
+import {
+  generateBackup,
+  listBackups,
+  downloadBackup,
+  triggerFileDownload,
+  BackupItem,
+} from "@/services/backupService";
+import {
+  Grid,
+  Paper,
+  Button,
+  Checkbox,
+  FormControlLabel,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Typography,
+  CircularProgress,
+} from "@mui/material";
 
 export default function BackupManager() {
   const [loadingGen, setLoadingGen] = useState(false);
@@ -12,7 +32,7 @@ export default function BackupManager() {
     setLoadingList(true);
     try {
       const data = await listBackups();
-      setItems(data);
+      setItems(data || []);
     } catch (e) {
       console.error(e);
       alert("Error al listar backups");
@@ -50,47 +70,79 @@ export default function BackupManager() {
   };
 
   return (
-    <div style={{ display: "grid", gap: 16 }}>
-      <h2>Gestión de Backups</h2>
-      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <input type="checkbox" checked={includeFiles} onChange={(e) => setIncludeFiles(e.target.checked)} />
-          Incluir archivos (uploads)
-        </label>
-        <button onClick={onGenerate} disabled={loadingGen}>
-          {loadingGen ? "Generando..." : "Generar Backup"}
-        </button>
-        <button onClick={refresh} disabled={loadingList}>Actualizar Lista</button>
-      </div>
+    <Grid container spacing={3}>
+      <Grid item xs={12}>
+        <Paper sx={{ p: 3, backgroundColor: "white" }}>
+          <Grid container alignItems="center" spacing={2}>
+            <Grid item xs={12} sm={6}>
+              {/* <Typography variant="h6">Gestión de Backups</Typography> */}
+            </Grid>
+            <Grid item xs={12} sm={12}>
+              <Grid container justifyContent="flex-end" spacing={1}>
+                <Grid item>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={includeFiles}
+                        onChange={(e) => setIncludeFiles(e.target.checked)}
+                      />
+                    }
+                    label="Incluir archivos (uploads)"
+                  />
+                </Grid>
+                <Grid item>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={onGenerate}
+                    disabled={loadingGen}
+                    startIcon={loadingGen ? <CircularProgress size={16} /> : null}
+                  >
+                    {loadingGen ? "Generando..." : "Generar Backup"}
+                  </Button>
+                </Grid>
+                <Grid item>
+                  <Button variant="outlined" onClick={refresh} disabled={loadingList}>
+                    {loadingList ? <CircularProgress size={16} /> : "Actualizar Lista"}
+                  </Button>
+                </Grid>
+              </Grid>
+            </Grid>
+          </Grid>
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Archivo</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Tamaño (MB)</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Fecha</th>
-            <th style={{ textAlign: "left", borderBottom: "1px solid #ddd", padding: 8 }}>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {!Array.isArray(items) || items.length === 0 ? (
-            <tr>
-              <td colSpan={4} style={{ padding: 12 }}>Sin backups aún</td>
-            </tr>
-          ) : (
-            items.map((b) => (
-            <tr key={String(b.name)}>
-              <td style={{ padding: 8 }}>{b.name}</td>
-              <td style={{ padding: 8 }}>{b.sizeMB}</td>
-              <td style={{ padding: 8 }}>{new Date(b.date).toLocaleString()}</td>
-              <td style={{ padding: 8 }}>
-                <button onClick={() => onDownload(b.name)}>Descargar</button>
-              </td>
-            </tr>
-            ))
-          )}
-        </tbody>
-      </table>
-    </div>
+          <Table sx={{ mt: 2 }}>
+            <TableHead>
+              <TableRow>
+                <TableCell>Archivo</TableCell>
+                <TableCell>Tamaño (MB)</TableCell>
+                <TableCell>Fecha</TableCell>
+                <TableCell>Acciones</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {(!Array.isArray(items) || items.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={4}>Sin backups aún</TableCell>
+                </TableRow>
+              )}
+
+              {Array.isArray(items) &&
+                items.map((b) => (
+                  <TableRow key={String(b.name)}>
+                    <TableCell>{b.name}</TableCell>
+                    <TableCell>{b.sizeMB}</TableCell>
+                    <TableCell>{new Date(b.date).toLocaleString()}</TableCell>
+                    <TableCell>
+                      <Button size="small" onClick={() => onDownload(b.name)}>
+                        Descargar
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+            </TableBody>
+          </Table>
+        </Paper>
+      </Grid>
+    </Grid>
   );
 }

@@ -25,6 +25,17 @@ export const userService = {
       throw new Error("Error", error!);
     }
   },
+  async fetchById(id: number) {
+    try {
+      const response = await axiosClient.get(`${baseURL}/${id}`);
+      if (response?.data) {
+        return response.data?.data ?? response.data;
+      }
+      return null;
+    } catch (error) {
+      throw new Error("Error", error!);
+    }
+  },
   async create(user: Omit<User, "id" | "status">) {
     try {
       const response = await axiosClient.post(baseURL, user);

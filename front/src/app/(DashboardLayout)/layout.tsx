@@ -1,8 +1,10 @@
 "use client";
 import { styled, Container, Box, Menu, MenuItem } from "@mui/material";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Header from "@/app/(DashboardLayout)/layout/header/Header";
 import Sidebar from "@/app/(DashboardLayout)/layout/sidebar/Sidebar";
+import { useRouter } from "next/navigation";
+import { setupAxiosInterceptors } from "@/services/axiosClient";
 
 const MainWrapper = styled("div")(() => ({
   display: "flex",
@@ -12,7 +14,7 @@ const MainWrapper = styled("div")(() => ({
 
 const SidebarWrapper = styled("div")(() => ({
   position: "relative",
-  zIndex: 1200,
+  zIndex: 1000,
   flexShrink: 0,
   minWidth: "220px",
   willChange: "auto",
@@ -40,6 +42,13 @@ export default function RootLayout({
 }) {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    // initialize once for every page
+    setupAxiosInterceptors(router);
+  }, [router]);
+
   return (
     <MainWrapper className="mainwrapper">
       {/* ------------------------------------------- */}

@@ -45,6 +45,28 @@ export class PrestamosController {
     }));
   }
 
+  /* Ruta para obtener un prestamo por id de usuario*/
+  @UseGuards(JwtAuthGuard)
+  @Get('user/:userId')
+  async getPrestamoByUserId(@Param('userId') id: number) {
+    const prestamos = await this.prestamosService.getByUserId(id);
+    return prestamos.map((prestamo) => ({
+      ...prestamo,
+      tasa: prestamo.idTasa?.tasa,
+      idAsociado: {
+        id: prestamo.idAsociado.id,
+        nombres: [
+          prestamo.idAsociado.nombre1,
+          prestamo.idAsociado.nombre2,
+          prestamo.idAsociado.apellido1,
+          prestamo.idAsociado.apellido2,
+        ].join(' '),
+        numeroDeIdentificacion: prestamo.idAsociado.numeroDeIdentificacion,
+        idEstado: prestamo.idAsociado.idEstado?.estado,
+      },
+    }));
+  }
+
   /* Ruta para obtener un prestamo por id*/
   @Get(':id')
   async getPrestamo(@Param('id') id: number) {
@@ -73,28 +95,6 @@ export class PrestamosController {
   @Delete(':id')
   async deletePrestamo(@Param('id') id: number) {
     return this.prestamosService.deleteOne(id); // Llamamos al servicio pasando el id
-  }
-
-  /* Ruta para obtener un prestamo por id*/
-  @UseGuards(JwtAuthGuard)
-  @Get('user/:userId')
-  async getPrestamoByUserId(@Param('userId') id: number) {
-    const prestamos = await this.prestamosService.getByUserId(id);
-    return prestamos.map((prestamo) => ({
-      ...prestamo,
-      tasa: prestamo.idTasa?.tasa,
-      idAsociado: {
-        id: prestamo.idAsociado.id,
-        nombres: [
-          prestamo.idAsociado.nombre1,
-          prestamo.idAsociado.nombre2,
-          prestamo.idAsociado.apellido1,
-          prestamo.idAsociado.apellido2,
-        ].join(' '),
-        numeroDeIdentificacion: prestamo.idAsociado.numeroDeIdentificacion,
-        idEstado: prestamo.idAsociado.idEstado?.estado,
-      },
-    }));
   }
 
   @UseGuards(JwtAuthGuard)
