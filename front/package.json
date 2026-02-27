@@ -61,6 +61,6 @@
         }
     },
    {
-  "packageManager": "pnpm@10.x"
+  "packageManager": "pnpm@9.0"
 } 
 }
