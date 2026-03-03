@@ -7,7 +7,7 @@ const apiUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:5001").repl
 
 // Comprobar si la variable se carga correctamente
 if (!apiUrl) {
-  console.error("Error: REACT_APP_API_URL no está definida en el archivo .env");
+  console.error("Error: NEXT_PUBLIC_API_URL no está definida en el archivo .env");
 }
 
 const axiosClient = axios.create({
@@ -35,16 +35,37 @@ export const setupAxiosInterceptors = (router: any) => {
       (response) => response,
       (error) => {
         console.error(error);
-        if (error.response?.status === 401) {
-          localStorage.clear();
-          Swal.fire({
-            title: "Sesión expirada",
-            text: "Tu sesión ha vencido. Por favor, inicia sesión nuevamente.",
-            icon: "warning",
-            confirmButtonText: "Aceptar",
-          }).then(() => {
-            router.push("/authentication/login");
-          });
+        // show generic error toast for non-auth failures
+        if (error.response) {
+          const status = error.response.status;
+          if (status === 401) {
+            localStorage.clear();
+            Swal.fire({
+              title: "Sesión expirada",
+              text: "Tu sesión ha vencido. Por favor, inicia sesión nuevamente.",
+              icon: "warning",
+              confirmButtonText: "Aceptar",
+            }).then(() => {
+              router.push("/authentication/login");
+            });
+          } else {
+            // try to show backend message
+            const data = error.response.data;
+            let msg = 'Ocurrió un error en la petición';
+            if (data) {
+              if (typeof data === 'string') msg = data;
+              else if (data.message) msg = data.message;
+              else if (data.error?.message) msg = data.error.message;
+              else if (data.detail) msg = data.detail;
+            }
+            Swal.fire({
+              title: 'Error',
+              text: msg,
+              icon: 'error',
+              confirmButtonText: 'OK',
+              zIndex: 10000,
+            } as any);
+          }
         }
         return Promise.reject(error);
       }

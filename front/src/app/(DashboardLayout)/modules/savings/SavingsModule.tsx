@@ -107,7 +107,8 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const [receiptModalOpen, setModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
 
-  const loadSavingsRef = useRef<() => Promise<void>>();
+  // Reference to the loadSavings function so it can be called from callbacks
+  const loadSavingsRef = useRef<() => Promise<void>>(async () => Promise.resolve());
   
   loadSavingsRef.current = async () => {
     // Siempre cargar todos los usuarios para el modal bulk
@@ -267,7 +268,8 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
       
       // Convertir estado de string a boolean si es necesario
       if (typeof aporte.estado === 'string') {
-        aporte.estado = aporte.estado.toLowerCase() === 'activo' || aporte.estado === 'true';
+        const estadoStr = aporte.estado.toLowerCase();
+        aporte.estado = estadoStr === 'activo' || estadoStr === 'true';
       }
       
       let saved;

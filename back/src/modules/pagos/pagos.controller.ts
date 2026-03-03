@@ -177,6 +177,13 @@ export class PagosController {
 
       console.log('✅ Datos procesados:', pagoData);
       console.log('🔍 Comprobante final:', pagoData.comprobante);
+      console.log('💰 ABONO EXTRA procesado:', {
+        valorOriginal: req.body.abonoExtra,
+        tipoOriginal: typeof req.body.abonoExtra,
+        valorConvertido: pagoData.abonoExtra,
+        tipoConvertido: typeof pagoData.abonoExtra,
+        esMayorACero: pagoData.abonoExtra > 0,
+      });
 
       const result = await this.pagosService.createByCredit(id, pagoData);
       return {

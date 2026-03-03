@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Asociados } from '../../entities/entities/Asociados';
@@ -36,7 +36,16 @@ export class AsociadosService {
   // Crear un nuevo asociado
   async create(asociadoDto: AsociadoDto): Promise<Asociados> {
     const asociado = this.asociadosRepository.create(asociadoDto);  // Creamos el nuevo objeto asociado con el DTO
-    return this.asociadosRepository.save(asociado);  // Guardamos el objeto en la base de datos
+    try {
+      return await this.asociadosRepository.save(asociado);  // Guardamos el objeto en la base de datos
+    } catch (err: any) {
+      if (err && err.code === '23505') {
+        if (err.detail && err.detail.includes('numero_de_identificacion')) {
+          throw new BadRequestException('Ya existe un asociado con esa identificación');
+        }
+      }
+      throw err;
+    }
   }
 
   // Actualizar un asociado

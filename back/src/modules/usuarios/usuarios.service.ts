@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuarios } from '../../entities/entities/Usuarios';
@@ -14,7 +14,18 @@ export class UsuariosService {
 
   async create(createUsuarioDto: CreateUsuarioDto): Promise<Usuarios> {
     const usuario = this.usuariosRepository.create(createUsuarioDto);
-    return this.usuariosRepository.save(usuario);
+    try {
+      return await this.usuariosRepository.save(usuario);
+    } catch (err: any) {
+      // handle unique constraint errors
+      if (err && err.code === '23505') {
+        if (err.detail && err.detail.includes('correo_electronico')) {
+          throw new BadRequestException('Ya existe un usuario con ese correo electrónico');
+        }
+        // other unique keys can be added here
+      }
+      throw err;
+    }
   }
 
   async findAll(): Promise<Usuarios[]> {

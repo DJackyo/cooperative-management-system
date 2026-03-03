@@ -38,6 +38,7 @@ export class PrestamosService {
   /* Obtener todos los prestamos, incluyendo las relaciones */
   async getAll(): Promise<Prestamos[]> {
     return this.prestamosRepository.find({
+      order: { fechaCredito: 'DESC' },
       relations: [
         'idTasa', 
         'idAsociado', 
@@ -124,19 +125,14 @@ export class PrestamosService {
       relations: [
         'idTasa',
         'idAsociado',
-        // 'presCancelaciones',
-        // 'presCuotas',
-        // 'presPagos',
-        // 'PresAprobacionPrestamos',
-        // 'presHistorialPrestamos',
+        'presCuotas',
+        'presCuotas.presPagos',
       ],
     });
 
-    // Si no se encontraron préstamos, lanzamos una excepción
+    // Si no se encontraron préstamos, retornamos un arreglo vacío (no 404)
     if (!prestamos || prestamos.length === 0) {
-      throw new NotFoundException(
-        'No se encontraron préstamos para este usuario',
-      );
+      return [];
     }
 
     return prestamos;

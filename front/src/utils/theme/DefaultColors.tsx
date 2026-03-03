@@ -151,6 +151,13 @@ const baselightTheme = createTheme({
         },
       },
     },
+    MuiModal: {
+      styleOverrides: {
+        root: {
+          zIndex: 1060,
+        },
+      },
+    },
   },
 });
 

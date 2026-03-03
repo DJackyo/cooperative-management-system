@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Typography,
   Grid,
@@ -21,14 +21,28 @@ import {
   FormControl,
   ButtonGroup,
   Menu,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
 } from "@mui/material";
 import Chip from "@mui/material/Chip";
 
-import { LoggedUser, User } from "@/interfaces/User";
+import { LoggedUser, User, Asociado } from "@/interfaces/User";
 import { userService } from "@/services/userService";
+import { asociadosService } from "@/services/asociadosService";
 import UserModal from "./components/UserModal";
 import DashboardCard from "../../components/shared/DashboardCard";
 import { useRouter } from "next/navigation";
+import { setupAxiosInterceptors } from "@/services/axiosClient";
+// dinámico para evitar SSR en formularios pesados
+import dynamic from "next/dynamic";
+import { creditsService } from "@/services/creditRequestService";
+
+// componente de formulario de créditos reutilizado
+const CreditForm = dynamic(() => import("../credit/components/CreditForm"), {
+  ssr: false,
+});
 
 import {
   IconUsersGroup,
@@ -68,9 +82,19 @@ const UserManagementModule = () => {
     roles: [{ id: 1, nombre: "socio" }],
     idAsociado: {
       nombres: "",
+      nombre1: "",
+      nombre2: "",
+      apellido1: "",
+      apellido2: "",
       numeroDeIdentificacion: "",
-      idEstado: { id: 1, estado: "activo" },
+      idEstado: { id: 1, estado: "ACTIVO" },
       id: 0,
+      tipoIdentificacionId: null,
+      fechaDeExpedicion: null,
+      fechaDeNacimiento: null,
+      genero: null,
+      estadoCivil: null,
+      esAsociado: true,
     },
   };
   const [formData, setFormData] =
@@ -95,6 +119,10 @@ const UserManagementModule = () => {
   const [selectedAporte, setSelectedAporte] = useState<Aporte | null>(null); // Estado para la fila seleccionada
   const [openAporteModal, setOpenAporteModal] = useState(false);
   const [loadingLoans, setLoadingLoans] = useState(false);
+  // crédito modal states
+  const [openCreditModal, setOpenCreditModal] = useState(false);
+  const [creditTasas, setCreditTasas] = useState<any[]>([]);
+  const [creditUserInfo, setCreditUserInfo] = useState<Asociado | null>(null);
 
   const refreshUsersWithLoans = async () => {
     setLoadingLoans(true);
@@ -109,6 +137,9 @@ const UserManagementModule = () => {
   };
 
   useEffect(() => {
+    // make sure interceptors are ready for any request
+    setupAxiosInterceptors(router);
+
     const loadUsers = async () => {
       const hasSession = authService.isAuthenticated();
       if (hasSession) {
@@ -125,7 +156,7 @@ const UserManagementModule = () => {
     };
 
     loadUsers();
-  }, []);
+  }, [router]);
 
   const filteredUsers = users?.filter((user: User) => {
     const matchesName =
@@ -208,27 +239,66 @@ const UserManagementModule = () => {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | { name?: string; value: any }>
   ) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target as any;
+    if (!name) return;
+    if (name.includes(".")) {
+      const path = name.split(".");
+      setFormData((prev) => {
+        const updated: any = { ...prev };
+        let cursor = updated;
+        for (let i = 0; i < path.length - 1; i++) {
+          const key = path[i];
+          cursor[key] = { ...(cursor[key] || {}) };
+          cursor = cursor[key];
+        }
+        cursor[path[path.length - 1]] = value;
+        return updated;
+      });
+    } else {
+      // if roles field, ensure we store an array
+      if (name === "roles") {
+        setFormData({ ...formData, [name]: [value] });
+      } else {
+        setFormData({ ...formData, [name]: value });
+      }
+    }
   };
 
+  const [formError, setFormError] = useState<string | null>(null);
+
   const handleSubmit = async () => {
-    try {
-      if (editingUser) {
-        // Actualizar usuario
-        // await userService.update(editingUser.id, formData); // Llama a la función del servicio
-      } else {
-        // Crear usuario
-        // await userService.create(formData); // Llama a la función del servicio
+      setFormError(null);
+      if (!editingUser) {
+        // check for duplicate email before creating asociado
+        const existing: any[] = await userService.fetchAll();
+        if (existing.some(u => u.correoElectronico === formData.correoElectronico)) {
+          setFormError('El correo electrónico ya está registrado. Por favor use otro correo.');
+          return; // abort
+        }
       }
-      // Recargar usuarios
+
+      if (editingUser && editingUser.id) {
+        if (formData.idAsociado && formData.idAsociado.id) {
+          await asociadosService.update(formData.idAsociado.id, formData.idAsociado as any);
+        }
+        await userService.update(editingUser.id, formData as any);
+      } else {
+        let asociadoPayload: any = { ...formData.idAsociado };
+        if (asociadoPayload && !asociadoPayload.id) {
+          if (asociadoPayload.idEstado && typeof asociadoPayload.idEstado === 'string') {
+            asociadoPayload.idEstado = { id: 1, estado: asociadoPayload.idEstado };
+          }
+          const createdAsoc = await asociadosService.create(asociadoPayload);
+          asociadoPayload = createdAsoc;
+        }
+        const userPayload = { ...formData, idAsociado: asociadoPayload, username: formData.correoElectronico };
+        await userService.create(userPayload as any);
+      }
       const usersData: any = await userService.fetchAll();
       setUsers(usersData);
       handleCloseModal();
-    } catch (error) {
-      console.error("Error al enviar la solicitud:", error);
-    }
   };
 
   const handleDeactivate = async (user: User) => {
@@ -261,9 +331,77 @@ const UserManagementModule = () => {
     setSelectedUser(null);
   };
 
-  const handleCreditsAsociado = (user?: User) => {
+  const handleViewCredits = (user?: User) => {
     if (user) {
       router.push(`/modules/credit?userId=${user.idAsociado.id}`);
+    }
+  };
+
+  const loadCreditTasas = useCallback(async () => {
+    if (creditTasas.length === 0) {
+      try {
+        const resp = await creditsService.getTasas();
+        setCreditTasas(resp || []);
+      } catch (err) {
+        console.error("Error al cargar tasas:", err);
+      }
+    }
+  }, [creditTasas]);
+
+  // load tasas once on mount so the modal has data ready
+  useEffect(() => {
+    loadCreditTasas();
+  }, [loadCreditTasas]);
+
+  const handleCreateCredit = (user?: User) => {
+    if (user) {
+      setCreditUserInfo(user.idAsociado);
+      loadCreditTasas();
+      setOpenCreditModal(true);
+    }
+  };
+
+  const handleCreditSubmit = async (formData: any) => {
+    try {
+      if (formData.monto) {
+        formData.idAsociado = creditUserInfo;
+        const saved = await creditsService.create(formData);
+        // cerrar inmediatamente para evitar solapamientos
+        setOpenCreditModal(false);
+
+        const Swal = (await import('sweetalert2')).default;
+        if (saved) {
+          await Swal.fire({
+            title: '¡Solicitud Creada!',
+            text: `Su solicitud de crédito ha sido enviada exitosamente.`,
+            icon: 'success',
+            confirmButtonText: 'OK',
+            zIndex: 10000,
+          } as any);
+          refreshUsersWithLoans();
+        } else {
+          await Swal.fire({
+            title: 'Error',
+            text: 'No se pudo crear la solicitud. Intente nuevamente.',
+            icon: 'error',
+            confirmButtonText: 'OK',
+            zIndex: 10000,
+          } as any);
+        }
+      } else {
+        setOpenCreditModal(false);
+      }
+    } catch (error) {
+      console.error('Error creando crédito:', error);
+      setOpenCreditModal(false);
+      const Swal = (await import('sweetalert2')).default;
+      await Swal.fire({
+        title: 'Error',
+        text: 'Ocurrió un error al enviar la solicitud. Revise su conexión.',
+        icon: 'error',
+        confirmButtonText: 'OK',
+        zIndex: 10000,
+      } as any);
     }
   };
 
@@ -396,7 +534,7 @@ const UserManagementModule = () => {
               <Typography variant="h5" color="primary" gutterBottom>
                 Listado de usuarios
               </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1, marginBottom : 3 }}>
                 <Button 
                   variant="outlined" 
                   onClick={refreshUsersWithLoans}
@@ -473,7 +611,7 @@ const UserManagementModule = () => {
                     );
                   case "acciones":
                     return (
-                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'wrap', minWidth: 150 }}>
                         {/* Botón para acciones de Usuario */}
                         <ButtonGroup variant="outlined" size="small">
                           <IconButton onClick={(e) => handleClickUser(e, user)}>
@@ -584,7 +722,7 @@ const UserManagementModule = () => {
               </Typography>
               <MenuItem
                 onClick={() => {
-                  handleCreditsAsociado(selectedUser!);
+                  handleCreateCredit(selectedUser!);
                   handleClose();
                 }}
               >
@@ -595,7 +733,7 @@ const UserManagementModule = () => {
               </MenuItem>
               <MenuItem
                 onClick={() => {
-                  handleCreditsAsociado(selectedUser!);
+                  handleViewCredits(selectedUser!);
                   handleClose();
                 }}
                 disabled={!(selectedUser?.activeLoansCount || 0)}
@@ -650,7 +788,25 @@ const UserManagementModule = () => {
         onChange={handleChange}
         onSubmit={handleSubmit}
         editingUser={editingUser !== null}
+        formError={formError}
       />
+      {/* Modal para crear préstamo desde esta página */}
+      <Dialog open={openCreditModal} onClose={() => setOpenCreditModal(false)} fullWidth maxWidth="md">
+        <DialogTitle>
+          <Typography variant="h6" component="span">
+            Nueva Solicitud de Crédito
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          <CreditForm mode="create" tasas={creditTasas} onSubmit={handleCreditSubmit} />
+        </DialogContent>
+        <DialogActions sx={{ p: 3 }}>
+          <Button onClick={() => setOpenCreditModal(false)} color="secondary" variant="outlined" startIcon={<IconUserCancel />}>
+            Cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Modal para subir soporte de pago */}
       <AporteModal
         open={openAporteModal}
