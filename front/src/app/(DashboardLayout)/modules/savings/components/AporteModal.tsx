@@ -98,8 +98,9 @@ const AporteModal: React.FC<AporteModalProps> = ({
         // Para nuevo aporte (ID = 0 o null), calcular fecha sugerida
         const aporteData = initialData || defaultValues;
         const aporteWithDate = { ...aporteData };
-        const asociadoId = aporteData.asociado?.idAsociado?.id || aporteData.asociado?.id;
-        
+        // El objeto asociado tiene solamente la forma {id, nombres, numeroDeIdentificacion}
+        const asociadoId = aporteData.asociado?.id || aporteData.idAsociado;
+
         if (asociadoId) {
           const suggestedDate = await calculateNextPaymentDate(asociadoId);
           aporteWithDate.fechaAporte = suggestedDate;
@@ -172,8 +173,11 @@ const AporteModal: React.FC<AporteModalProps> = ({
 
   const handleSubmit = () => {
     if (validateForm()) {
-      const aporteData = { ...aporte, file: selectedFile };
-      onSubmit(aporteData);
+      const aporteData: any = { ...aporte };
+      if (selectedFile) {
+        aporteData.file = selectedFile;
+      }
+      onSubmit(aporteData as Aporte);
       onClose();
       setAporte(defaultValues);
       setSelectedFile(null);
@@ -232,7 +236,7 @@ const AporteModal: React.FC<AporteModalProps> = ({
                       <Button
                         size="small"
                         onClick={async () => {
-                          const asociadoId = aporte.asociado?.idAsociado?.id || aporte.asociado?.id;
+                          const asociadoId = aporte.asociado?.id;
                           if (asociadoId) {
                             const newDate = await calculateNextPaymentDate(asociadoId);
                             setAporte({ ...aporte, fechaAporte: newDate });

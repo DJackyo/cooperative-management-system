@@ -6,7 +6,7 @@ export interface Aporte {
   fechaModificacion: string;
   fechaCreacion: string;
   tipoAporte: "MENSUAL" | "ANUAL" | "EXTRAORDINARIO";
-  estado: boolean;
+  estado: boolean | string;
   metodoPago: "EFECTIVO" | "TRANSFERENCIA" | "TARJETA";
   comprobante: string | null;
   idUsuarioRegistro: number | null;

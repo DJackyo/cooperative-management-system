@@ -68,10 +68,10 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [orderBy, setOrderBy] = useState<string>("fechaCredito");
 
-  // Ordenar por fechaCredito descendente
+  // Ordenar por fechaCredito descendente, manejando posibilidad de valor nulo
   const sortedCredits = [...credits].sort((a, b) => {
-    const fechaA = new Date(a.fechaCredito).getTime();
-    const fechaB = new Date(b.fechaCredito).getTime();
+    const fechaA = a.fechaCredito ? new Date(a.fechaCredito).getTime() : 0;
+    const fechaB = b.fechaCredito ? new Date(b.fechaCredito).getTime() : 0;
     return fechaB - fechaA;
   });
 
@@ -198,7 +198,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         title: "Procesando...",
         text: "Creando solicitud de crédito",
         allowOutsideClick: false,
-        zIndex: 10000,
         didOpen: () => {
           Swal.showLoading();
         },
@@ -214,7 +213,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
           icon: "success",
           confirmButtonText: "Entendido",
           confirmButtonColor: "#4caf50",
-          zIndex: 10000,
+          
         });
         await loadCredits();
       } else {
@@ -223,7 +222,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
           text: "No se pudo crear la solicitud. Intente nuevamente.",
           icon: "error",
           confirmButtonText: "Entendido",
-          zIndex: 10000,
+          
         });
       }
     }
@@ -242,7 +241,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         cancelButtonColor: "#f44336",
         confirmButtonText: "Sí, Actualizar",
         cancelButtonText: "Cancelar",
-        zIndex: 10000,
+        
       });
 
       if (result.isConfirmed) {
@@ -251,7 +250,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
           title: "Procesando...",
           text: "Actualizando crédito",
           allowOutsideClick: false,
-          zIndex: 10000,
+          
           didOpen: () => {
             Swal.showLoading();
           },
@@ -266,7 +265,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
             icon: "success",
             confirmButtonText: "Entendido",
             confirmButtonColor: "#4caf50",
-            zIndex: 10000,
+            
           });
           await loadCredits();
           handleCloseModifyModal();
@@ -276,7 +275,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
             text: "No se pudieron guardar los cambios. Intente nuevamente.",
             icon: "error",
             confirmButtonText: "Entendido",
-            zIndex: 10000,
+            
           });
         }
       }
@@ -644,7 +643,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       icon: "success",
       confirmButtonText: "Entendido",
       confirmButtonColor: "#4caf50",
-      zIndex: 10000,
+      
     });
   };
 
@@ -655,7 +654,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       icon: "error",
       confirmButtonText: "Entendido",
       confirmButtonColor: "#f44336",
-      zIndex: 10000,
+      
     });
   };
 
@@ -666,7 +665,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       icon: "info",
       confirmButtonText: "Entendido",
       confirmButtonColor: "#1976d2",
-      zIndex: 10000,
+      
     });
   };
 
@@ -695,7 +694,15 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     // Simular estado basado en fechas del crédito
     const today = new Date();
     const vencimiento = new Date(prestamo.fechaVencimiento);
-    const desembolso = prestamo.fechaDesembolso ? new Date(prestamo.fechaDesembolso) : new Date(prestamo.fechaCredito);
+    let desembolso: Date;
+    if (prestamo.fechaDesembolso) {
+      desembolso = new Date(prestamo.fechaDesembolso);
+    } else if (prestamo.fechaCredito) {
+      desembolso = new Date(prestamo.fechaCredito);
+    } else {
+      // fallback to today if no dates available
+      desembolso = today;
+    }
 
     // Calcular cuotas simuladas basadas en plazo
     const mesesTranscurridos = Math.floor((today.getTime() - desembolso.getTime()) / (1000 * 60 * 60 * 24 * 30));

@@ -124,8 +124,8 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({ userId, creditI
   const isMobile = useMediaQuery("(max-width:600px)");
 
   // Calcular porcentaje de progreso
-  const progressPercent = credit && credit.monto > 0 
-    ? ((valorPagado / credit.monto) * 100).toFixed(1)
+  const progressPercent = credit && Number(credit.monto) > 0 
+    ? ((valorPagado / Number(credit.monto)) * 100).toFixed(1)
     : 0;
 
   if (loading) {

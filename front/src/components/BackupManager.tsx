@@ -71,15 +71,15 @@ export default function BackupManager() {
 
   return (
     <Grid container spacing={3}>
-      <Grid item xs={12}>
+      <Grid size={{ xs: 12, md: 12 }}>
         <Paper sx={{ p: 3, backgroundColor: "white" }}>
           <Grid container alignItems="center" spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               {/* <Typography variant="h6">Gestión de Backups</Typography> */}
             </Grid>
-            <Grid item xs={12} sm={12}>
+            <Grid size={{ xs: 12, sm: 12 }}>
               <Grid container justifyContent="flex-end" spacing={1}>
-                <Grid item>
+                <Grid>
                   <FormControlLabel
                     control={
                       <Checkbox
@@ -90,7 +90,7 @@ export default function BackupManager() {
                     label="Incluir archivos (uploads)"
                   />
                 </Grid>
-                <Grid item>
+                <Grid>
                   <Button
                     variant="contained"
                     color="primary"
@@ -101,7 +101,7 @@ export default function BackupManager() {
                     {loadingGen ? "Generando..." : "Generar Backup"}
                   </Button>
                 </Grid>
-                <Grid item>
+                <Grid>
                   <Button variant="outlined" onClick={refresh} disabled={loadingList}>
                     {loadingList ? <CircularProgress size={16} /> : "Actualizar Lista"}
                   </Button>

@@ -42,19 +42,9 @@ const TransactionsHistory = () => {
       try {
         const data = await dashboardService.getRecentTransactions();
         console.log('Transactions response:', data);
-        
-        // Manejar diferentes formatos de respuesta
-        let transactionsArray = [];
-        if (Array.isArray(data)) {
-          transactionsArray = data;
-        } else if (data && Array.isArray(data.data)) {
-          transactionsArray = data.data;
-        } else if (data && data.data) {
-          transactionsArray = [data.data];
-        }
-        
-        console.log('Processed transactions:', transactionsArray);
-        setTransactions(transactionsArray);
+
+        // El servicio ya devuelve un arreglo de transacciones
+        setTransactions(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error loading transactions:', error);
         setTransactions([]);

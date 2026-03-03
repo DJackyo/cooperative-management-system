@@ -29,9 +29,8 @@ const SavingsProjectionCard = () => {
         const response = await dashboardService.getSavingsProjection();
         console.log('Savings projection response:', response);
         
-        // Extraer data si viene en formato {status, data, message}
-        const data = response.data || response;
-        setSavingsData(data);
+        // La función ya devuelve el objeto con los campos esperados
+        setSavingsData(response);
       } catch (error) {
         console.error('Error loading savings projection:', error);
       } finally {
@@ -56,12 +55,11 @@ const SavingsProjectionCard = () => {
       const response = await dashboardService.generateYearProjection(nextYear);
       console.log('Generate projection response:', response);
       
-      // Extraer datos de la estructura anidada
-      const result = response.data || response;
-      const message = result.message || response.message;
-      const created = result.created || 0;
+      // La función regresa directamente el mensaje y la cantidad creada
+      const messageText = response.message;
+      const created = response.created || 0;
       
-      setMessage(`✅ ${message}. Metas creadas: ${created}`);
+      setMessage(`✅ ${messageText}. Metas creadas: ${created}`);
     } catch (error) {
       setMessage('❌ Error al generar las proyecciones del próximo año');
     } finally {
