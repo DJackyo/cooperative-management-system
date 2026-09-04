@@ -15,7 +15,7 @@ const MSidebar = ({
 }: ItemType) => {
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up("lg"));
 
-  const sidebarWidth = "150px";
+  const sidebarWidth = isSidebarOpen ? "260px" : "72px";
 
   // Custom CSS for short scrollbar
   const scrollbarStyles = {
@@ -32,8 +32,9 @@ const MSidebar = ({
     return (
       <Box
         sx={{
-          width: sidebarWidth,
+          width: { xs: 0, lg: sidebarWidth },
           flexShrink: 0,
+          transition: (theme) => theme.transitions.create("width"),
         }}
       >
         {/* ------------------------------------------- */}
@@ -46,6 +47,12 @@ const MSidebar = ({
           PaperProps={{
             sx: {
               boxSizing: "border-box",
+              width: sidebarWidth,
+              border: "none",
+              borderRight: (theme) => `1px solid ${theme.palette.divider}`,
+              boxShadow: "none",
+              transition: (theme) => theme.transitions.create("width"),
+              overflowX: "hidden",
               ...scrollbarStyles,
             },
           }}
@@ -54,13 +61,20 @@ const MSidebar = ({
           <Box
             sx={{
               height: "100%",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            <Box display="flex" alignItems="center" width={"80%"}>
-              <Logo width={100} height={50} padding="10px" />
+            <Box
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              sx={{ p: 1.5, borderBottom: 1, borderColor: "divider" }}
+            >
+              <Logo width={isSidebarOpen ? 110 : 42} height={55} padding="10px" />
             </Box>
-            <Box>
-              <SidebarItems />
+            <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
+              <SidebarItems collapsed={!isSidebarOpen} />
             </Box>
           </Box>
         </Drawer>
@@ -81,8 +95,18 @@ const MSidebar = ({
         },
       }}
     >
+      <Box
+        sx={{
+          pt: 1,
+          display: "flex",
+          justifyContent: "center",
+          borderBottom: "1px solid #e5eaef",
+          mb: 1,
+        }}
+      >
+        <Logo width={110} height={55} padding="10px" />
+      </Box>
       <Box px={2}>
-        <Logo width={100} height={50} padding="10px" />
         <SidebarItems />
       </Box>
     </Drawer>

@@ -1,7 +1,0 @@
-{
-  "name": "heroku-nest-monorepo",
-  "private": true,
-  "scripts": {
-    "heroku-postbuild": "cd back && npm install && npm run build"
-  }
-}

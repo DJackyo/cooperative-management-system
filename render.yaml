@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: cooperative-management-backend
+    runtime: node
+    rootDir: back
+    buildCommand: corepack enable && pnpm install --frozen-lockfile && pnpm run build
+    startCommand: pnpm run start:prod
+    envVars:
+      - key: NODE_VERSION
+        value: 25.9.0

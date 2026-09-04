@@ -2,13 +2,21 @@ import {
   Typography,
   Avatar,
   Box,
+  SxProps,
+  Theme,
 } from "@mui/material";
 import { IconEye } from "@tabler/icons-react";
 import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
 import { useEffect, useState } from "react";
 import { dashboardService } from "@/services/dashboardService";
 
-const PaymentSupportsCard = () => {
+const PaymentSupportsCard = ({
+  sx,
+  fullHeight,
+}: {
+  sx?: SxProps<Theme>;
+  fullHeight?: boolean;
+}) => {
   const [pendingSupportsCount, setPendingSupportsCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -29,47 +37,45 @@ const PaymentSupportsCard = () => {
   }, []);
 
   return (
-    <DashboardCard title="Soportes pendientes de validación">
-      <Box display="flex" alignItems="center" justifyContent="space-between">
-        <Box display="flex">
+    <DashboardCard title="Soportes pendientes de validación" sx={sx} fullHeight={fullHeight}>
+      <Box
+        sx={{
+          background: "linear-gradient(135deg, #e6fffa 0%, #f2fffd 100%)",
+          borderRadius: 2,
+          p: 2,
+          height: "100%",
+        }}
+      >
+        <Box display="flex" alignItems="center" justifyContent="space-between">
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Avatar
+              sx={{
+                background: "linear-gradient(135deg, #13DEB9 0%, #02b3a9 100%)",
+                width: 40,
+                height: 40,
+                boxShadow: "0 5px 12px rgba(19,222,185,0.35)",
+              }}
+            >
+              <Typography variant="h5" color="#fff" fontWeight="bold">
+                {loading ? "..." : pendingSupportsCount}
+              </Typography>
+            </Avatar>
+            <Typography variant="subtitle2" color="textSecondary">
+              Pendientes de revisión
+            </Typography>
+          </Box>
           <Avatar
             sx={{
-              bgcolor: "#e3f2fd",
-              width: 36,
-              height: 36,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              marginRight: 1,
+              background: "linear-gradient(135deg, #5D87FF 0%, #49BEFF 100%)",
+              width: 56,
+              height: 56,
+              boxShadow: "0 6px 14px rgba(93,135,255,0.35)",
             }}
           >
-            <Typography variant="h4" color="primary.main">
-              {loading ? '...' : pendingSupportsCount}
-            </Typography>
+            <IconEye width={26} color="white" />
           </Avatar>
-          <Typography
-            variant="subtitle2"
-            color="textSecondary"
-            sx={{ marginTop: 0.5 }}
-          >
-            Soportes pendientes
-          </Typography>
         </Box>
-        <Avatar sx={{ bgcolor: "primary.main", width: 56, height: 56 }}>
-          <IconEye width={24} color="white" />
-        </Avatar>
       </Box>
-      {/* count={pendingSupportsCount} */}
-      {/* <Typography variant="subtitle1" color="text.secondary" mt={1}>
-            Estos son los soportes que necesitan validación.
-          </Typography> */}
-      {/* <Grid container alignItems="end" gap={2}>
-        <Grid  alignItems="end">
-          <IconButton size="small" color="primary" sx={{ mt: 1 }}>
-            <IconFileInvoice /> Ver detalles
-          </IconButton>
-        </Grid>
-      </Grid> */}
     </DashboardCard>
   );
 };

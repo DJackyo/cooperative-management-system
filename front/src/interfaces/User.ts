@@ -39,6 +39,7 @@ export interface User {
   roles: Rol[];
   idAsociado: Asociado;
   activeLoansCount?: number;
+  loansCount?: number;
 }
 
 export interface LoggedUser {

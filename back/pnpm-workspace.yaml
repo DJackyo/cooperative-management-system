@@ -1,2 +1,8 @@
+allowBuilds:
+  '@nestjs/core': false
+  '@parcel/watcher': true
+  unrs-resolver: false
 onlyBuiltDependencies:
   - '@nestjs/core'
+overrides:
+  '@isaacs/brace-expansion': ^5.0.1

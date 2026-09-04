@@ -38,7 +38,7 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
-    title: "Mis Movimientos",
+    title: "Mis Ahorros",
     icon: IconListDetails,
     href: "/modules/savings?id=",
     roles: [rolesList[0]],

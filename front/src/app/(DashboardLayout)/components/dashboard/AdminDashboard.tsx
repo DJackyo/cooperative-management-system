@@ -1,23 +1,49 @@
 import React, { useEffect, useState } from "react";
-import { Grid, Typography, Paper, Box, Divider } from "@mui/material";
-import dynamic from "next/dynamic";
+import { Grid, Typography, Box, Divider, Avatar, Stack } from "@mui/material";
+import { IconCoins, IconActivity } from "@tabler/icons-react";
 import { dashboardService, DashboardData } from "@/services/dashboardService";
+import CooperativeOverview from "./CooperativeOverview";
 import TotalUsersCard from "./TotalUsersCard";
 import SavingsTransactionsCard from "./SavingsTransactionsCard";
-import ActiveCredits from "./ActiveCredits";
-import OverdueCredits from "./PendingCredits";
-import PendingApprovalsCard from "./PendingApprovalsCard";
 import CreditDistribution from "./CreditDistribution";
-import Loading from "@/app/loading";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
 
-const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
+// Encabezado de sección con ícono degradado
+const SectionHeader = ({
+  icon,
+  title,
+  color,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  color: string;
+}) => {
+  return (
+    <Stack direction="row" spacing={1.5} alignItems="center">
+      <Avatar
+        sx={{
+          background: color,
+          width: 40,
+          height: 40,
+          boxShadow: "0 5px 12px rgba(93,135,255,0.3)",
+        }}
+      >
+        {icon}
+      </Avatar>
+      <Typography variant="h6" color="textPrimary" sx={{ fontWeight: 700 }}>
+        {title}
+      </Typography>
+    </Stack>
+  );
+};
 
 const AdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     totalUsers: 0,
     activeCredits: 0,
     pendingCredits: 0,
+    totalCreditAmount: 0,
+    overdueCredits: 0,
     savingsTransactions: [],
     pendingPaymentSupports: 0,
     deactivationRequests: [],
@@ -37,22 +63,16 @@ const AdminDashboard = () => {
         setDataLoaded(true);
       } catch (error) {
         console.error('Error loading dashboard data:', error);
-        const fallbackData = {
-          totalUsers: 1200,
-          activeCredits: 350,
-          pendingCredits: 120,
-          savingsTransactions: [300000, 450000, 380000],
-          savingsLabels: ['2024-11', '2024-12', '2025-02'],
-          pendingPaymentSupports: 15,
+        setDashboardData({
+          totalUsers: 0,
+          activeCredits: 0,
+          pendingCredits: 0,
+          totalCreditAmount: 0,
+          overdueCredits: 0,
+          savingsTransactions: [],
+          pendingPaymentSupports: 0,
           deactivationRequests: [],
-          usersByStatus: [
-            { status: 'Activo', count: 840 },
-            { status: 'Inactivo', count: 240 },
-            { status: 'Retirado', count: 120 },
-          ],
-        };
-        console.log('Using fallback data due to API error');
-        setDashboardData(fallbackData);
+        });
         setDataLoaded(true);
       } finally {
         setLoading(false);
@@ -70,18 +90,17 @@ const AdminDashboard = () => {
         </Grid>
       ) : (
         <>
-          {/* Sección Usuarios */}
+          {/* Estado de la cooperativa */}
           <Grid size={{ xs: 12 }}>
-            <Typography variant="h6" gutterBottom color="primary">
-              👥 Usuarios
-            </Typography>
-          </Grid>
-          <Grid size={{ xs: 12 }}>
-            <TotalUsersCard 
-              totalUsers={dashboardData.totalUsers} 
-              usersByStatus={dashboardData.usersByStatus} 
+            <SectionHeader
+              icon={<IconActivity size={22} color="#fff" />}
+              title="Estado de la Cooperativa"
+              color="linear-gradient(135deg, #5D87FF 0%, #49BEFF 100%)"
             />
           </Grid>
+          <Grid size={{ xs: 12 }}>
+            <CooperativeOverview data={dashboardData} />
+          </Grid>
 
           <Grid size={{ xs: 12 }}>
             <Box my={2}>
@@ -89,61 +108,37 @@ const AdminDashboard = () => {
             </Box>
           </Grid>
 
-          {/* Sección Cartera */}
-          <Grid size={{ xs: 12 }}>
-            <Typography variant="h6" gutterBottom color="primary">
-              💼 Cartera de Créditos
-            </Typography>
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <ActiveCredits dashboardData={dashboardData} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <PendingApprovalsCard count={dashboardData.pendingCredits} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <OverdueCredits dashboardData={dashboardData} />
-          </Grid>
-          <Grid size={{ xs: 12 }}>
+          {/* Distribución de créditos y usuarios */}
+          <Grid size={{ xs: 12, md: 6 }}>
             <CreditDistribution dashboardData={dashboardData} />
           </Grid>
-
+          <Grid size={{ xs: 12, md: 6 }}>
+            <TotalUsersCard
+              title="Asociados por estado"
+              totalUsers={dashboardData.totalUsers}
+              usersByStatus={dashboardData.usersByStatus}
+            />
+          </Grid>
           <Grid size={{ xs: 12 }}>
             <Box my={2}>
               <Divider />
             </Box>
           </Grid>
 
-          {/* Sección Ahorros */}
+          {/* Ahorros por mes */}
           <Grid size={{ xs: 12 }}>
-            <Typography variant="h6" gutterBottom color="primary">
-              💰 Ahorros y Transacciones
-            </Typography>
+            <SectionHeader
+              icon={<IconCoins size={22} color="#fff" />}
+              title="Ahorros y Transacciones"
+              color="linear-gradient(135deg, #13DEB9 0%, #02b3a9 100%)"
+            />
           </Grid>
           <Grid size={{ xs: 12 }}>
-            <SavingsTransactionsCard 
-              savingsTransactions={dashboardData.savingsTransactions} 
+            <SavingsTransactionsCard
+              savingsTransactions={dashboardData.savingsTransactions}
               savingsLabels={dashboardData.savingsLabels}
             />
           </Grid>
-
-          {/* <Grid  size={{ xs: 12, md: 4 }}>
-            <DashboardCard title="Pending Payment Supports">
-              <Typography variant="h5">
-                {dashboardData.pendingPaymentSupports}
-              </Typography>
-            </DashboardCard>
-          </Grid> */}
-
-          {/* <Grid  size={{ xs: 12, md: 6 }}>
-            <SavingsTransactionsCard />
-          </Grid> */}
-
-          {/* <Grid  size={{ xs: 12 }}>
-              <DashboardCard title="Deactivation Requests">
-                  <Chart options={deactivationRequestsOptions} series={deactivationRequestsSeries} type="bar" height={350} />
-              </DashboardCard>
-          </Grid> */}
         </>
       )}
     </Grid>

@@ -48,12 +48,12 @@ export const userService = {
   },
   async update(id: number, user: Omit<User, "id" | "status">) {
     try {
-      const response = await axiosClient.put(`/${baseURL}/${id}`, user);
+      const response = await axiosClient.put(`${baseURL}/${id}`, user);
       if (response?.data) {
         return response.data?.data;
       }
     } catch (error) {
-      throw new Error("Error", error!);
+      throw error;
     }
   },
   async deactivate(id: number, user: Omit<User, "id">) {

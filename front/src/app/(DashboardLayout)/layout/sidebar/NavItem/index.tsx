@@ -8,8 +8,10 @@ import {
   ListItemText,
   useTheme,
   ListItemButton,
+  Tooltip,
 } from "@mui/material";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 type NavGroup = {
   [x: string]: any;
@@ -28,11 +30,19 @@ interface ItemType {
   hideMenu?: any;
   level?: number | any;
   pathDirect: string;
+  collapsed?: boolean;
 }
 
-const NavItem = ({ item, level, pathDirect, onClick }: ItemType) => {
+const NavItem = ({ item, level, pathDirect, onClick, collapsed = false }: ItemType) => {
   const Icon = item.icon;
   const theme = useTheme();
+  const searchParams = useSearchParams();
+  const [itemPath, itemQuery = ""] = typeof item.href === "string"
+    ? item.href.split("?")
+    : [item.href, ""];
+  const currentQuery = searchParams.toString();
+  const isSelected = pathDirect === itemPath &&
+    (!itemQuery || itemQuery === currentQuery);
   const itemIcon = <Icon stroke={1.5} size="1.3rem" />;
 
   const ListItemStyled = styled(ListItem)(() => ({
@@ -63,27 +73,33 @@ const NavItem = ({ item, level, pathDirect, onClick }: ItemType) => {
   return (
     <List component="div" disablePadding key={item.id}>
       <ListItemStyled>
-        <ListItemButton
+        <Tooltip title={collapsed ? item.title : ""} placement="right">
+          <ListItemButton
           component={Link}
           href={item.href}
           disabled={item.disabled}
-          selected={pathDirect === item.href}
+            selected={isSelected}
           target={item.external ? "_blank" : ""}
           onClick={onClick}
+          aria-label={item.title}
+          sx={{
+            justifyContent: collapsed ? "center" : "initial",
+            minWidth: 0,
+            px: collapsed ? 1 : 1.25,
+          }}
         >
           <ListItemIcon
             sx={{
-              minWidth: "36px",
-              p: "3px 0",
+              minWidth: collapsed ? 0 : "36px",
+              p: collapsed ? 0 : "3px 0",
               color: "inherit",
             }}
           >
             {itemIcon}
           </ListItemIcon>
-          <ListItemText>
-            <>{item.title}</>
-          </ListItemText>
-        </ListItemButton>
+          {!collapsed && <ListItemText>{item.title}</ListItemText>}
+          </ListItemButton>
+        </Tooltip>
       </ListItemStyled>
     </List>
   );

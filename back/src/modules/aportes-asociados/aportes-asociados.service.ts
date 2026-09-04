@@ -34,6 +34,8 @@ export class AsocAportesAsociadosService {
     const aporte = this.AsocAportesAsociadosRepository.create({
       ...aporteData,
       idAsociado: asociado, // Relacionar el objeto Asociado completo
+      fechaCreacion: new Date(),
+      fechaModificacion: new Date(),
     });
 
     console.log(aporte)
@@ -84,6 +86,7 @@ export class AsocAportesAsociadosService {
     aporte.metodoPago = updateAsocAportesAsociadosDto.metodoPago;
     aporte.comprobante = updateAsocAportesAsociadosDto.comprobante;
     aporte.idUsuarioRegistro = updateAsocAportesAsociadosDto.idUsuarioRegistro;
+    aporte.fechaModificacion = new Date();
 
     // Aquí asignamos el objeto `Asociado` en lugar de solo el ID
     aporte.idAsociado = asociado;

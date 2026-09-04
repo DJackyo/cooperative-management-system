@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Avatar, Box, Menu, Button, IconButton, MenuItem, ListItemIcon, ListItemText, Skeleton } from "@mui/material";
+import { Avatar, Box, Menu, Button, IconButton, MenuItem, ListItemIcon, ListItemText, Typography, Divider, Skeleton } from "@mui/material";
 import { useRouter } from "next/navigation";
-import { IconBriefcase, IconSettings, IconUser } from "@tabler/icons-react";
+import { IconBriefcase, IconSettings, IconUser, IconLogout } from "@tabler/icons-react";
+import Swal from "sweetalert2";
 import { authService } from "@/app/authentication/services/authService";
 import { useTheme } from "@mui/material/styles";
 import { validateRoles, roleAdmin, roleUser, roleSuperAdmin } from "../../utilities/utils";
@@ -14,6 +15,7 @@ const Profile = () => {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string[]>([]);
   const [roleIcon, setRoleIcon] = useState<React.ReactNode | null>(null);
+  const [userInfo, setUserInfo] = useState({ username: "", email: "" });
   const [loading, setLoading] = useState(true);
 
   const handleClick2 = (event: React.MouseEvent<HTMLElement>) => {
@@ -24,9 +26,23 @@ const Profile = () => {
     setAnchorEl2(null);
   };
 
-  const handleLogout = () => {
-    authService.logout();
-    router.push("/authentication/login");
+  const handleLogout = async () => {
+    handleClose2();
+    const result = await Swal.fire({
+      title: "¿Cerrar sesión?",
+      text: "Estás a punto de salir de tu cuenta.",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí, salir",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#5D87FF",
+      cancelButtonColor: "#e5eaef",
+    });
+
+    if (result.isConfirmed) {
+      authService.logout();
+      router.push("/authentication/login");
+    }
   };
 
   const getRoleIcon = useCallback(
@@ -55,6 +71,11 @@ const Profile = () => {
         setRoleIcon(icon);
         setLoading(false);
       };
+      img.onerror = () => {
+        setProfileImage(image);
+        setRoleIcon(icon);
+        setLoading(false);
+      };
     },
     [theme]
   );
@@ -63,11 +84,18 @@ const Profile = () => {
     const userRoles = authService.getUserRoles();
     setUserRole(userRoles);
     getRoleIcon(userRoles);
+
+    try {
+      const data = authService.getCurrentUserData();
+      setUserInfo({ username: data.username || "", email: data.email || "" });
+    } catch {
+      setUserInfo({ username: "", email: "" });
+    }
   }, [getRoleIcon]);
 
   return (
     <Box>
-      <IconButton size="large" color="inherit" aria-controls="msgs-menu" aria-haspopup="true" sx={{ ...(anchorEl2 && { color: "primary.main" }) }} onClick={handleClick2}>
+      <IconButton size="large" color="inherit" aria-label="Menú de usuario" aria-controls="msgs-menu" aria-haspopup="true" sx={{ ...(anchorEl2 && { color: "primary.main" }) }} onClick={handleClick2}>
         {loading ? <Skeleton variant="circular" width={35} height={35} /> : <Avatar src={profileImage || ""} alt="Profile image" sx={{ width: 35, height: 35 }} />}
       </IconButton>
 
@@ -81,30 +109,46 @@ const Profile = () => {
         transformOrigin={{ horizontal: "right", vertical: "top" }}
         sx={{
           "& .MuiMenu-paper": {
-            width: "250px",
+            width: "260px",
+            borderRadius: 2,
+            mt: 1,
           },
         }}
       >
-        <MenuItem>
+        <Box px={3} py={1.5} sx={{ bgcolor: theme.palette.primary.light }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "textPrimary", lineHeight: 1.3 }}>
+            {userInfo.username || "Usuario"}
+          </Typography>
+          {userInfo.email && (
+            <Typography variant="caption" color="textSecondary">
+              {userInfo.email}
+            </Typography>
+          )}
+        </Box>
+
+        <Divider />
+
+        <MenuItem disabled={userRole.length === 0}>
           <ListItemIcon sx={{ color: theme.palette.primary.main }}>{roleIcon}</ListItemIcon>
           <ListItemText
             primaryTypographyProps={{
               sx: { fontWeight: "bold", color: "primary.main" },
             }}
           >
-            {userRole.join(", ")}
+            {userRole.join(", ") || "Sin rol asignado"}
           </ListItemText>
         </MenuItem>
 
-        <MenuItem>
-          <ListItemIcon>
-            <IconUser width={20} />
-          </ListItemIcon>
-          <ListItemText>Mi perfil</ListItemText>
-        </MenuItem>
+        <Divider />
 
         <Box mt={1} py={1} px={2}>
-          <Button onClick={handleLogout} variant="outlined" color="primary" fullWidth>
+          <Button
+            onClick={handleLogout}
+            variant="outlined"
+            color="primary"
+            fullWidth
+            startIcon={<IconLogout size="18" />}
+          >
             Salir
           </Button>
         </Box>

@@ -9,20 +9,25 @@ type NavGroup = {
 
 interface ItemType {
   item: NavGroup;
+  collapsed?: boolean;
 }
 
-const NavGroup = ({ item }: ItemType) => {
+const NavGroup = ({ item, collapsed }: ItemType) => {
   const ListSubheaderStyle = styled((props: Theme | any) => <ListSubheader disableSticky {...props} />)(
     ({ theme }) => ({
       ...theme.typography.overline,
       fontWeight: '700',
       marginTop: theme.spacing(3),
-      marginBottom: theme.spacing(0),
-      color: theme.palette.text.primary,
+      marginBottom: theme.spacing(1),
+      color: theme.palette.mode === 'light' ? '#7C8FAC' : '#7C8FAC',
+      textTransform: 'uppercase',
+      letterSpacing: '0.08em',
       lineHeight: '26px',
       padding: '3px 12px',
     }),
   );
+  if (collapsed) return null;
+
   return (
     <ListSubheaderStyle>{item.subheader}</ListSubheaderStyle>
   );

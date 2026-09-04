@@ -5,6 +5,8 @@ import { Card, CardContent, Typography } from "@mui/material";
 import { Box } from "@mui/system";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
+import { IconListDetails } from "@tabler/icons-react";
+import PageHeader from "@/app/(DashboardLayout)/components/shared/PageHeader";
 // import CreditDetailModule from "./CreditDetailModule";
 
 const CreditDetailModule = dynamic(() => import('./CreditDetailModule'), {
@@ -42,10 +44,18 @@ const UserCreditPage = () => {
   }
 
   return (
-    <CreditDetailModule
-      userId={parseInt(userId!)}
-      creditId={parseInt(creditId!)}
-    />
+    <Box>
+      <PageHeader
+        title="Mis Créditos"
+        subtitle="Consulta el detalle y estado de tus créditos"
+        icon={<IconListDetails size={22} />}
+        gradient="linear-gradient(135deg, #7e22ce 0%, #c084fc 120%)"
+      />
+      <CreditDetailModule
+        userId={parseInt(userId!)}
+        creditId={parseInt(creditId!)}
+      />
+    </Box>
   );
 };
 

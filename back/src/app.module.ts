@@ -12,6 +12,7 @@ import { AsocEconomicaSocial } from './entities/entities/AsocEconomicaSocial';
 import { Asociados } from './entities/entities/Asociados';
 import { AsocInformacionFamiliar } from './entities/entities/AsocInformacionFamiliar';
 import { AsocInformacionLaboral } from './entities/entities/AsocInformacionLaboral';
+import { AsocMetasAhorro } from './entities/entities/AsocMetasAhorro';
 import { AsocTiposFamiliares } from './entities/entities/AsocTiposFamiliares';
 import { AsocUbicaciones } from './entities/entities/AsocUbicaciones';
 import { EstadosAprobacion } from './entities/entities/EstadosAprobacion';
@@ -57,6 +58,7 @@ import { BackupModule } from './modules/backup/backup.module';
           Asociados,
           AsocInformacionFamiliar,
           AsocInformacionLaboral,
+          AsocMetasAhorro,
           AsocTiposFamiliares,
           AsocUbicaciones,
           EstadosAprobacion,
@@ -97,3 +99,4 @@ import { BackupModule } from './modules/backup/backup.module';
   providers: [AppService],
 })
 export class AppModule {}
+

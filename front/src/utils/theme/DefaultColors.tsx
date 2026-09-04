@@ -11,6 +11,10 @@ export const plus = Plus_Jakarta_Sans({
 const baselightTheme = createTheme({
   direction: "ltr",
   palette: {
+    background: {
+      default: "#f5f7fb",
+      paper: "#ffffff",
+    },
     primary: {
       main: "#5D87FF",
       light: "#ECF2FF",
@@ -136,10 +140,89 @@ const baselightTheme = createTheme({
         },
       },
     },
+    MuiPaper: {
+      styleOverrides: {
+        root: {
+          backgroundImage: "none",
+        },
+      },
+    },
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: "7px",
+          borderRadius: "10px",
+          border: "1px solid #e6ebf2",
+          transition:
+            "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out",
+          boxShadow: "0 2px 8px rgba(16,24,40,0.04)",
+          "&:hover": {
+            transform: "translateY(-2px)",
+            boxShadow: "0 10px 24px rgba(16,24,40,0.08)",
+            borderColor: "#d8e1ee",
+          },
+        },
+      },
+    },
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: "8px",
+          textTransform: "none",
+          fontWeight: 600,
+          transition:
+            "transform 0.15s ease-in-out, box-shadow 0.2s ease-in-out, background-color 0.2s ease-in-out",
+          "&:hover": {
+            transform: "translateY(-1px)",
+          },
+        },
+        contained: {
+          boxShadow: "0 4px 10px rgba(93,135,255,0.25)",
+          "&:hover": {
+            boxShadow: "0 6px 16px rgba(93,135,255,0.35)",
+          },
+        },
+      },
+    },
+    MuiListItemButton: {
+      styleOverrides: {
+        root: {
+          borderRadius: "8px",
+          marginBottom: "4px",
+          minHeight: "44px",
+          "&.Mui-selected": {
+            backgroundColor: "#ecf2ff",
+            color: "#4570ea",
+            "&:hover": { backgroundColor: "#e3ebff" },
+          },
+        },
+      },
+    },
+    MuiIconButton: {
+      styleOverrides: {
+        root: {
+          transition:
+            "transform 0.15s ease-in-out, background-color 0.2s ease-in-out",
+          "&:hover": {
+            transform: "translateY(-1px)",
+          },
+        },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: {
+          borderBottom: "1px solid #f1f5f9",
+        },
+        head: {
+          fontWeight: 600,
+          backgroundColor: "#f8fafc",
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: "10px",
         },
       },
     },

@@ -37,7 +37,7 @@ export class UsuariosController {
         nombre: role.nombre,
       })),
       idAsociado: {
-        id: usuario.id,
+        id: usuario.idAsociado.id,
         nombres: [
           usuario.idAsociado.nombre1,
           usuario.idAsociado.nombre2,
@@ -48,6 +48,7 @@ export class UsuariosController {
         idEstado: usuario.idAsociado.idEstado
       },
       activeLoansCount: usuario.activeLoansCount || 0,
+      loansCount: usuario.loansCount || 0,
     }));
   }
 

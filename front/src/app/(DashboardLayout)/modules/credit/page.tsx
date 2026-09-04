@@ -5,6 +5,8 @@ import { Card, CardContent, Typography } from "@mui/material";
 import { Box } from "@mui/system";
 import { useSearchParams } from "next/navigation";
 import CreditModule from "./CreditModule";
+import { IconAdjustmentsDollar } from "@tabler/icons-react";
+import PageHeader from "@/app/(DashboardLayout)/components/shared/PageHeader";
 
 const CreditPage = () => {
   // Obtener los parámetros de la URL
@@ -34,6 +36,12 @@ const CreditPage = () => {
 
   return (
     <div>
+      <PageHeader
+        title="Gestión de Crédito"
+        subtitle="Administra solicitudes, aprobaciones y pagos de créditos"
+        icon={<IconAdjustmentsDollar size={22} />}
+        gradient="linear-gradient(135deg, #7e22ce 0%, #c084fc 120%)"
+      />
       <CreditModule userId={parseInt(id)} />
     </div>
   );

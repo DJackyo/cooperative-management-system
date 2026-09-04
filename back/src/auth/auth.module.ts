@@ -8,11 +8,12 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { UsuariosService } from 'src/modules/usuarios/usuarios.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Usuarios } from 'src/entities/entities/Usuarios';
+import { Prestamos } from 'src/entities/entities/Prestamos';
 
 @Module({
   imports: [
     ConfigModule, // Asegúrate de importar ConfigModule
-    TypeOrmModule.forFeature([Usuarios]),
+    TypeOrmModule.forFeature([Usuarios, Prestamos]),
     JwtModule.registerAsync({
       imports: [ConfigModule], // ConfigModule se debe inyectar
       inject: [ConfigService], // Inyectamos ConfigService

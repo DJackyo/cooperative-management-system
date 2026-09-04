@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Modal, Typography, TextField, Select, MenuItem, Button, Grid } from "@mui/material";
+import { Alert, Box, Modal, Typography, TextField, Select, MenuItem, Button, Grid, Divider, CircularProgress } from "@mui/material";
 import { User } from "@/interfaces/User";
 
 type UserModalProps = {
@@ -10,32 +10,42 @@ type UserModalProps = {
   onSubmit: () => void;
   editingUser: boolean;
   formError?: string | null;
+  submitting?: boolean;
 };
 
-const UserModal: React.FC<UserModalProps> = ({ open, onClose, formData, onChange, onSubmit, editingUser, formError }) => {
+const UserModal: React.FC<UserModalProps> = ({ open, onClose, formData, onChange, onSubmit, editingUser, formError, submitting = false }) => {
   return (
     <Modal open={open} onClose={onClose}>
       <Box
         sx={{
           bgcolor: "background.paper",
           boxShadow: 24,
-          padding: 4,
-          width: "60vw",
+          p: { xs: 2, sm: 3 },
+          width: { xs: "calc(100% - 32px)", sm: "min(720px, calc(100% - 48px))" },
+          maxHeight: "calc(100vh - 32px)",
+          overflowY: "auto",
           margin: "auto",
-          marginTop: "50px",
+          marginTop: { xs: 2, sm: 6 },
+          borderRadius: 2,
         }}
       >
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h5" gutterBottom>
           {editingUser ? "Editar Asociado " + formData.idAsociado.nombres : "Crear Asociado y Usuario"}
         </Typography>
         {formError && (
-          <Typography variant="body2" color="error" sx={{ mb: 2 }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
             {formError}
-          </Typography>
+          </Alert>
         )}
         <Box component="form" noValidate autoComplete="off">
           <Grid container spacing={2}>
             {/* Asociado info */}
+            <Grid size={{ xs: 12 }}>
+              <Typography variant="subtitle1" fontWeight={600} color="text.primary">
+                Información del asociado
+              </Typography>
+              <Divider sx={{ mt: 0.5 }} />
+            </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
@@ -60,7 +70,7 @@ const UserModal: React.FC<UserModalProps> = ({ open, onClose, formData, onChange
               </TextField>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <TextField fullWidth label="Identificación" margin="normal" name="idAsociado.numeroDeIdentificacion" value={formData.idAsociado.numeroDeIdentificacion} onChange={onChange} />
+              <TextField fullWidth label="Identificación" margin="normal" name="idAsociado.numeroDeIdentificacion" value={formData.idAsociado.numeroDeIdentificacion || ""} onChange={onChange} />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <TextField
@@ -147,7 +157,12 @@ const UserModal: React.FC<UserModalProps> = ({ open, onClose, formData, onChange
                 margin="normal"
                 name="idAsociado.esAsociado"
                 value={formData.idAsociado.esAsociado !== undefined ? String(formData.idAsociado.esAsociado) : "true"}
-                onChange={onChange}
+                onChange={(e) => onChange({
+                  target: {
+                    name: "idAsociado.esAsociado",
+                    value: e.target.value === "true",
+                  },
+                } as any)}
               >
                 <MenuItem value="true">Sí</MenuItem>
                 <MenuItem value="false">No</MenuItem>
@@ -155,8 +170,14 @@ const UserModal: React.FC<UserModalProps> = ({ open, onClose, formData, onChange
             </Grid>
 
             {/* Usuario credentials */}
+            <Grid size={{ xs: 12 }}>
+              <Typography variant="subtitle1" fontWeight={600} color="text.primary" sx={{ mt: 1 }}>
+                Acceso al sistema
+              </Typography>
+              <Divider sx={{ mt: 0.5 }} />
+            </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
-              <TextField fullWidth label="Correo Electrónico" margin="normal" name="correoElectronico" value={formData.correoElectronico} onChange={onChange} />
+              <TextField fullWidth label="Correo Electrónico" margin="normal" name="correoElectronico" value={formData.correoElectronico || ""} onChange={onChange} />
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>
               <TextField fullWidth label="Contraseña" margin="normal" type="password" name="contrasena" value={formData.contrasena || ""} onChange={onChange} disabled={editingUser} />
@@ -189,9 +210,14 @@ const UserModal: React.FC<UserModalProps> = ({ open, onClose, formData, onChange
               </TextField>
             </Grid>
           </Grid>
-          <Button variant="contained" onClick={onSubmit} sx={{ marginTop: 2 }}>
-            {editingUser ? "Actualizar" : "Crear"}
-          </Button>
+          <Box display="flex" justifyContent="flex-end" gap={1} sx={{ mt: 3 }}>
+            <Button variant="outlined" color="inherit" onClick={onClose} disabled={submitting}>
+              Cancelar
+            </Button>
+            <Button variant="contained" onClick={onSubmit} disabled={submitting} startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}>
+              {submitting ? "Guardando..." : editingUser ? "Actualizar" : "Crear"}
+            </Button>
+          </Box>
         </Box>
       </Box>
     </Modal>

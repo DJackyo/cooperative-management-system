@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation"; // Importamos el hook para ob
 import SavingsModule from "./SavingsModule";
 import { Box, Card, CardContent, Typography } from "@mui/material";
 import { ErrorOutline } from "@mui/icons-material";
+import { IconCoins } from "@tabler/icons-react";
+import PageHeader from "@/app/(DashboardLayout)/components/shared/PageHeader";
 
 const SavingsPage = () => {
   // Obtener los parámetros de la URL
@@ -35,6 +37,12 @@ const SavingsPage = () => {
 
   return (
     <div>
+      <PageHeader
+        title="Gestión de Ahorros"
+        subtitle="Registra y consulta los ahorros de los asociados"
+        icon={<IconCoins size={22} />}
+        gradient="linear-gradient(135deg, #13DEB9 0%, #02b3a9 120%)"
+      />
       <SavingsModule id={parseInt(id)} />
     </div>
   );
