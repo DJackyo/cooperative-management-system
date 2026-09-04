@@ -1,6 +1,6 @@
 import { LoggedUser } from "@/interfaces/User";
-import { Chip } from "@mui/material";
 import dayjs from "dayjs";
+import StatusChip from "@/components/StatusChip";
 
 export const rolesList = ["SOCIO", "ADMINISTRADOR", "GESTOR DE OPERACIONES"];
 export const roleSuperAdmin = [rolesList[1]];
@@ -222,25 +222,7 @@ export const formatNumber = (number: number) => {
 
 // Función para determinar el color del estado
 export const getEstadoChip = (estado: string) => {
-  const estadoConfig: Record<
-    string,
-    { label: string; color: "success" | "warning" | "error" | "info" }
-  > = {
-    APROBADO: { label: "Aprobado", color: "success" },
-    SOLICITADO: { label: "Solicitado", color: "warning" },
-    RECHAZADO: { label: "Rechazado", color: "error" },
-    PENDIENTE: { label: "Pendiente", color: "warning" },
-    PAGADO: { label: "Pagado", color: "success" },
-    CANCELADO: { label: "Cancelado", color: "info" },
-  };
-
-  return (
-    <Chip
-      label={estadoConfig[estado]?.label ?? "Desconocido"}
-      color={estadoConfig[estado]?.color ?? "info"}
-      variant="outlined"
-    />
-  );
+  return <StatusChip status={estado} />;
 };
 
 // 📌 Función para calcular los días en mora

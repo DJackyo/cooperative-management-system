@@ -15,6 +15,7 @@ import {
   Box,
   Tooltip,
 } from "@mui/material";
+import StatusChip from "@/components/StatusChip";
 // import {
 //   fetchCredits,
 //   approveCreditRequest,
@@ -165,17 +166,7 @@ const Credits = () => {
                     <TableCell>{request.amountRequested}</TableCell>
                     <TableCell>{request.requestDate}</TableCell>
                     <TableCell>
-                      <Typography
-                        color={
-                          request.status === "pendiente"
-                            ? "orange"
-                            : request.status === "aprobado"
-                            ? "green"
-                            : "red"
-                        }
-                      >
-                        {request.status}
-                      </Typography>
+                      <StatusChip status={request.status} />
                     </TableCell>
                     <TableCell>
                       <Tooltip title="Aprobar">

@@ -1,5 +1,5 @@
 "use client";
-import { styled, Container, Box, Menu, MenuItem } from "@mui/material";
+import { styled, Container, Box } from "@mui/material";
 import React, { useState, useEffect } from "react";
 import Header from "@/app/(DashboardLayout)/layout/header/Header";
 import Sidebar from "@/app/(DashboardLayout)/layout/sidebar/Sidebar";
@@ -16,7 +16,6 @@ const SidebarWrapper = styled("div")(() => ({
   position: "relative",
   zIndex: 1000,
   flexShrink: 0,
-  minWidth: "260px",
   willChange: "auto",
   "@media (max-width: 1199px)": {
     minWidth: 0,
@@ -29,14 +28,8 @@ const PageWrapper = styled("div")(() => ({
   paddingBottom: "32px",
   flexDirection: "column",
   zIndex: 1,
-  background: "#f5f7fb",
   opacity: 1,
-  transition: "none",
 }));
-
-interface Props {
-  children: React.ReactNode;
-}
 
 export default function RootLayout({
   children,
@@ -72,13 +65,18 @@ export default function RootLayout({
         {/* ------------------------------------------- */}
         {/* Header */}
         {/* ------------------------------------------- */}
-        <Header toggleMobileSidebar={() => setMobileSidebarOpen(true)} />
+        <Header
+          isSidebarOpen={isSidebarOpen}
+          toggleSidebar={() => setSidebarOpen((open) => !open)}
+          toggleMobileSidebar={() => setMobileSidebarOpen(true)}
+        />
         {/* ------------------------------------------- */}
         {/* PageContent */}
         {/* ------------------------------------------- */}
         <Container
           sx={{
             width: "100%",
+            bgcolor: "background.default",
             paddingTop: { xs: "16px", sm: "24px" },
             maxWidth: "1440px",
             px: { xs: 2, sm: 3, lg: 4 },

@@ -6,16 +6,12 @@ import {
   styled,
   Stack,
   IconButton,
-  Badge,
-  Button,
   Skeleton,
   Typography,
 } from "@mui/material";
-import PropTypes from "prop-types";
-import Link from "next/link";
 // components
 import Profile from "./Profile";
-import { IconBellRinging, IconMenu } from "@tabler/icons-react";
+import { IconMenu } from "@tabler/icons-react";
 import { usePathname, useRouter } from "next/navigation";
 import { authService } from "@/app/authentication/services/authService";
 import { LoggedUser } from "@/interfaces/User";
@@ -23,10 +19,12 @@ import { defaultLoggedUser } from "../../utilities/utils";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
 
 interface ItemType {
-  toggleMobileSidebar: (event: React.MouseEvent<HTMLElement>) => void;
+  isSidebarOpen: boolean;
+  toggleSidebar: () => void;
+  toggleMobileSidebar: () => void;
 }
 
-const Header = ({ toggleMobileSidebar }: ItemType) => {
+const Header = ({ isSidebarOpen, toggleSidebar, toggleMobileSidebar }: ItemType) => {
   // const lgUp = useMediaQuery((theme) => theme.breakpoints.up('lg'));
   // const lgDown = useMediaQuery((theme) => theme.breakpoints.down('lg'));
   const router = useRouter();
@@ -72,14 +70,20 @@ const Header = ({ toggleMobileSidebar }: ItemType) => {
         <Suspense fallback={<Skeleton variant="text" width="100%" />}>
           <IconButton
             color="inherit"
-            aria-label="menu"
-            onClick={toggleMobileSidebar}
+            aria-label={isSidebarOpen ? "Colapsar menú lateral" : "Expandir menú lateral"}
+            onClick={toggleSidebar}
             sx={{
-              display: {
-                lg: "none",
-                xs: "inline",
-              },
+              display: { xs: "none", lg: "inline-flex" },
             }}
+          >
+            <IconMenu width="20" height="20" />
+          </IconButton>
+
+          <IconButton
+            color="inherit"
+            aria-label="Abrir menú lateral"
+            onClick={toggleMobileSidebar}
+            sx={{ display: { xs: "inline-flex", lg: "none" } }}
           >
             <IconMenu width="20" height="20" />
           </IconButton>
@@ -93,18 +97,6 @@ const Header = ({ toggleMobileSidebar }: ItemType) => {
             </Typography>
           </Box>
 
-          {/* <IconButton
-          size="large"
-          aria-label="show 11 new notifications"
-          color="inherit"
-          aria-controls="msgs-menu"
-          aria-haspopup="true"
-        >
-          <Badge variant="dot" color="primary">
-            <IconBellRinging size="21" stroke="1.5" />
-          </Badge>
-
-        </IconButton> */}
           <Box flexGrow={1} />
           <Stack
             spacing={0}
@@ -134,10 +126,6 @@ const Header = ({ toggleMobileSidebar }: ItemType) => {
       </ToolbarStyled>
     </AppBarStyled>
   );
-};
-
-Header.propTypes = {
-  sx: PropTypes.object,
 };
 
 export default Header;

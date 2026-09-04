@@ -25,8 +25,10 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Alert,
 } from "@mui/material";
 import Chip from "@mui/material/Chip";
+import StatusChip from "@/components/StatusChip";
 
 import { LoggedUser, User, Asociado } from "@/interfaces/User";
 import { userService } from "@/services/userService";
@@ -119,18 +121,22 @@ const UserManagementModule = () => {
   const [selectedAporte, setSelectedAporte] = useState<Aporte | null>(null); // Estado para la fila seleccionada
   const [openAporteModal, setOpenAporteModal] = useState(false);
   const [loadingLoans, setLoadingLoans] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   // crédito modal states
   const [openCreditModal, setOpenCreditModal] = useState(false);
   const [creditTasas, setCreditTasas] = useState<any[]>([]);
   const [creditUserInfo, setCreditUserInfo] = useState<Asociado | null>(null);
+  const [submittingUser, setSubmittingUser] = useState(false);
 
   const refreshUsersWithLoans = async () => {
     setLoadingLoans(true);
+    setLoadError(null);
     try {
       const response = await userService.fetchAllWithLoans();
       setUsers(response);
     } catch (error) {
       console.error('Error al actualizar préstamos:', error);
+      setLoadError('No fue posible actualizar la información. Intenta nuevamente.');
     } finally {
       setLoadingLoans(false);
     }
@@ -141,8 +147,12 @@ const UserManagementModule = () => {
     setupAxiosInterceptors(router);
 
     const loadUsers = async () => {
-      const hasSession = authService.isAuthenticated();
-      if (hasSession) {
+      if (!authService.isAuthenticated()) {
+        stopLoading();
+        return;
+      }
+
+      try {
         const response = await userService.fetchAllWithLoans();
         setUsers(response);
         const count = response.filter(
@@ -151,6 +161,10 @@ const UserManagementModule = () => {
         setActiveUsersCount(count);
         const user = await authService.getCurrentUserData();
         setCurrentUser(user);
+      } catch (error) {
+        console.error('Error al cargar usuarios:', error);
+        setLoadError('No fue posible cargar los usuarios. Intenta nuevamente.');
+      } finally {
         stopLoading();
       }
     };
@@ -191,19 +205,6 @@ const UserManagementModule = () => {
     return 0;
   });
 
-  const statusColors: any = {
-    ACTIVO: "success",
-    RETIRADO: "default",
-    RSD: "info",
-    EXASOCIADO: "warning",
-    INACTIVO: "error",
-    EXCLUIDO: "error",
-  };
-
-  const getStatusColor = (estado: string) => {
-    return statusColors[estado] || "default";
-  };
-
   const roleColors: any = {
     SOCIO: "primary",
     "GESTOR DE OPERACIONES": "warning",
@@ -214,11 +215,21 @@ const UserManagementModule = () => {
     return roleColors[role] || "default";
   };
 
-  const handleOpenModal = (user?: User) => {
+  const handleOpenModal = async (user?: User) => {
     if (user) {
-      setEditingUser(user);
+      let editableUser = user;
+      try {
+        const detailUser = await userService.fetchById(user.id);
+        if (detailUser) {
+          editableUser = { ...user, ...detailUser };
+        }
+      } catch (error) {
+        console.error("Error al cargar el detalle del usuario:", error);
+      }
+
+      setEditingUser(editableUser);
       setFormData({
-        ...user,
+        ...editableUser,
       });
     } else {
       setEditingUser(null);
@@ -270,35 +281,49 @@ const UserManagementModule = () => {
 
   const handleSubmit = async () => {
       setFormError(null);
-      if (!editingUser) {
-        // check for duplicate email before creating asociado
-        const existing: any[] = await userService.fetchAll();
-        if (existing.some(u => u.correoElectronico === formData.correoElectronico)) {
-          setFormError('El correo electrónico ya está registrado. Por favor use otro correo.');
-          return; // abort
-        }
-      }
-
-      if (editingUser && editingUser.id) {
-        if (formData.idAsociado && formData.idAsociado.id) {
-          await asociadosService.update(formData.idAsociado.id, formData.idAsociado as any);
-        }
-        await userService.update(editingUser.id, formData as any);
-      } else {
-        let asociadoPayload: any = { ...formData.idAsociado };
-        if (asociadoPayload && !asociadoPayload.id) {
-          if (asociadoPayload.idEstado && typeof asociadoPayload.idEstado === 'string') {
-            asociadoPayload.idEstado = { id: 1, estado: asociadoPayload.idEstado };
+      setSubmittingUser(true);
+      try {
+        if (!editingUser) {
+          // check for duplicate email before creating asociado
+          const existing: any[] = await userService.fetchAll();
+          if (existing.some(u => u.correoElectronico === formData.correoElectronico)) {
+            setFormError('El correo electrónico ya está registrado. Por favor use otro correo.');
+            return; // abort
           }
-          const createdAsoc = await asociadosService.create(asociadoPayload);
-          asociadoPayload = createdAsoc;
         }
-        const userPayload = { ...formData, idAsociado: asociadoPayload, username: formData.correoElectronico };
-        await userService.create(userPayload as any);
+
+        if (editingUser && editingUser.id) {
+          if (formData.idAsociado && formData.idAsociado.id) {
+            const { id: asociadoId, idEstado: _idEstado, ...asociadoData } = formData.idAsociado;
+            await asociadosService.update(asociadoId, asociadoData as any);
+          }
+          const userData = {
+            correoElectronico: formData.correoElectronico,
+            username: formData.username,
+            fechaModificacion: new Date(),
+          };
+          await userService.update(editingUser.id, userData as any);
+        } else {
+          let asociadoPayload: any = { ...formData.idAsociado };
+          if (asociadoPayload && !asociadoPayload.id) {
+            if (asociadoPayload.idEstado && typeof asociadoPayload.idEstado === 'string') {
+              asociadoPayload.idEstado = { id: 1, estado: asociadoPayload.idEstado };
+            }
+            const createdAsoc = await asociadosService.create(asociadoPayload);
+            asociadoPayload = createdAsoc;
+          }
+          const userPayload = { ...formData, idAsociado: asociadoPayload, username: formData.correoElectronico };
+          await userService.create(userPayload as any);
+        }
+        const usersData: any = await userService.fetchAll();
+        setUsers(usersData);
+        handleCloseModal();
+      } catch (error: any) {
+        console.error("Error al guardar el usuario:", error);
+        setFormError(error?.response?.data?.message || "No fue posible guardar los cambios. Revisa los datos e intenta nuevamente.");
+      } finally {
+        setSubmittingUser(false);
       }
-      const usersData: any = await userService.fetchAll();
-      setUsers(usersData);
-      handleCloseModal();
   };
 
   const handleDeactivate = async (user: User) => {
@@ -445,6 +470,21 @@ const UserManagementModule = () => {
     return <GenericLoadingSkeleton type="table" rows={8} />;
   }
 
+  if (loadError) {
+    return (
+      <Alert
+        severity="error"
+        action={
+          <Button color="inherit" size="small" onClick={refreshUsersWithLoans}>
+            Reintentar
+          </Button>
+        }
+      >
+        {loadError}
+      </Alert>
+    );
+  }
+
   return (
     <Grid container spacing={3}>
       <Grid  size={{ xs: 12, md: 4 }}>
@@ -585,11 +625,7 @@ const UserManagementModule = () => {
                       : "Sin rol";
                   case "estado":
                     return user.idAsociado ? (
-                      <Chip
-                        label={user.idAsociado.idEstado.estado}
-                        color={getStatusColor(user.idAsociado.idEstado.estado)}
-                        size="small"
-                      />
+                      <StatusChip status={user.idAsociado.idEstado.estado} size="small" />
                     ) : (
                       "Sin estado"
                     );
@@ -789,6 +825,7 @@ const UserManagementModule = () => {
         onSubmit={handleSubmit}
         editingUser={editingUser !== null}
         formError={formError}
+        submitting={submittingUser}
       />
       {/* Modal para crear préstamo desde esta página */}
       <Dialog open={openCreditModal} onClose={() => setOpenCreditModal(false)} fullWidth maxWidth="md">

@@ -12,6 +12,7 @@ import {
   Grid,
   InputAdornment,
   OutlinedInput,
+  Divider,
 } from "@mui/material";
 import { Aporte } from "@/interfaces/Aporte";
 import { formatDateToISO } from "@/app/(DashboardLayout)/utilities/utils";
@@ -203,15 +204,22 @@ const AporteModal: React.FC<AporteModalProps> = ({
           top: "50%",
           left: "50%",
           transform: "translate(-50%, -50%)",
-          width: 600,
+          width: { xs: "calc(100% - 32px)", sm: "min(640px, calc(100% - 48px))" },
+          maxHeight: "calc(100vh - 32px)",
+          overflowY: "auto",
           bgcolor: "background.paper",
           boxShadow: 24,
-          p: 4,
+          p: { xs: 2, sm: 3 },
+          borderRadius: 2,
         }}
       >
-        <Typography id="modal-title" variant="h6" component="h2">
+        <Typography id="modal-title" variant="h5" component="h2">
           {aporte.id ? "Editar Aporte" : "Nuevo Aporte"}
         </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+          Registra la información del aporte y su método de pago.
+        </Typography>
+        <Divider sx={{ my: 2 }} />
         <form>
           <Grid container spacing={3}>
             {/* Primera columna */}

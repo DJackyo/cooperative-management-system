@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import { authService } from "@/app/authentication/services/authService";
 import { LoggedUser } from "@/interfaces/User";
 
-const SidebarItems = ({ toggleMobileSidebar }: any) => {
+const SidebarItems = ({ toggleMobileSidebar, collapsed = false }: any) => {
   const pathname = usePathname();
   const pathDirect = pathname;
   const [userRole, setUserRole] = useState<[]>([]);
@@ -45,12 +45,12 @@ const SidebarItems = ({ toggleMobileSidebar }: any) => {
   });
   // console.log(filteredMenuItems)
   return (
-    <Box sx={{ px: 3 }}>
+    <Box sx={{ px: collapsed ? 1 : 3 }}>
       <List sx={{ pt: 0 }} className="sidebarNav" component="div">
         {filteredMenuItems.map((item) => {
           // {/********SubHeader**********/}
           if (item.subheader) {
-            return <NavGroup item={item} key={item.subheader} />;
+            return <NavGroup item={item} key={item.subheader} collapsed={collapsed} />;
 
             // {/********If Sub Menu**********/}
             /* eslint no-else-return: "off" */
@@ -61,6 +61,7 @@ const SidebarItems = ({ toggleMobileSidebar }: any) => {
                 key={item.id}
                 pathDirect={pathDirect}
                 onClick={toggleMobileSidebar}
+                collapsed={collapsed}
               />
             );
           }

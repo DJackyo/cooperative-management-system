@@ -24,6 +24,7 @@ interface StyledTableProps {
   withPagination?: boolean; // Habilitar paginación interna
   initialPageSize?: number;
   pageSizeOptions?: number[];
+  emptyMessage?: string;
 }
 
 type SortOrder = 'asc' | 'desc';
@@ -40,6 +41,7 @@ const StyledTable: React.FC<StyledTableProps> = ({
   withPagination = false,
   initialPageSize = 10,
   pageSizeOptions = [5, 10, 25, 50],
+  emptyMessage = 'No hay registros para mostrar.',
 }) => {
   const [orderBy, setOrderBy] = useState<string | null>(null);
   const [order, setOrder] = useState<SortOrder>('asc');
@@ -117,9 +119,10 @@ const StyledTable: React.FC<StyledTableProps> = ({
 
   return (
     <Box sx={{ width: '100%' }}>
-      <TableContainer sx={{ 
+      <TableContainer sx={{
         borderRadius: 1,
-        overflow: 'visible',
+        overflowX: 'auto',
+        overflowY: 'hidden',
         maxWidth: '100%',
         '&::-webkit-scrollbar': {
           height: '10px',
@@ -136,7 +139,7 @@ const StyledTable: React.FC<StyledTableProps> = ({
           }
         }
       }}>
-        <Table sx={{ borderCollapse: 'collapse', width: '100%', tableLayout: 'scroll', minWidth: '700px' }}>
+        <Table sx={{ borderCollapse: 'collapse', width: '100%', minWidth: 700 }}>
         <TableHead>
           <TableRow
             sx={{
@@ -155,6 +158,7 @@ const StyledTable: React.FC<StyledTableProps> = ({
               <TableCell
                 key={column.field}
                 sx={{
+                  width: column.width,
                   fontWeight: 700,
                   fontSize: '0.85rem',
                   color: '#333',
@@ -195,7 +199,15 @@ const StyledTable: React.FC<StyledTableProps> = ({
           </TableRow>
         </TableHead>
         <TableBody>
-          {rowsToDisplay.map((row, index) => (
+          {rowsToDisplay.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={columns.length + (actions ? 1 : 0)}>
+                <Typography color="text.secondary" align="center" sx={{ py: 4 }}>
+                  {emptyMessage}
+                </Typography>
+              </TableCell>
+            </TableRow>
+          ) : rowsToDisplay.map((row, index) => (
             <TableRow
               key={row.id || index}
               onClick={() => onRowClick?.(row)}

@@ -31,7 +31,7 @@ import {
 } from "@mui/material";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { AttachMoney, Close as CloseIcon, CheckCircle as CheckCircleIcon, PendingActions as PendingIcon } from "@mui/icons-material";
+import { AttachMoney, Close as CloseIcon } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import { Aporte } from "@/interfaces/Aporte";
 import { savingsService } from "@/services/savingsService";
@@ -47,6 +47,7 @@ import {
 } from "@tabler/icons-react";
 import AporteModal from "./components/AporteModal";
 import BulkAporteModal from "./components/BulkAporteModal";
+import StatusChip from "@/components/StatusChip";
 import {
   defaultLoggedUser,
   formatCurrency,
@@ -200,23 +201,6 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     { field: "estado", headerName: "Estado", width: 130 },
     { field: "metodoPago", headerName: "Método Pago", width: 130 },
   ];
-
-  // Helper para obtener color de estado
-  const getStatusColor = (estado: string) => {
-    const statusLower = estado?.toLowerCase() || '';
-    if (statusLower.includes('aprobado') || statusLower.includes('confirmado')) return '#4caf50';
-    if (statusLower.includes('pendiente')) return '#ff9800';
-    if (statusLower.includes('rechazado')) return '#f44336';
-    return '#9e9e9e';
-  };
-
-  // Helper para obtener icono de estado
-  const getStatusIcon = (estado: string) => {
-    const statusLower = estado?.toLowerCase() || '';
-    if (statusLower.includes('aprobado') || statusLower.includes('confirmado')) return <CheckCircleIcon sx={{ fontSize: 18 }} />;
-    if (statusLower.includes('pendiente')) return <PendingIcon sx={{ fontSize: 18 }} />;
-    return null;
-  };
 
   // Manejo de la paginación
   const handlePageChange = (event: unknown, newPage: number) => {
@@ -639,25 +623,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                       </Box>
                     );
                   } else if (column.field === "estado") {
-                    return (
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 0.8,
-                          padding: '6px 12px',
-                          borderRadius: '20px',
-                          backgroundColor: getStatusColor(row[column.field]) + '20',
-                          color: getStatusColor(row[column.field]),
-                          fontWeight: 600,
-                          fontSize: '0.85rem',
-                          width: 'fit-content',
-                        }}
-                      >
-                        {getStatusIcon(row[column.field])}
-                        {row[column.field]}
-                      </Box>
-                    );
+                    return <StatusChip status={row[column.field]} size="small" />;
                   } else {
                     return (
                       <Typography sx={{ fontSize: '0.8rem' }}>

@@ -15,7 +15,7 @@ const MSidebar = ({
 }: ItemType) => {
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up("lg"));
 
-  const sidebarWidth = "260px";
+  const sidebarWidth = isSidebarOpen ? "260px" : "72px";
 
   // Custom CSS for short scrollbar
   const scrollbarStyles = {
@@ -32,8 +32,9 @@ const MSidebar = ({
     return (
       <Box
         sx={{
-          width: sidebarWidth,
+          width: { xs: 0, lg: sidebarWidth },
           flexShrink: 0,
+          transition: (theme) => theme.transitions.create("width"),
         }}
       >
         {/* ------------------------------------------- */}
@@ -48,9 +49,9 @@ const MSidebar = ({
               boxSizing: "border-box",
               width: sidebarWidth,
               border: "none",
-              borderRight: "1px solid #e5eaef",
+              borderRight: (theme) => `1px solid ${theme.palette.divider}`,
               boxShadow: "none",
-              transition: "width 0.2s ease",
+              transition: (theme) => theme.transitions.create("width"),
               overflowX: "hidden",
               ...scrollbarStyles,
             },
@@ -68,12 +69,12 @@ const MSidebar = ({
               display="flex"
               alignItems="center"
               justifyContent="center"
-              sx={{ p: 1.5, borderBottom: "1px solid #e5eaef" }}
+              sx={{ p: 1.5, borderBottom: 1, borderColor: "divider" }}
             >
-              <Logo width={110} height={55} padding="10px" />
+              <Logo width={isSidebarOpen ? 110 : 42} height={55} padding="10px" />
             </Box>
             <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
-              <SidebarItems />
+              <SidebarItems collapsed={!isSidebarOpen} />
             </Box>
           </Box>
         </Drawer>

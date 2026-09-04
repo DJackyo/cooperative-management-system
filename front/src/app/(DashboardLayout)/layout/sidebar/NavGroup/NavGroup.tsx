@@ -9,9 +9,10 @@ type NavGroup = {
 
 interface ItemType {
   item: NavGroup;
+  collapsed?: boolean;
 }
 
-const NavGroup = ({ item }: ItemType) => {
+const NavGroup = ({ item, collapsed }: ItemType) => {
   const ListSubheaderStyle = styled((props: Theme | any) => <ListSubheader disableSticky {...props} />)(
     ({ theme }) => ({
       ...theme.typography.overline,
@@ -25,6 +26,8 @@ const NavGroup = ({ item }: ItemType) => {
       padding: '3px 12px',
     }),
   );
+  if (collapsed) return null;
+
   return (
     <ListSubheaderStyle>{item.subheader}</ListSubheaderStyle>
   );
