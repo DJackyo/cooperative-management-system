@@ -81,7 +81,7 @@ import { BackupModule } from './modules/backup/backup.module';
           configService.get<string>('IS_PROD') === 'true'
             ? { rejectUnauthorized: false }
             : false,
-      }),
+      }), 
       inject: [ConfigService],
     }),
     UsersModule,

@@ -7,7 +7,7 @@ import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  
+
   // Configurar CORS
   app.enableCors({
     origin: [
@@ -15,17 +15,19 @@ async function bootstrap() {
       'http://localhost:3000',
       'http://127.0.0.1:4000',
       'http://127.0.0.1:3000',
-      ...(process.env.FRONTEND_URL ? [process.env.FRONTEND_URL.replace(/\/$/, '')] : []),
+      ...(process.env.FRONTEND_URL
+        ? [process.env.FRONTEND_URL.replace(/\/$/, '')]
+        : ['https://cooperative-management-system-g14j.vercel.app']),
     ],
   });
-  
   // Servir archivos estáticos desde la carpeta uploads
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads/',
   });
-  
+
   app.useGlobalInterceptors(new ResponseInterceptor());
   app.useGlobalFilters(new HttpExceptionFilter());
   await app.listen(process.env.PORT ?? 5001);
+  console.log('Frontend URL:', process.env.FRONTEND_URL);
 }
 bootstrap();
