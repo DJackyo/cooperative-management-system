@@ -12,11 +12,12 @@ interface UserStatus {
 }
 
 interface TotalUsersCardProps {
+  title?: string;
   totalUsers?: number;
   usersByStatus?: UserStatus[];
 }
 
-const TotalUsersCard = ({ totalUsers = 0, usersByStatus = [] }: TotalUsersCardProps) => {
+const TotalUsersCard = ({ title = "Estado de asociados", totalUsers = 0, usersByStatus = [] }: TotalUsersCardProps) => {
   // chart color
   const theme = useTheme();
   const primary = theme.palette.primary.main;
@@ -28,7 +29,6 @@ const TotalUsersCard = ({ totalUsers = 0, usersByStatus = [] }: TotalUsersCardPr
   // Generar colores dinámicamente
   const colors = [primary, secondary, success, warning, error];
 
-  const growthPercentage = 9; // Porcentaje de crecimiento
   const options = {
     chart: {
       type: "donut" as const,
@@ -81,12 +81,12 @@ const TotalUsersCard = ({ totalUsers = 0, usersByStatus = [] }: TotalUsersCardPr
     : [totalUsers || 1]; // Fallback si no hay datos por estado
 
   return (
-    <DashboardCard title="Total de usuarios">
+    <DashboardCard title={title}>
       <Grid container spacing={2}>
         {/* columna para total de usuarios y crecimiento */}
         <Grid  size={{ xs: 12,  sm:5}}>          
-        <Typography variant="h3" fontWeight="700">
-            {totalUsers}
+          <Typography variant="h3" fontWeight="700">
+            {totalUsers.toLocaleString("es-CO")}
           </Typography>
           <Stack spacing={1} mt={2} direction="column">
             {usersByStatus.length > 0 ? (

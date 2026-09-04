@@ -3,7 +3,6 @@ const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 import { useTheme } from "@mui/material/styles";
 import { Grid, Stack, Typography, Avatar } from "@mui/material";
 import { DashboardData } from "@/services/dashboardService";
-import { IconArrowUpLeft } from "@tabler/icons-react";
 
 import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
 
@@ -16,7 +15,6 @@ const CreditDistribution: React.FC<CreditDistributionProps> = ({ dashboardData }
   const theme = useTheme();
   const primary = theme.palette.primary.main;
   const primarylight = "#ecf2ff";
-  const successlight = theme.palette.success.light;
 
   // chart
   const optionscolumnchart: any = {
@@ -78,34 +76,26 @@ const CreditDistribution: React.FC<CreditDistributionProps> = ({ dashboardData }
           <Typography variant="h3" fontWeight="700">
             {activePercentage}%
           </Typography>
-          <Stack direction="row" spacing={1} mt={1} alignItems="center">
-            <Avatar sx={{ bgcolor: successlight, width: 27, height: 27 }}>
-              <IconArrowUpLeft width={20} color="#39B69A" />
-            </Avatar>
-            <Typography variant="subtitle2" fontWeight="600">
-              +5%
-            </Typography>
-            <Typography variant="subtitle2" color="textSecondary">
-              desde el año pasado
-            </Typography>
-          </Stack>
-          <Stack spacing={3} mt={5} direction="row">
+          <Typography variant="subtitle2" color="textSecondary" sx={{ mt: 1 }}>
+            créditos activos de {totalCredits} registrados
+          </Typography>
+          <Stack spacing={1.5} mt={3} direction="column">
             <Stack direction="row" spacing={1} alignItems="center">
               <Avatar sx={{ width: 9, height: 9, bgcolor: primary, svg: { display: "none" } }}></Avatar>
               <Typography variant="subtitle2" color="textSecondary">
-                Activos
+                Activos ({dashboardData.activeCredits})
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1} alignItems="center">
               <Avatar sx={{ width: 9, height: 9, bgcolor: primarylight, svg: { display: "none" } }}></Avatar>
               <Typography variant="subtitle2" color="textSecondary">
-                Pendientes
+                Pendientes ({dashboardData.pendingCredits})
               </Typography>
             </Stack>
             <Stack direction="row" spacing={1} alignItems="center">
               <Avatar sx={{ width: 9, height: 9, bgcolor: "#ffcdd2", svg: { display: "none" } }}></Avatar>
               <Typography variant="subtitle2" color="textSecondary">
-                Vencidos
+                Vencidos ({dashboardData.overdueCredits || 0})
               </Typography>
             </Stack>
           </Stack>

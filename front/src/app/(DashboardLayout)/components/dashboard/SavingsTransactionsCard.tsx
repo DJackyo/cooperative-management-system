@@ -12,12 +12,6 @@ interface SavingsTransactionsCardProps {
 
 const SavingsTransactionsCard = ({ savingsTransactions = [], savingsLabels = [] }: SavingsTransactionsCardProps) => {
   // select
-  const [month, setMonth] = React.useState("1");
-
-  const handleChange = (event: any) => {
-    setMonth(event.target.value);
-  };
-
   // chart color
   const theme = useTheme();
   const primary = theme.palette.primary.main;
@@ -30,7 +24,7 @@ const SavingsTransactionsCard = ({ savingsTransactions = [], savingsLabels = [] 
       fontFamily: "'Plus Jakarta Sans', sans-serif;",
       foreColor: "#adb0bb",
       toolbar: {
-        show: true,
+        show: false,
       },
       height: 270,
     },
@@ -70,7 +64,7 @@ const SavingsTransactionsCard = ({ savingsTransactions = [], savingsLabels = [] 
       tickAmount: 4,
     },
     xaxis: {
-      categories: savingsLabels.length > 0 ? savingsLabels : ["Mes 1", "Mes 2", "Mes 3", "Mes 4", "Mes 5", "Mes 6"],
+      categories: savingsLabels.length > 0 ? savingsLabels : ["Sin datos"],
       axisBorder: {
         show: false,
       },
@@ -84,7 +78,7 @@ const SavingsTransactionsCard = ({ savingsTransactions = [], savingsLabels = [] 
   const seriescolumnchart: any = [
     {
       name: "Cuota de Ahorro",
-      data: savingsTransactions.length > 0 ? savingsTransactions : [0, 0, 0, 0, 0, 0],
+      data: savingsTransactions.length > 0 ? savingsTransactions : [0],
     },
   ];
 

@@ -4,12 +4,15 @@ import { Repository } from 'typeorm';
 import { Usuarios } from '../../entities/entities/Usuarios';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
+import { Prestamos } from '../../entities/entities/Prestamos';
 
 @Injectable()
 export class UsuariosService {
   constructor(
     @InjectRepository(Usuarios)
     private usuariosRepository: Repository<Usuarios>,
+    @InjectRepository(Prestamos)
+    private prestamosRepository: Repository<Prestamos>,
   ) { }
 
   async create(createUsuarioDto: CreateUsuarioDto): Promise<Usuarios> {
@@ -35,26 +38,24 @@ export class UsuariosService {
   }
 
   async findAllWithLoans(): Promise<any[]> {
-    return this.usuariosRepository
-      .createQueryBuilder('usuario')
-      .leftJoinAndSelect('usuario.roles', 'roles')
-      .leftJoinAndSelect('usuario.idAsociado', 'asociado')
-      .leftJoinAndSelect('asociado.idEstado', 'estado')
-      .leftJoin('prestamos', 'prestamo', 'prestamo.id_asociado = asociado.id AND prestamo.estado IN (:...estados)', {
-        estados: ['APROBADO', 'ACTIVO']
-      })
-      .addSelect('COUNT(prestamo.id)', 'activeLoansCount')
-      .groupBy('usuario.id')
-      .addGroupBy('roles.id')
-      .addGroupBy('asociado.id')
-      .addGroupBy('estado.id')
-      .getRawAndEntities()
-      .then(result => {
-        return result.entities.map((entity, index) => ({
-          ...entity,
-          activeLoansCount: parseInt(result.raw[index].activeLoansCount) || 0
-        }));
-      });
+    const [usuarios, conteos] = await Promise.all([
+      this.findAll(),
+      this.prestamosRepository
+        .createQueryBuilder('prestamo')
+        .select('prestamo.id_asociado', 'asociadoId')
+        .addSelect('COUNT(prestamo.id)', 'loansCount')
+        .groupBy('prestamo.id_asociado')
+        .getRawMany(),
+    ]);
+
+    const conteosPorAsociado = new Map(
+      conteos.map((item) => [Number(item.asociadoId), Number(item.loansCount)]),
+    );
+
+    return usuarios.map((usuario) => ({
+      ...usuario,
+      loansCount: conteosPorAsociado.get(usuario.idAsociado?.id) || 0,
+    }));
   }
 
   async findOne(id: number): Promise<Usuarios> {

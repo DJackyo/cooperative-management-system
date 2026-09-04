@@ -5,10 +5,67 @@
     font-style: normal;
 }
 
+/* Fondo animado de las pantallas de autenticación */
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
 .hidden-class {
     display: none !important;
 }
 
 .logo-text {
     font-family: "Mouse Memoirs", sans-serif !important;
+}
+
+/* Scrollbar global más estética para navegadores basados en Chromium */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #c4cdd8 transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background-color: #c4cdd8;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background-color: #9aa8ba;
+}
+
+/* Anillo de foco visible para navegación con teclado (accesibilidad) */
+:focus-visible {
+    outline: 2px solid #5d87ff;
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+/* Respeta la preferencia de movimiento reducido del sistema */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
 }

@@ -222,8 +222,6 @@ const BulkAporteModal: React.FC<BulkAporteModalProps> = ({
             tipoAporte: formData.tipoAporte,
             estado: formData.estado,
             metodoPago: formData.metodoPago,
-            fechaModificacion: formatDateToISO(new Date()),
-            fechaCreacion: formatDateToISO(new Date()),
           };
 
           await savingsService.create(aporteData as any);

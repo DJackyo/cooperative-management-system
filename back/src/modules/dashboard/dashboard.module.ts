@@ -6,6 +6,7 @@ import { Asociados } from '../../entities/entities/Asociados';
 import { Prestamos } from '../../entities/entities/Prestamos';
 import { PresPagos } from '../../entities/entities/PresPagos';
 import { AsocAportesAsociados } from '../../entities/entities/AsocAportesAsociados';
+import { AsocMetasAhorro } from '../../entities/entities/AsocMetasAhorro';
 import { PresCuotas } from '../../entities/entities/PresCuotas';
 
 @Module({
@@ -16,6 +17,7 @@ import { PresCuotas } from '../../entities/entities/PresCuotas';
       PresPagos,
       PresCuotas,
       AsocAportesAsociados,
+      AsocMetasAhorro,
     ]),
   ],
   controllers: [DashboardController],

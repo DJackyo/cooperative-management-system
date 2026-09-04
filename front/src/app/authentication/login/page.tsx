@@ -10,53 +10,27 @@ import AuthLogin from "../auth/AuthLogin";
 const Login2 = () => {
   return (
     <PageContainer title="Login" description="this is Login page">
-      <Box
-        sx={{
-          position: "relative",
-          "&:before": {
-            content: '""',
-            background: "radial-gradient(#d2f1df, #d3d7fa, #bad8f4)",
-            backgroundSize: "400% 400%",
-            animation: "gradient 15s ease infinite",
-            position: "absolute",
-            height: "100%",
-            width: "100%",
-            opacity: "0.3",
-          },
-        }}
-      >
-        <Grid container spacing={0} justifyContent="center" sx={{ height: "100vh" }}>
-          <Grid size={{ xs: 12, md: 12, lg: 4, xl: 3 }} display="flex" justifyContent="center" alignItems="center">
-            <Card elevation={9} sx={{ p: 4, zIndex: 1, width: "100%", maxWidth: "500px" }}>
-              <Box display="flex" alignItems="center" justifyContent="center">
+      <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", background: "linear-gradient(135deg, #eef5f7 0%, #f7f9fc 55%, #e8effa 100%)", p: { xs: 2, sm: 3 } }}>
+        <Grid container justifyContent="center" sx={{ width: "100%" }}>
+          <Grid size={{ xs: 12, sm: 8, md: 5, lg: 4, xl: 3 }}>
+            <Card variant="outlined" sx={{ p: { xs: 2.5, sm: 4 }, width: "100%", boxShadow: "0 18px 45px rgba(42,53,71,0.10)" }}>
+              <Box display="flex" alignItems="center" justifyContent="center" mb={2}>
                 <Logo />
               </Box>
               <AuthLogin
                 subtext={
                   <Typography variant="subtitle1" textAlign="left" color="textSecondary" mb={1}>
-                    <p>Ingrese su usuario y contraseña</p>
+                    Ingrese su correo y contraseña para continuar
                   </Typography>
                 }
                 subtitle={
                   <Stack direction="row" spacing={1} justifyContent="center" mt={3}>
-                    {/* <Typography
-                      color="textSecondary"
-                      variant="h6"
-                      fontWeight="500"
-                    >
-                      New to Modernize?
-                    </Typography> */}
-                    {/* <Typography
-                      component={Link}
-                      href="/authentication/register"
-                      fontWeight="500"
-                      sx={{
-                        textDecoration: "none",
-                        color: "primary.main",
-                      }}
-                    >
-                      Create an account
-                    </Typography> */}
+                    <Typography color="textSecondary" variant="body2">
+                      ¿Aún no tiene una cuenta?
+                    </Typography>
+                    <Typography component={Link} href="/authentication/register" variant="body2" fontWeight="600" sx={{ textDecoration: "none", color: "primary.main" }}>
+                      Registrarse
+                    </Typography>
                   </Stack>
                 }
               />

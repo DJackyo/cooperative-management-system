@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, CardContent, Typography, Stack, Box } from "@mui/material";
+import { Card, CardContent, Typography, Stack, Box, SxProps, Theme } from "@mui/material";
 
 type Props = {
   title?: string;
@@ -11,6 +11,10 @@ type Props = {
   headsubtitle?: string | React.ReactNode;
   children?: React.ReactNode;
   middlecontent?: string | React.ReactNode;
+  /** Permite alinear la tarjeta al 100% del alto de su contenedor (Grid). */
+  fullHeight?: boolean;
+  /** Estilos adicionales que se aplican al Card raíz. */
+  sx?: SxProps<Theme>;
 };
 
 const DashboardCard = ({
@@ -23,24 +27,39 @@ const DashboardCard = ({
   headtitle,
   headsubtitle,
   middlecontent,
+  fullHeight = false,
+  sx,
 }: Props) => {
+  const cardSx: SxProps<Theme> = {
+    padding: 0,
+    ...(fullHeight && {
+      height: "100%",
+      display: "flex",
+      flexDirection: "column",
+    }),
+    ...sx,
+  };
+  const contentSx: SxProps<Theme> = fullHeight
+    ? { p: { xs: 2, sm: 3 }, flexGrow: 1, display: "flex", flexDirection: "column" }
+    : { p: { xs: 2, sm: 3 } };
+
   return (
-    <Card sx={{ padding: 0 }} elevation={9} variant={undefined}>
+    <Card sx={cardSx} elevation={0} variant="outlined">
       {cardheading ? (
-        <CardContent>
+        <CardContent sx={fullHeight ? { flexGrow: 1 } : undefined}>
           <Typography variant="h5">{headtitle}</Typography>
           <Typography variant="subtitle2" color="textSecondary">
             {headsubtitle}
           </Typography>
         </CardContent>
       ) : (
-        <CardContent sx={{ p: "30px" }}>
+        <CardContent sx={contentSx}>
           {title ? (
             <Stack
               direction="row"
               spacing={2}
               justifyContent="space-between"
-              alignItems={"center"}
+              alignItems="center"
               mb={3}
             >
               <Box>

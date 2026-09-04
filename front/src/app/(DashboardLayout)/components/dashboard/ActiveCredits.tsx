@@ -9,20 +9,34 @@ interface DashboardData {
 
 interface ActiveCreditsProps {
   dashboardData: DashboardData;
+  fullHeight?: boolean;
 }
 
-const ActiveCredits: React.FC<ActiveCreditsProps> = ({ dashboardData }) => {
+const ActiveCredits: React.FC<ActiveCreditsProps> = ({ dashboardData, fullHeight }) => {
   return (
-    <DashboardCard title="Cartera Activa">
-      <Box>
-        <Box display="flex" alignItems="center" justifyContent="space-between" mb={2}>
+    <DashboardCard title="Cartera Activa" fullHeight={fullHeight}>
+      <Box
+        sx={{
+          background: "linear-gradient(135deg, #eff6ff 0%, #f8faff 100%)",
+          borderRadius: 2,
+          p: 2,
+          mb: 2,
+        }}
+      >
+        <Box display="flex" alignItems="center" justifyContent="space-between">
           <Avatar
-            sx={{ bgcolor: "#e3f2fd", width: 56, height: 56, marginRight: 2 }}
+            sx={{
+              background:
+                "linear-gradient(135deg, #5D87FF 0%, #49BEFF 100%)",
+              width: 56,
+              height: 56,
+              boxShadow: "0 6px 14px rgba(93,135,255,0.35)",
+            }}
           >
-            <IconCreditCard width={24} color="#1976d2" />
+            <IconCreditCard width={26} color="#fff" />
           </Avatar>
-          <Box>
-            <Typography variant="h5" fontWeight="bold">
+          <Box textAlign="right">
+            <Typography variant="h4" fontWeight="bold">
               {dashboardData.activeCredits}
             </Typography>
             <Typography variant="subtitle2" color="textSecondary">
@@ -30,12 +44,14 @@ const ActiveCredits: React.FC<ActiveCreditsProps> = ({ dashboardData }) => {
             </Typography>
           </Box>
         </Box>
-        <Box>
+      </Box>
+      <Box px={1} pb={1}>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h6" fontWeight="bold" color="primary">
             ${(dashboardData.totalCreditAmount || 0).toLocaleString()}
           </Typography>
           <Typography variant="caption" color="textSecondary">
-            Monto Total en Cartera
+            Monto total en cartera
           </Typography>
         </Box>
       </Box>

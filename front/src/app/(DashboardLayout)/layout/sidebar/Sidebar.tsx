@@ -15,7 +15,7 @@ const MSidebar = ({
 }: ItemType) => {
   const lgUp = useMediaQuery((theme: any) => theme.breakpoints.up("lg"));
 
-  const sidebarWidth = "150px";
+  const sidebarWidth = "260px";
 
   // Custom CSS for short scrollbar
   const scrollbarStyles = {
@@ -46,6 +46,12 @@ const MSidebar = ({
           PaperProps={{
             sx: {
               boxSizing: "border-box",
+              width: sidebarWidth,
+              border: "none",
+              borderRight: "1px solid #e5eaef",
+              boxShadow: "none",
+              transition: "width 0.2s ease",
+              overflowX: "hidden",
               ...scrollbarStyles,
             },
           }}
@@ -54,12 +60,19 @@ const MSidebar = ({
           <Box
             sx={{
               height: "100%",
+              display: "flex",
+              flexDirection: "column",
             }}
           >
-            <Box display="flex" alignItems="center" width={"80%"}>
-              <Logo width={100} height={50} padding="10px" />
+            <Box
+              display="flex"
+              alignItems="center"
+              justifyContent="center"
+              sx={{ p: 1.5, borderBottom: "1px solid #e5eaef" }}
+            >
+              <Logo width={110} height={55} padding="10px" />
             </Box>
-            <Box>
+            <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
               <SidebarItems />
             </Box>
           </Box>
@@ -81,8 +94,18 @@ const MSidebar = ({
         },
       }}
     >
+      <Box
+        sx={{
+          pt: 1,
+          display: "flex",
+          justifyContent: "center",
+          borderBottom: "1px solid #e5eaef",
+          mb: 1,
+        }}
+      >
+        <Logo width={110} height={55} padding="10px" />
+      </Box>
       <Box px={2}>
-        <Logo width={100} height={50} padding="10px" />
         <SidebarItems />
       </Box>
     </Drawer>

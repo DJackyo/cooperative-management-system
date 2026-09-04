@@ -77,4 +77,46 @@ export class DashboardController {
       };
     }
   }
+
+  @Get('recalculate-projection/:year')
+  async recalculateYearProjection(@Param('year') year: string) {
+    try {
+      const yearNumber = parseInt(year);
+      if (isNaN(yearNumber) || yearNumber < 2020 || yearNumber > 2030) {
+        return {
+          status: 'error',
+          message: 'Año inválido. Debe estar entre 2020 y 2030'
+        };
+      }
+
+      const data = await this.dashboardService.recalculateYearProjection(yearNumber);
+      return {
+        status: 'success',
+        data,
+        message: data.message
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: 'Error al recalcular las proyecciones del año'
+      };
+    }
+  }
+
+  @Get('generate-current-metas')
+  async generateCurrentYearMetas() {
+    try {
+      const data = await this.dashboardService.generateCurrentYearMetas();
+      return {
+        status: 'success',
+        data,
+        message: data.message,
+      };
+    } catch (error) {
+      return {
+        status: 'error',
+        message: 'Error al generar/modificar las metas del presente año',
+      };
+    }
+  }
 }

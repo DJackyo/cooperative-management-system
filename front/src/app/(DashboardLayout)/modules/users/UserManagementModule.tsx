@@ -594,9 +594,9 @@ const UserManagementModule = () => {
                       "Sin estado"
                     );
                   case "prestamos":
-                    return (user.activeLoansCount || 0) > 0 ? (
+                    return (user.loansCount || 0) > 0 ? (
                       <Chip
-                        label={`${user.activeLoansCount} activo(s)`}
+                        label={`${user.loansCount} préstamo(s)`}
                         color="primary"
                         size="small"
                         icon={<IconDeviceIpadHorizontalDollar />}
@@ -624,19 +624,19 @@ const UserManagementModule = () => {
                           <IconButton 
                             onClick={(e) => handleClickLoans(e, user)}
                             sx={{
-                              backgroundColor: (user.activeLoansCount || 0) > 0 ? '#e3f2fd' : 'transparent',
+                              backgroundColor: (user.loansCount || 0) > 0 ? '#e3f2fd' : 'transparent',
                               '&:hover': {
-                                backgroundColor: (user.activeLoansCount || 0) > 0 ? '#bbdefb' : 'rgba(0, 0, 0, 0.04)'
+                                backgroundColor: (user.loansCount || 0) > 0 ? '#bbdefb' : 'rgba(0, 0, 0, 0.04)'
                               }
                             }}
                           >
                             <Badge 
-                              badgeContent={user.activeLoansCount || 0} 
+                              badgeContent={user.loansCount || 0} 
                               color="primary"
-                              invisible={!(user.activeLoansCount || 0)}
+                              invisible={!(user.loansCount || 0)}
                             >
                               <IconDeviceIpadHorizontalDollar 
-                                color={(user.activeLoansCount || 0) > 0 ? '#1976d2' : undefined}
+                                color={(user.loansCount || 0) > 0 ? '#1976d2' : undefined}
                               />
                             </Badge>
                           </IconButton>
@@ -736,9 +736,9 @@ const UserManagementModule = () => {
                   handleViewCredits(selectedUser!);
                   handleClose();
                 }}
-                disabled={!(selectedUser?.activeLoansCount || 0)}
+                disabled={!(selectedUser?.loansCount || 0)}
                 sx={{
-                  opacity: !(selectedUser?.activeLoansCount || 0) ? 0.5 : 1
+                  opacity: !(selectedUser?.loansCount || 0) ? 0.5 : 1
                 }}
               >
                 <IconEyeDollar
