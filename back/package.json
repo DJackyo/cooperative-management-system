@@ -11,7 +11,7 @@
     },
     "scripts": {
         "build": "nest build",
-        "build:render": "corepack enable && pnpm install --frozen-lockfile --prod=false && pnpm run build",
+        "build:render": "corepack enable && pnpm install --prod=false && pnpm run build",
         "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
         "start": "nest start",
         "start:dev": "nest start --watch",
