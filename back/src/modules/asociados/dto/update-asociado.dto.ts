@@ -4,6 +4,10 @@ import { Type } from 'class-transformer';
 export class UpdateAsociadoDto {
   @IsOptional()
   @IsNumber()
+  idEstado?: number;
+
+  @IsOptional()
+  @IsNumber()
   tipoIdentificacionId: number | null;
 
   @IsOptional()

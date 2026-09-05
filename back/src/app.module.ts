@@ -27,6 +27,7 @@ import { PresTasasPrestamo } from './entities/entities/PresTasasPrestamo';
 import { Roles } from './entities/entities/Roles';
 import { TiposIdentificacion } from './entities/entities/TiposIdentificacion';
 import { Usuarios } from './entities/entities/Usuarios';
+import { RetirosAsociados } from './entities/entities/RetirosAsociados';
 import { AsociadosModule } from './modules/asociados/asociados.module';
 import { UsuariosModule } from './modules/usuarios/usuarios.module';
 import { AsocAportesAsociadosModule } from './modules/aportes-asociados/aportes-asociados.module';
@@ -36,6 +37,14 @@ import { PagosModule } from './modules/pagos/pagos.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { BackupModule } from './modules/backup/backup.module';
+import { RolesModule } from './modules/roles/roles.module';
+import { TiposIdentificacionModule } from './modules/tipos-identificacion/tipos-identificacion.module';
+import { EstadosAsociadoModule } from './modules/estados-asociado/estados-asociado.module';
+import { EstadosAprobacionModule } from './modules/estados-aprobacion/estados-aprobacion.module';
+import { TiposFamiliaresModule } from './modules/tipos-familiares/tipos-familiares.module';
+import { MetodosPagoModule } from './modules/metodos-pago/metodos-pago.module';
+import { CertificadosModule } from './modules/certificados/certificados.module';
+import { RetirosAsociadosModule } from './modules/retiros-asociados/retiros-asociados.module';
 
 @Module({
   imports: [
@@ -73,6 +82,7 @@ import { BackupModule } from './modules/backup/backup.module';
           Roles,
           TiposIdentificacion,
           Usuarios,
+          RetirosAsociados,
         ],
         synchronize: false,
         migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
@@ -91,9 +101,17 @@ import { BackupModule } from './modules/backup/backup.module';
     AsocAportesAsociadosModule,
     PrestamosModule,
     PagosModule,
-    DashboardModule,
+        DashboardModule,
     SchedulerModule,
     BackupModule,
+    RolesModule,
+    TiposIdentificacionModule,
+    EstadosAsociadoModule,
+    EstadosAprobacionModule,
+    TiposFamiliaresModule,
+    MetodosPagoModule,
+    RetirosAsociadosModule,
+    CertificadosModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -474,7 +474,8 @@ export class DashboardService {
         SELECT COALESCE(SUM(monto), 0) AS total
         FROM public.asoc_aportes_asociados
         WHERE monto > 0
-          AND EXTRACT(YEAR FROM COALESCE(fecha_creacion, fecha_aporte)) = $1
+          AND fecha_aporte IS NOT NULL
+          AND EXTRACT(YEAR FROM fecha_aporte) = $1
       `, [currentYear]);
       const registeredSavings = registeredSavingsResult[0];
       

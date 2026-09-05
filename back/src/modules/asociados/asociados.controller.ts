@@ -18,6 +18,21 @@ export class AsociadosController {
      }));
    }
 
+  @Get(':id/perfil-completo')
+  async getPerfilCompleto(@Param('id') id: number) {
+    return this.asociadosService.getFullProfile(id);
+  }
+
+  @Get('asistencia-asamblea')
+  async getAsistenciaAsamblea() {
+    return this.asociadosService.getAssemblyAttendance();
+  }
+
+  @Put(':id/perfil-completo')
+  async updatePerfilCompleto(@Param('id') id: number, @Body() profile: any) {
+    return this.asociadosService.updateFullProfile(id, profile);
+  }
+
   // Ruta para obtener un asociado por id
   @Get(':id')
   async getAsociado(@Param('id') id: number) {
