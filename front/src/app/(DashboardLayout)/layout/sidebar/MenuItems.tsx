@@ -4,6 +4,10 @@ import {
   IconListDetails,
   IconUserCog,
   IconDatabase,
+  IconSettings,
+  IconCalendarEvent,
+  IconCash,
+  IconCertificate,
 } from "@tabler/icons-react";
 import { uniqueId } from "lodash";
 import {
@@ -75,9 +79,30 @@ const Menuitems = [
   },
   {
     id: uniqueId(),
+    title: "Asistencia a asamblea",
+    icon: IconCalendarEvent,
+    href: "/modules/assembly-attendance",
+    roles: roleSuperAdmin,
+  },
+  {
+    id: uniqueId(),
+    title: "Retiros y liquidaciones",
+    icon: IconCash,
+    href: "/modules/withdrawals",
+    roles: roleSuperAdmin,
+  },
+  {
+    id: uniqueId(),
     title: "Backups",
     icon: IconDatabase,
     href: "/modules/admin/backups",
+    roles: roleSuperAdmin,
+  },
+  {
+    id: uniqueId(),
+    title: "Parámetros",
+    icon: IconSettings,
+    href: "/modules/parametros",
     roles: roleSuperAdmin,
   },
   // {
@@ -94,6 +119,18 @@ const Menuitems = [
   //   href: "/sample-page",
   //   roles: roleSuperAdmin,
   // },
+  {
+    navlabel: true,
+    subheader: "Certificados",
+    roles: roleAdmin,
+  },
+  {
+    id: uniqueId(),
+    title: "Estado de cuenta",
+    icon: IconCertificate,
+    href: "/modules/certificados",
+    roles: roleAdmin,
+  },
 ];
 
 export default Menuitems;

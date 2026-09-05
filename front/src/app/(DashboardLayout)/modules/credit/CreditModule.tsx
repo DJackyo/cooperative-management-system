@@ -20,6 +20,12 @@ import {
   TablePagination,
   TableRow,
   Tooltip,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -30,7 +36,7 @@ import { Asociado, LoggedUser } from "@/interfaces/User";
 import { Prestamo } from "@/interfaces/Prestamo";
 import { authService } from "@/app/authentication/services/authService";
 import { defaultLoggedUser, formatCurrency, formatDateTime, formatDateWithoutTime, getComparator, getEstadoChip, roleAdmin, validateRoles } from "../../utilities/utils";
-import { IconChecks, IconEyeDollar, IconPencilDollar, IconX, IconTrash, IconFileReport, IconFileDownload } from "@tabler/icons-react";
+import { IconChecks, IconEyeDollar, IconPencilDollar, IconX, IconTrash, IconFileReport, IconFileDownload, IconRefresh, IconSearch } from "@tabler/icons-react";
 import { creditsService } from "@/services/creditRequestService";
 import { userService } from "@/services/userService";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
@@ -67,6 +73,10 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const [isUserAdmin, setIsUserAdmin] = useState(false);
   const [order, setOrder] = useState<"asc" | "desc">("desc");
   const [orderBy, setOrderBy] = useState<string>("fechaCredito");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("TODOS");
+  const [paymentFilter, setPaymentFilter] = useState("TODOS");
+  const [refreshing, setRefreshing] = useState(false);
 
   // Ordenar por fechaCredito descendente, manejando posibilidad de valor nulo
   const sortedCredits = [...credits].sort((a, b) => {
@@ -78,6 +88,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const [tasas, setTasas] = useState<any[]>([]);
 
   const loadCredits = useCallback(async () => {
+    setRefreshing(true);
     try {
       const response = userId === 0 ? await creditsService.fetchAll() : await creditsService.fetchByUser(userId);
 
@@ -108,6 +119,8 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       } else {
         setCredits([]);
       }
+    } finally {
+      setRefreshing(false);
     }
   }, [userId, router]);
 
@@ -821,10 +834,32 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   };
 
   const filteredTransactions = sortedTransactions.filter((transaction) => {
-    // Aquí puedes implementar el filtro por fecha si tienes variables `startDate` y `endDate`
-    // Por ahora solo devuelve todo
-    return true;
+    const normalizedSearch = search.trim().toLowerCase();
+    const asociado = transaction.idAsociado;
+    const name = [asociado?.nombre1, asociado?.nombre2, asociado?.apellido1, asociado?.apellido2, asociado?.nombres]
+      .filter(Boolean).join(" ").toLowerCase();
+    const paymentStatus = getPaymentStatus(transaction).status;
+    const matchesSearch = !normalizedSearch
+      || name.includes(normalizedSearch)
+      || asociado?.numeroDeIdentificacion?.toLowerCase().includes(normalizedSearch)
+      || String(transaction.id).includes(normalizedSearch);
+    const matchesStatus = statusFilter === "TODOS" || transaction.estado === statusFilter;
+    const matchesPayment = paymentFilter === "TODOS"
+      || (paymentFilter === "MORA" && paymentStatus === "overdue")
+      || (paymentFilter === "PENDIENTE" && paymentStatus === "pending")
+      || (paymentFilter === "AL_DIA" && paymentStatus === "completed");
+    return matchesSearch && matchesStatus && matchesPayment;
   });
+
+  const clearFilters = () => {
+    setSearch("");
+    setStatusFilter("TODOS");
+    setPaymentFilter("TODOS");
+  };
+
+  const approvedCredits = credits.filter((credit) => credit.estado === "APROBADO").length;
+  const requestedCredits = credits.filter((credit) => credit.estado === "SOLICITADO").length;
+  const overdueCredits = credits.filter((credit) => getPaymentStatus(credit).status === "overdue").length;
 
   if (loading) {
     return <GenericLoadingSkeleton type="table" rows={6} />;
@@ -832,6 +867,37 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
   return (
     <Grid container spacing={3}>
+      {userId === 0 && (
+        <>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <Card variant="outlined" sx={{ height: "100%" }}>
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">Solicitudes pendientes</Typography>
+                <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{requestedCredits}</Typography>
+                <Typography variant="caption" color="text.secondary">Requieren revisión</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <Card variant="outlined" sx={{ height: "100%" }}>
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">Créditos aprobados</Typography>
+                <Typography variant="h4" fontWeight={800} color="success.main" sx={{ mt: 0.5 }}>{approvedCredits}</Typography>
+                <Typography variant="caption" color="text.secondary">En seguimiento</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <Card variant="outlined" sx={{ height: "100%", borderColor: overdueCredits ? "error.light" : undefined }}>
+              <CardContent>
+                <Typography variant="body2" color="text.secondary">Con cuotas vencidas</Typography>
+                <Typography variant="h4" fontWeight={800} color={overdueCredits ? "error.main" : "text.primary"} sx={{ mt: 0.5 }}>{overdueCredits}</Typography>
+                <Typography variant="caption" color="text.secondary">Atención prioritaria</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </>
+      )}
       {/* Información de la Solicitud */}
       <Grid size={{ xs: 12, md: 8 }}>{userId > 0 && <UserCard id={userId} userInfo={userInfo} />}</Grid>
 
@@ -857,16 +923,66 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       <Grid size={{ xs: 12, md: 12 }}>
         <Card variant="outlined" sx={{ boxShadow: 3 }}>
           <CardContent>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h5" color="primary" gutterBottom>
-                Historial de Préstamos
-              </Typography>
-              {userId === 0 && isUserAdmin && (
-                <Button variant="contained" color="success" startIcon={<IconFileReport />} onClick={handleOpenReportModal}>
-                  Generar Reporte
+            <Box display="flex" justifyContent="space-between" alignItems={{ xs: "flex-start", md: "center" }} gap={2} mb={2} flexWrap="wrap">
+              <Box>
+                <Typography variant="h5" color="primary" gutterBottom>
+                  {userId === 0 ? "Listado de créditos" : "Historial de préstamos"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {filteredTransactions.length} resultado{filteredTransactions.length === 1 ? "" : "s"} de {credits.length}
+                </Typography>
+              </Box>
+              <Box display="flex" gap={1} flexWrap="wrap">
+                <Button variant="outlined" size="small" startIcon={<IconRefresh />} onClick={loadCredits} disabled={refreshing}>
+                  {refreshing ? "Actualizando..." : "Actualizar"}
                 </Button>
-              )}
+                {userId === 0 && isUserAdmin && (
+                  <Button variant="contained" color="success" startIcon={<IconFileReport />} onClick={handleOpenReportModal}>
+                    Generar reporte
+                  </Button>
+                )}
+              </Box>
             </Box>
+            <Grid container spacing={1.5} sx={{ mb: 2 }}>
+              <Grid size={{ xs: 12, md: 5 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Buscar crédito o asociado"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Nombre, identificación o ID"
+                  InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={18} /></InputAdornment> }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="credit-status-filter">Estado</InputLabel>
+                  <Select labelId="credit-status-filter" value={statusFilter} label="Estado" onChange={(event) => setStatusFilter(event.target.value)}>
+                    <MenuItem value="TODOS">Todos</MenuItem>
+                    <MenuItem value="SOLICITADO">Solicitados</MenuItem>
+                    <MenuItem value="APROBADO">Aprobados</MenuItem>
+                    <MenuItem value="RECHAZADO">Rechazados</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="payment-status-filter">Pagos</InputLabel>
+                  <Select labelId="payment-status-filter" value={paymentFilter} label="Pagos" onChange={(event) => setPaymentFilter(event.target.value)}>
+                    <MenuItem value="TODOS">Todos</MenuItem>
+                    <MenuItem value="MORA">Con mora</MenuItem>
+                    <MenuItem value="PENDIENTE">Pendientes</MenuItem>
+                    <MenuItem value="AL_DIA">Al día</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, md: 2 }} display="flex" alignItems="center" justifyContent={{ xs: "flex-start", md: "flex-end" }}>
+                <Button size="small" color="inherit" onClick={clearFilters} disabled={!search && statusFilter === "TODOS" && paymentFilter === "TODOS"}>
+                  Limpiar filtros
+                </Button>
+              </Grid>
+            </Grid>
             <Suspense fallback={<Skeleton variant="rectangular" width="100%" height={300} />}>
               {/* Tabla */}
               <StyledTable

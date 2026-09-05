@@ -50,7 +50,8 @@ const MSidebar = ({
               width: sidebarWidth,
               border: "none",
               borderRight: (theme) => `1px solid ${theme.palette.divider}`,
-              boxShadow: "none",
+              boxShadow: "4px 0 18px rgba(30, 55, 90, 0.035)",
+              backgroundColor: "#ffffff",
               transition: (theme) => theme.transitions.create("width"),
               overflowX: "hidden",
               ...scrollbarStyles,
@@ -65,11 +66,11 @@ const MSidebar = ({
               flexDirection: "column",
             }}
           >
-            <Box
+              <Box
               display="flex"
               alignItems="center"
               justifyContent="center"
-              sx={{ p: 1.5, borderBottom: 1, borderColor: "divider" }}
+                sx={{ p: 1.5, borderBottom: 1, borderColor: "divider", minHeight: 82 }}
             >
               <Logo width={isSidebarOpen ? 110 : 42} height={55} padding="10px" />
             </Box>

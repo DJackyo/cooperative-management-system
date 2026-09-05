@@ -32,6 +32,23 @@
     scrollbar-color: #c4cdd8 transparent;
 }
 
+html,
+body {
+    min-height: 100%;
+}
+
+body {
+    background: #f3f6fa;
+    color: #2a3547;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+    background: rgba(93, 135, 255, 0.2);
+    color: #243b64;
+}
+
 *::-webkit-scrollbar {
     width: 8px;
     height: 8px;

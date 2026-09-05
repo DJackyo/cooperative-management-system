@@ -19,13 +19,16 @@ import {
   MenuItem,
   InputLabel,
   FormControl,
-  ButtonGroup,
   Menu,
+  Divider,
+  ListItemIcon,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Alert,
+  InputAdornment,
+  Tooltip,
 } from "@mui/material";
 import Chip from "@mui/material/Chip";
 import StatusChip from "@/components/StatusChip";
@@ -34,6 +37,8 @@ import { LoggedUser, User, Asociado } from "@/interfaces/User";
 import { userService } from "@/services/userService";
 import { asociadosService } from "@/services/asociadosService";
 import UserModal from "./components/UserModal";
+import AsociadoPerfilModal from "./components/AsociadoPerfilModal";
+import AsistenciaAsambleaModal from "./components/AsistenciaAsambleaModal";
 import DashboardCard from "../../components/shared/DashboardCard";
 import { useRouter } from "next/navigation";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
@@ -53,11 +58,13 @@ import {
   IconEditCircle,
   IconEyeDollar,
   IconCoins,
-  IconUserCog,
   IconUserDollar,
-  IconPigMoney,
   IconDeviceIpadHorizontalDollar,
   IconRefresh,
+  IconDotsVertical,
+  IconSearch,
+  IconX,
+  IconUserPlus,
 } from "@tabler/icons-react";
 import { authService } from "@/app/authentication/services/authService";
 import { defaultAporteValue } from "../../utilities/AportesUtils";
@@ -68,7 +75,6 @@ import StyledTable from "@/components/StyledTable";
 import { savingsService } from "@/services/savingsService";
 import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
 import { usePageLoading } from "@/hooks/usePageLoading";
-import { Badge } from "@mui/material";
 
 const UserManagementModule = () => {
   const router = useRouter();
@@ -76,6 +82,8 @@ const UserManagementModule = () => {
 
   const [search, setSearch] = useState("");
   const [openModal, setOpenModal] = useState(false);
+  const [openAsociadoModal, setOpenAsociadoModal] = useState(false);
+  const [openAsistenciaModal, setOpenAsistenciaModal] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const defaultData = {
     username: "",
@@ -111,10 +119,9 @@ const UserManagementModule = () => {
   const [orderBy, setOrderBy] = useState<string>("idAsociado.nombres");
   const [filterState, setFilterState] = useState<string>("ACTIVO");
 
-  const [anchorElUser, setAnchorElUser] = useState(null);
-  const [anchorElLoans, setAnchorElLoans] = useState(null);
-  const [anchorElSavings, setAnchorElSavings] = useState(null);
+  const [actionsAnchor, setActionsAnchor] = useState<HTMLElement | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedAsociado, setSelectedAsociado] = useState<any | null>(null);
   // Estado para el usuario actual
   const [currentUser, setCurrentUser] = useState<LoggedUser>(defaultLoggedUser);
   //Aporte
@@ -173,9 +180,21 @@ const UserManagementModule = () => {
   }, [router]);
 
   const filteredUsers = users?.filter((user: User) => {
+    const normalizedSearch = search.trim().toLowerCase();
+    const associated = user.idAsociado;
+    const fullName = [
+      associated?.nombre1,
+      associated?.nombre2,
+      associated?.apellido1,
+      associated?.apellido2,
+      associated?.nombres,
+    ].filter(Boolean).join(" ").toLowerCase();
     const matchesName =
-      user.idAsociado.nombres.toLowerCase().includes(search.toLowerCase()) ||
-      user.id.toString() == search;
+      !normalizedSearch ||
+      fullName.includes(normalizedSearch) ||
+      user.correoElectronico?.toLowerCase().includes(normalizedSearch) ||
+      associated?.numeroDeIdentificacion?.toLowerCase().includes(normalizedSearch) ||
+      user.id.toString() === normalizedSearch;
     const matchesState = filterState
       ? user.idAsociado.idEstado.estado === filterState
       : true;
@@ -204,6 +223,11 @@ const UserManagementModule = () => {
     }
     return 0;
   });
+
+  const clearFilters = () => {
+    setSearch("");
+    setFilterState("ACTIVO");
+  };
 
   const roleColors: any = {
     SOCIO: "primary",
@@ -238,15 +262,56 @@ const UserManagementModule = () => {
     setOpenModal(true);
   };
 
-  const handleOpenAsociado = (user?: User) => {
-    if (user) {
-      console.log(user);
+  const handleOpenAsociado = async (user?: User) => {
+    if (!user?.idAsociado?.id) return;
+
+    setSelectedAsociado({ asociado: user.idAsociado });
+    setOpenAsociadoModal(true);
+
+    try {
+      const detalle = await asociadosService.fetchFullProfile(user.idAsociado.id);
+      if (detalle) {
+        setSelectedAsociado(detalle);
+      }
+    } catch (error) {
+      console.error("Error al cargar los datos del asociado:", error);
     }
+  };
+
+  const handleSubmitAsociado = async (data: any) => {
+    if (!selectedAsociado) return;
+
+    await asociadosService.updateFullProfile(data.asociado.id, data);
+    const usersData = await userService.fetchAllWithLoans();
+    setUsers(usersData);
+  };
+
+  const handleOpenAsistencia = async (user?: User) => {
+    if (!user?.idAsociado?.id) return;
+
+    setSelectedAsociado({ asociado: user.idAsociado });
+    setOpenAsistenciaModal(true);
+    try {
+      const detalle = await asociadosService.fetchFullProfile(user.idAsociado.id);
+      if (detalle) setSelectedAsociado(detalle);
+    } catch (error) {
+      console.error("Error al cargar la asistencia del asociado:", error);
+    }
+  };
+
+  const handleSubmitAsistencia = async (data: any) => {
+    if (!selectedAsociado?.asociado?.id) return;
+    await asociadosService.updateFullProfile(selectedAsociado.asociado.id, data);
   };
 
   const handleCloseModal = () => {
     setOpenModal(false);
     setEditingUser(null);
+  };
+
+  const handleCloseAsociadoModal = () => {
+    setOpenAsociadoModal(false);
+    setSelectedAsociado(null);
   };
 
   const handleChange = (
@@ -330,29 +395,19 @@ const UserManagementModule = () => {
     try {
       user.idAsociado.idEstado.id = 5;
       await userService.deactivate(user.id, user);
-      setUsers(users.filter((user) => user.id !== user.id));
+      setUsers((currentUsers) => currentUsers.filter((currentUser) => currentUser.id !== user.id));
     } catch (error) {
       console.error("Error al eliminar el usuario:", error);
     }
   };
 
-  const handleClickUser = (event: any, user: User) => {
-    setAnchorElUser(event.currentTarget);
-    setSelectedUser(user);
-  };
-  const handleClickLoans = (event: any, user: User) => {
-    setAnchorElLoans(event.currentTarget);
-    setSelectedUser(user);
-  };
-  const handleClickSavings = (event: any, user: User) => {
-    setAnchorElSavings(event.currentTarget);
+  const handleOpenActions = (event: React.MouseEvent<HTMLElement>, user: User) => {
+    setActionsAnchor(event.currentTarget);
     setSelectedUser(user);
   };
 
   const handleClose = () => {
-    setAnchorElUser(null);
-    setAnchorElLoans(null);
-    setAnchorElSavings(null);
+    setActionsAnchor(null);
     setSelectedUser(null);
   };
 
@@ -487,7 +542,7 @@ const UserManagementModule = () => {
 
   return (
     <Grid container spacing={3}>
-      <Grid  size={{ xs: 12, md: 4 }}>
+      <Grid size={{ xs: 12, md: 4 }}>
         <DashboardCard title="">
           <Box
             display="flex"
@@ -500,14 +555,26 @@ const UserManagementModule = () => {
               <IconUsersGroup width={24} color="#1976d2" />
             </Avatar>
             <Box>
-              <Typography variant="h5" fontWeight="bold">
+              <Typography variant="h4" fontWeight="800" lineHeight={1}>
                 {activeUsersCount}
               </Typography>
-              <Typography variant="subtitle2" color="textSecondary">
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>
                 Usuarios Activos
               </Typography>
             </Box>
           </Box>
+        </DashboardCard>
+      </Grid>
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <DashboardCard title="">
+          <Typography variant="h4" fontWeight="800" lineHeight={1}>{users.length}</Typography>
+          <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>Usuarios registrados</Typography>
+        </DashboardCard>
+      </Grid>
+      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+        <DashboardCard title="">
+          <Typography variant="h4" fontWeight="800" lineHeight={1}>{filteredUsers.length}</Typography>
+          <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>Resultados visibles</Typography>
         </DashboardCard>
       </Grid>
 
@@ -520,9 +587,23 @@ const UserManagementModule = () => {
                 justifyContent="space-between"
                 alignItems="center"
               >
-                <Typography variant="h5" color="primary" gutterBottom>
-                  Filtro
-                </Typography>
+                <Box>
+                  <Typography variant="h5" color="primary" gutterBottom>
+                    Buscar y filtrar
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Encuentra usuarios por nombre, correo, identificación o ID.
+                  </Typography>
+                </Box>
+                <Button
+                  size="small"
+                  color="inherit"
+                  startIcon={<IconX size={17} />}
+                  onClick={clearFilters}
+                  disabled={!search && filterState === "ACTIVO"}
+                >
+                  Limpiar
+                </Button>
               </Box>
             </Grid>
             <Grid  size={{ xs: 12, md: 6 }}>
@@ -534,6 +615,9 @@ const UserManagementModule = () => {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 size="small"
+                InputProps={{
+                  startAdornment: <InputAdornment position="start"><IconSearch size={18} /></InputAdornment>,
+                }}
               />
             </Grid>
 
@@ -571,10 +655,15 @@ const UserManagementModule = () => {
               justifyContent="space-between"
               alignItems="center"
             >
-              <Typography variant="h5" color="primary" gutterBottom>
-                Listado de usuarios
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1, marginBottom : 3 }}>
+                <Box>
+                  <Typography variant="h5" color="primary" gutterBottom>
+                    Listado de usuarios
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {filteredUsers.length} resultado{filteredUsers.length === 1 ? "" : "s"} con los filtros actuales
+                  </Typography>
+                </Box>
+              <Box sx={{ display: 'flex', gap: 1, marginBottom: 3, flexWrap: "wrap", justifyContent: "flex-end" }}>
                 <Button 
                   variant="outlined" 
                   onClick={refreshUsersWithLoans}
@@ -584,8 +673,8 @@ const UserManagementModule = () => {
                 >
                   {loadingLoans ? 'Actualizando...' : 'Actualizar Préstamos'}
                 </Button>
-                <Button variant="outlined" onClick={() => handleOpenModal()}>
-                  Crear Asociado
+                <Button variant="contained" onClick={() => handleOpenModal()} startIcon={<IconUserPlus size={18} />}>
+                  Nuevo usuario
                 </Button>
               </Box>
             </Box>
@@ -647,43 +736,24 @@ const UserManagementModule = () => {
                     );
                   case "acciones":
                     return (
-                      <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center', flexWrap: 'wrap', minWidth: 150 }}>
-                        {/* Botón para acciones de Usuario */}
-                        <ButtonGroup variant="outlined" size="small">
-                          <IconButton onClick={(e) => handleClickUser(e, user)}>
-                            <IconUserCog />
-                          </IconButton>
-                        </ButtonGroup>
-
-                        {/* Botón para acciones de Préstamos */}
-                        <ButtonGroup variant="outlined" size="small">
-                          <IconButton 
-                            onClick={(e) => handleClickLoans(e, user)}
-                            sx={{
-                              backgroundColor: (user.loansCount || 0) > 0 ? '#e3f2fd' : 'transparent',
-                              '&:hover': {
-                                backgroundColor: (user.loansCount || 0) > 0 ? '#bbdefb' : 'rgba(0, 0, 0, 0.04)'
-                              }
-                            }}
+                      <Box sx={{ display: "flex", justifyContent: "center", minWidth: 88 }}>
+                        <Tooltip title="Abrir acciones del usuario">
+                          <IconButton
+                          onClick={(event) => handleOpenActions(event, user)}
+                          aria-label={`Más acciones para ${user.idAsociado?.nombres || "usuario"}`}
+                          aria-haspopup="menu"
+                          color="primary"
+                          sx={{
+                            border: "1px solid",
+                            borderColor: "divider",
+                            borderRadius: 2,
+                            backgroundColor: "#f8fbff",
+                            "&:hover": { backgroundColor: "#eaf2ff" },
+                          }}
                           >
-                            <Badge 
-                              badgeContent={user.loansCount || 0} 
-                              color="primary"
-                              invisible={!(user.loansCount || 0)}
-                            >
-                              <IconDeviceIpadHorizontalDollar 
-                                color={(user.loansCount || 0) > 0 ? '#1976d2' : undefined}
-                              />
-                            </Badge>
+                            <IconDotsVertical size={20} />
                           </IconButton>
-                        </ButtonGroup>
-
-                        {/* Botón para acciones de Ahorros */}
-                        <ButtonGroup variant="outlined" size="small">
-                          <IconButton onClick={(e) => handleClickSavings(e, user)}>
-                            <IconPigMoney />
-                          </IconButton>
-                        </ButtonGroup>
+                        </Tooltip>
                       </Box>
                     );
                   default:
@@ -692,123 +762,69 @@ const UserManagementModule = () => {
               }}
             />
 
-            {/* Menús contextuales */}
             <Menu
-              anchorEl={anchorElUser}
-              open={Boolean(anchorElUser)}
+              anchorEl={actionsAnchor}
+              open={Boolean(actionsAnchor)}
               onClose={handleClose}
-              sx={{
-                boxShadow:
-                  "rgba(0, 0, 0, 0.07) 0px 4px 10px -2px, rgba(0, 0, 0, 0.04) 0px 6px 12px -4px !important",
-              }}
-              elevation={1}
+              MenuListProps={{ "aria-labelledby": "user-actions-button" }}
+              PaperProps={{ sx: { minWidth: 250, borderRadius: 2, mt: 1 } }}
             >
-              <Typography
-                variant="subtitle2"
-                sx={{ padding: "8px 16px", fontWeight: "bold" }}
-              >
-                Usuario
-              </Typography>
-              <MenuItem onClick={() => {
-                handleOpenModal(selectedUser!);
-                handleClose();
-              }}>
-                <IconUserEdit style={{ marginRight: "1rem" }} />
-                Editar Usuario
+              <Box sx={{ px: 2, py: 1 }}>
+                <Typography variant="caption" color="text.secondary">
+                  Acciones para
+                </Typography>
+                <Typography variant="subtitle2" fontWeight={700} noWrap>
+                  {selectedUser?.idAsociado?.nombres || "Usuario seleccionado"}
+                </Typography>
+              </Box>
+              <Divider />
+              <MenuItem onClick={() => { handleOpenModal(selectedUser!); handleClose(); }}>
+                <ListItemIcon><IconUserEdit size={20} /></ListItemIcon>
+                Editar usuario
               </MenuItem>
-              <MenuItem onClick={() => {
-                handleDeactivate(selectedUser!);
-                handleClose();
-              }}>
-                <IconUserCancel
-                  style={{ marginRight: "1rem" }}
-                />
-                Inactivar Usuario
+              <MenuItem onClick={() => { handleOpenAsociado(selectedUser!); handleClose(); }}>
+                <ListItemIcon><IconEditCircle size={20} /></ListItemIcon>
+                Editar datos del asociado
               </MenuItem>
-              <Typography
-                variant="subtitle2"
-                sx={{ padding: "8px 16px", fontWeight: "bold" }}
-              >
-                Asociado
-              </Typography>
-              <MenuItem
-                onClick={() => {
-                  handleOpenAsociado(selectedUser!);
-                  handleClose();
-                }}
-              >
-                <IconEditCircle
-                  style={{ marginRight: "1rem" }}
-                />
-                Editar Asociado
+              <MenuItem onClick={() => { handleOpenAsistencia(selectedUser!); handleClose(); }}>
+                <ListItemIcon><IconEditCircle size={20} /></ListItemIcon>
+                Registrar asistencia a asamblea
               </MenuItem>
-            </Menu>
-
-            <Menu
-              anchorEl={anchorElLoans}
-              open={Boolean(anchorElLoans)}
-              onClose={handleClose}
-              elevation={1}
-            >
-              <Typography
-                variant="subtitle2"
-                sx={{ padding: "8px 16px", fontWeight: "bold" }}
-              >
+              <Divider />
+              <Typography variant="overline" color="text.secondary" sx={{ px: 2, lineHeight: 2.5 }}>
                 Préstamos
               </Typography>
-              <MenuItem
-                onClick={() => {
-                  handleCreateCredit(selectedUser!);
-                  handleClose();
-                }}
-              >
-                <IconEditCircle
-                  style={{ marginRight: "1rem" }}
-                />
-                Crear Préstamo
+              <MenuItem onClick={() => { handleCreateCredit(selectedUser!); handleClose(); }}>
+                <ListItemIcon><IconEditCircle size={20} /></ListItemIcon>
+                Crear préstamo
               </MenuItem>
               <MenuItem
-                onClick={() => {
-                  handleViewCredits(selectedUser!);
-                  handleClose();
-                }}
+                onClick={() => { handleViewCredits(selectedUser!); handleClose(); }}
                 disabled={!(selectedUser?.loansCount || 0)}
-                sx={{
-                  opacity: !(selectedUser?.loansCount || 0) ? 0.5 : 1
-                }}
               >
-                <IconEyeDollar
-                  style={{ marginRight: "1rem" }}
-                />
-                Ver Préstamos
+                <ListItemIcon><IconEyeDollar size={20} /></ListItemIcon>
+                Ver préstamos
+                {!!selectedUser?.loansCount && <Chip label={selectedUser.loansCount} size="small" color="primary" sx={{ ml: "auto" }} />}
               </MenuItem>
-            </Menu>
-
-            <Menu
-              anchorEl={anchorElSavings}
-              open={Boolean(anchorElSavings)}
-              onClose={handleClose}
-              elevation={1}
-            >
-              <MenuItem
-                onClick={() => {
-                  handleSavingsAsociado(selectedUser!);
-                  handleClose();
-                }}
-              >
-                <IconCoins style={{ marginRight: "1rem" }} />
+              <Divider />
+              <Typography variant="overline" color="text.secondary" sx={{ px: 2, lineHeight: 2.5 }}>
+                Ahorros
+              </Typography>
+              <MenuItem onClick={() => { handleSavingsAsociado(selectedUser!); handleClose(); }}>
+                <ListItemIcon><IconCoins size={20} /></ListItemIcon>
                 Ver aportes
               </MenuItem>
-              <MenuItem
-                onClick={() => {
-                  handleCreateAporteClick(selectedUser!);
-                  handleClose();
-                }}
-              >
-                <IconUserDollar
-                  style={{ marginRight: "1rem" }}
-                />
+              <MenuItem onClick={() => { handleCreateAporteClick(selectedUser!); handleClose(); }}>
+                <ListItemIcon><IconUserDollar size={20} /></ListItemIcon>
                 Crear aporte
+              </MenuItem>
+              <Divider />
+              <MenuItem
+                onClick={() => { handleDeactivate(selectedUser!); handleClose(); }}
+                sx={{ color: "error.main" }}
+              >
+                <ListItemIcon><IconUserCancel size={20} color="currentColor" /></ListItemIcon>
+                Inactivar usuario
               </MenuItem>
             </Menu>
 
@@ -826,6 +842,18 @@ const UserManagementModule = () => {
         editingUser={editingUser !== null}
         formError={formError}
         submitting={submittingUser}
+      />
+      <AsociadoPerfilModal
+        open={openAsociadoModal}
+        profile={selectedAsociado}
+        onClose={handleCloseAsociadoModal}
+        onSubmit={handleSubmitAsociado}
+      />
+      <AsistenciaAsambleaModal
+        open={openAsistenciaModal}
+        profile={selectedAsociado}
+        onClose={() => { setOpenAsistenciaModal(false); setSelectedAsociado(null); }}
+        onSubmit={handleSubmitAsistencia}
       />
       {/* Modal para crear préstamo desde esta página */}
       <Dialog open={openCreditModal} onClose={() => setOpenCreditModal(false)} fullWidth maxWidth="md">

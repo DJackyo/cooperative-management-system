@@ -11,6 +11,7 @@ import {
   TableSortLabel,
   TablePagination,
 } from '@mui/material';
+import TableExportButton from './TableExportButton';
 
 interface StyledTableProps {
   columns: Array<{ field: string; headerName: string; width?: number | string; sortable?: boolean }>;
@@ -25,6 +26,9 @@ interface StyledTableProps {
   initialPageSize?: number;
   pageSizeOptions?: number[];
   emptyMessage?: string;
+  exportRows?: any[];
+  exportFilename?: string;
+  exportSheetName?: string;
 }
 
 type SortOrder = 'asc' | 'desc';
@@ -42,6 +46,9 @@ const StyledTable: React.FC<StyledTableProps> = ({
   initialPageSize = 10,
   pageSizeOptions = [5, 10, 25, 50],
   emptyMessage = 'No hay registros para mostrar.',
+  exportRows,
+  exportFilename = 'tabla',
+  exportSheetName = 'Datos',
 }) => {
   const [orderBy, setOrderBy] = useState<string | null>(null);
   const [order, setOrder] = useState<SortOrder>('asc');
@@ -119,6 +126,14 @@ const StyledTable: React.FC<StyledTableProps> = ({
 
   return (
     <Box sx={{ width: '100%' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+        <TableExportButton
+          columns={columns}
+          rows={exportRows ?? rows}
+          filename={exportFilename}
+          sheetName={exportSheetName}
+        />
+      </Box>
       <TableContainer sx={{
         borderRadius: 1,
         overflowX: 'auto',

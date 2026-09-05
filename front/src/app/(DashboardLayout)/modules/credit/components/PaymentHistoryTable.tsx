@@ -41,6 +41,7 @@ import { Cuota } from "@/interfaces/Prestamo";
 import PresPagosForm from "./PresPagosForm";
 import InfoTooltip from "@/components/InfoTooltip";
 import StyledTable from "@/components/StyledTable";
+import TableExportButton from "@/components/TableExportButton";
 
 interface PaymentHistoryProps {
   presCuotas: Cuota[];
@@ -499,6 +500,14 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
             Mostrando {filteredCuotas.length} de {sortedCuotas.length} cuotas
           </Typography>
         )}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
+          <TableExportButton
+            columns={columns}
+            rows={filteredCuotas}
+            filename="historial_pagos"
+            sheetName="Pagos"
+          />
+        </Box>
       </Box>
 
       <Paper sx={{ width: '100%', overflow: 'hidden' }}>

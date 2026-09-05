@@ -32,14 +32,14 @@ const Header = ({ isSidebarOpen, toggleSidebar, toggleMobileSidebar }: ItemType)
   const [currentUser, setCurrentUser] = useState<LoggedUser>(defaultLoggedUser);
 
   const AppBarStyled = styled(AppBar)(({ theme }) => ({
-    boxShadow: "none",
+    boxShadow: "0 2px 12px rgba(30, 55, 90, 0.04)",
     background: theme.palette.background.paper,
     justifyContent: "center",
     backdropFilter: "blur(4px)",
     [theme.breakpoints.up("lg")]: {
       minHeight: "70px",
     },
-    borderBottom: "1px solid #dadde1",
+    borderBottom: "1px solid #e4eaf2",
   }));
   const ToolbarStyled = styled(Toolbar)(({ theme }) => ({
     width: "100%",
@@ -88,7 +88,7 @@ const Header = ({ isSidebarOpen, toggleSidebar, toggleMobileSidebar }: ItemType)
             <IconMenu width="20" height="20" />
           </IconButton>
 
-          <Box sx={{ ml: { xs: 1, lg: 0 } }}>
+          <Box sx={{ ml: { xs: 1, lg: 0 }, minWidth: 0 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
               {sectionTitle}
             </Typography>

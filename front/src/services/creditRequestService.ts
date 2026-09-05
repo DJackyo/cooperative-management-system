@@ -79,9 +79,39 @@ export const creditsService = {
       throw new Error("Error", error!);
     }
   },
-  async getTasas() {
+    async getTasas() {
     try {
       const response = await axiosClient.get(tasasURL);
+      if (response?.data) {
+        return response.data?.data;
+      }
+    } catch (error) {
+      throw new Error("Error", error!);
+    }
+  },
+  async createTasa(data: { anio: number; tasa: string }) {
+    try {
+      const response = await axiosClient.post(tasasURL, data);
+      if (response?.data) {
+        return response.data?.data;
+      }
+    } catch (error) {
+      throw new Error("Error", error!);
+    }
+  },
+  async updateTasa(id: number, data: { anio?: number; tasa?: string }) {
+    try {
+      const response = await axiosClient.put(`${tasasURL}/find/${id}`, data);
+      if (response?.data) {
+        return response.data?.data;
+      }
+    } catch (error) {
+      throw new Error("Error", error!);
+    }
+  },
+  async deleteTasa(id: number) {
+    try {
+      const response = await axiosClient.delete(`${tasasURL}/find/${id}`);
       if (response?.data) {
         return response.data?.data;
       }

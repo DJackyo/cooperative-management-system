@@ -23,6 +23,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  InputAdornment,
 } from "@mui/material";
 import {
   Dialog,
@@ -44,6 +45,9 @@ import {
   IconUserDollar,
   IconUserExclamation,
   IconFileText,
+  IconSearch,
+  IconRefresh,
+  IconX,
 } from "@tabler/icons-react";
 import AporteModal from "./components/AporteModal";
 import BulkAporteModal from "./components/BulkAporteModal";
@@ -82,6 +86,9 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const [allUsers, setAllUsers] = useState<any[]>([]);
   const [usersSearch, setUsersSearch] = useState('');
   const [estadoFilter, setEstadoFilter] = useState<string>('ACTIVO');
+  const [aporteSearch, setAporteSearch] = useState('');
+  const [aporteEstadoFilter, setAporteEstadoFilter] = useState('TODOS');
+  const [aporteMetodoFilter, setAporteMetodoFilter] = useState('TODOS');
   const [userInfo, setUserInfo] = useState<Asociado>({
     id: 0,
     nombres: "",
@@ -172,11 +179,21 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   // Filtrar transacciones por fechas
   const filteredTransactions = sortedTransactions.filter((transaction) => {
     const transactionDate = new Date(transaction.fechaAporte);
+    const normalizedSearch = aporteSearch.trim().toLowerCase();
+    const matchesSearch = !normalizedSearch
+      || String(transaction.id).includes(normalizedSearch)
+      || transaction.tipoAporte?.toLowerCase().includes(normalizedSearch)
+      || transaction.metodoPago?.toLowerCase().includes(normalizedSearch)
+      || transaction.observaciones?.toLowerCase().includes(normalizedSearch);
+    const matchesEstado = aporteEstadoFilter === 'TODOS'
+      || String(transaction.estado).toUpperCase() === aporteEstadoFilter;
+    const matchesMetodo = aporteMetodoFilter === 'TODOS'
+      || transaction.metodoPago === aporteMetodoFilter;
 
     if (startDate && transactionDate < startDate) return false;
     if (endDate && transactionDate > endDate) return false;
 
-    return true;
+    return matchesSearch && matchesEstado && matchesMetodo;
   });
 
   // Calcular el total ahorrado (suma de montos)
@@ -186,6 +203,8 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
 
   // Formatear el total ahorrado con separadores de miles
   const formattedTotalAhorrado = formatCurrency(totalAhorrado);
+  const activeAportes = filteredTransactions.filter((transaction) => transaction.estado === 'Activo' || transaction.estado === true).length;
+  const lastAporte = filteredTransactions[0]?.fechaAporte;
 
   // Obtener las filas actuales según la paginación
   const paginatedRows = filteredTransactions.slice(
@@ -217,6 +236,15 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
+  };
+
+  const clearAporteFilters = () => {
+    setStartDate(null);
+    setEndDate(null);
+    setAporteSearch('');
+    setAporteEstadoFilter('TODOS');
+    setAporteMetodoFilter('TODOS');
+    setPage(0);
   };
 
   const handleCreateAporteClick = () => {
@@ -360,20 +388,56 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
         return a.nombres.localeCompare(b.nombres);
       });
 
+    const totalUsersSavings = allUsers.reduce((total, user) => total + (Number(user.totalAhorrado) || 0), 0);
+    const activeUsers = allUsers.filter((user) => user.idEstado?.estado?.toUpperCase() === 'ACTIVO').length;
+
     const handleUsersSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
       setUsersSearch(event.target.value);
     };
 
     return (
       <Grid container spacing={3}>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card variant="outlined" sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="body2" color="text.secondary">Total ahorrado</Typography>
+              <Typography variant="h4" fontWeight={800} color="success.main" sx={{ mt: 0.5 }}>$ {formatCurrency(totalUsersSavings)}</Typography>
+              <Typography variant="caption" color="text.secondary">Acumulado de todos los asociados</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card variant="outlined" sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="body2" color="text.secondary">Asociados activos</Typography>
+              <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{activeUsers}</Typography>
+              <Typography variant="caption" color="text.secondary">De {allUsers.length} registrados</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card variant="outlined" sx={{ height: '100%' }}>
+            <CardContent>
+              <Typography variant="body2" color="text.secondary">Resultados visibles</Typography>
+              <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{filteredUsers.length}</Typography>
+              <Typography variant="caption" color="text.secondary">Según los filtros actuales</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
         <Grid size={{ xs: 12 }}>
           <Card variant="outlined" sx={{ boxShadow: 3 }}>
             <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                <Typography variant="h5" color="primary">
-                  Gestión de Ahorros - Todos los Usuarios
-                </Typography>
-                <Box display="flex" gap={2} alignItems="center">
+              <Box display="flex" justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} gap={2} flexWrap="wrap" mb={2}>
+                <Box>
+                  <Typography variant="h5" color="primary">Ahorros de asociados</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                    {filteredUsers.length} resultado{filteredUsers.length === 1 ? '' : 's'} encontrados
+                  </Typography>
+                </Box>
+                <Box display="flex" gap={1} alignItems="center" flexWrap="wrap" justifyContent="flex-end">
+                  <Button size="small" color="inherit" startIcon={<IconX size={17} />} onClick={() => { setUsersSearch(''); setEstadoFilter('ACTIVO'); }} disabled={!usersSearch && estadoFilter === 'ACTIVO'}>
+                    Limpiar
+                  </Button>
                   <FormControl size="small" sx={{ minWidth: 150 }}>
                     <InputLabel id="estado-filter-label">Estado</InputLabel>
                     <Select
@@ -394,7 +458,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                     onClick={() => setBulkModalOpen(true)}
                     startIcon={<IconCoins />}
                   >
-                    Crear Aportes en Masa
+                    Aportes en masa
                   </Button>
                   <TextField
                     label="Buscar usuarios"
@@ -403,7 +467,8 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                     value={usersSearch}
                     onChange={handleUsersSearchChange}
                     placeholder="ID, nombre, identificación o estado..."
-                    sx={{ minWidth: 300 }}
+                    sx={{ minWidth: { xs: '100%', md: 280 } }}
+                    InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={18} /></InputAdornment> }}
                   />
                 </Box>
               </Box>
@@ -488,7 +553,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
         <Grid  size={{ xs: 12, md: 8 }}>
           <UserCard id={id} userInfo={userInfo} />
         </Grid>
-        <Grid  size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, sm: 4 }}>
           <Card variant="outlined" sx={{ boxShadow: 3 }}>
             <CardContent>
               <Box
@@ -523,10 +588,10 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   </Avatar>
                 </Box>
                 <Box>
-                  <Typography variant="h5" color="primary" gutterBottom>
+                  <Typography variant="h6" color="primary" gutterBottom>
                     Total ahorrado
                   </Typography>
-                  <Typography variant="h6" display="flex" alignItems="center">
+                  <Typography variant="h5" fontWeight={800} display="flex" alignItems="center" color="success.main">
                     <AttachMoney sx={{ mr: 1 }} /> {formattedTotalAhorrado}
                   </Typography>
                 </Box>
@@ -534,44 +599,78 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
             </CardContent>
           </Card>
         </Grid>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card variant="outlined" sx={{ boxShadow: 3, height: '100%' }}>
+            <CardContent>
+              <Typography variant="body2" color="text.secondary">Aportes visibles</Typography>
+              <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{filteredTransactions.length}</Typography>
+              <Typography variant="caption" color="text.secondary">Con los filtros actuales</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 4 }}>
+          <Card variant="outlined" sx={{ boxShadow: 3, height: '100%' }}>
+            <CardContent>
+              <Typography variant="body2" color="text.secondary">Último aporte</Typography>
+              <Typography variant="h6" fontWeight={800} sx={{ mt: 0.7 }}>{lastAporte ? formatDateWithoutTime(lastAporte) : 'Sin registros'}</Typography>
+              <Typography variant="caption" color="text.secondary">Registro más reciente</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
 
         <Grid  size={{ xs: 12, md: 12 }}>
           <Card variant="outlined" sx={{ boxShadow: 3, padding: 2 }}>
-            <Typography variant="h5" color="primary" gutterBottom>
-              Filtro de fechas
-            </Typography>
-            <Box display="flex" alignItems="center" gap={2}>
-              <Box display="flex" alignItems="center" gap={2}>
+            <Box display="flex" justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} gap={2} flexWrap="wrap" mb={1.5}>
+              <Box>
+                <Typography variant="h6" color="primary">Buscar y filtrar aportes</Typography>
+                <Typography variant="body2" color="text.secondary">Consulta por fecha, estado, método o identificador.</Typography>
+              </Box>
+              <Button size="small" color="inherit" startIcon={<IconX size={17} />} onClick={clearAporteFilters} disabled={!startDate && !endDate && !aporteSearch && aporteEstadoFilter === 'TODOS' && aporteMetodoFilter === 'TODOS'}>
+                Limpiar filtros
+              </Button>
+            </Box>
+            <Grid container spacing={1.5} alignItems="center">
+              <Grid size={{ xs: 12, md: 3 }}>
+                <TextField fullWidth size="small" label="Buscar aporte" placeholder="ID, tipo o método" value={aporteSearch} onChange={(event) => { setAporteSearch(event.target.value); setPage(0); }} InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={18} /></InputAdornment> }} />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="aporte-estado-filter">Estado</InputLabel>
+                  <Select labelId="aporte-estado-filter" value={aporteEstadoFilter} label="Estado" onChange={(event) => { setAporteEstadoFilter(event.target.value); setPage(0); }}>
+                    <MenuItem value="TODOS">Todos</MenuItem>
+                    <MenuItem value="ACTIVO">Activos</MenuItem>
+                    <MenuItem value="INACTIVO">Inactivos</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4, md: 2 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="aporte-metodo-filter">Método</InputLabel>
+                  <Select labelId="aporte-metodo-filter" value={aporteMetodoFilter} label="Método" onChange={(event) => { setAporteMetodoFilter(event.target.value); setPage(0); }}>
+                    <MenuItem value="TODOS">Todos</MenuItem>
+                    <MenuItem value="EFECTIVO">Efectivo</MenuItem>
+                    <MenuItem value="TRANSFERENCIA">Transferencia</MenuItem>
+                    <MenuItem value="TARJETA">Tarjeta</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4, md: 2.5 }}>
                 <DatePicker
                   label="Fecha Inicio"
                   value={startDate}
-                  onChange={(date) => setStartDate(date)}
-                  slotProps={{ textField: { size: 'small' } }}
-                  />
-                  {/* slots={{ textField: TextField }}
-                  slotProps={{ textField: { fullWidth: true } }} */}
+                  onChange={(date) => { setStartDate(date); setPage(0); }}
+                  slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 4, md: 2.5 }}>
                 <DatePicker
                   label="Fecha Fin"
                   value={endDate}
-                  onChange={(date) => setEndDate(date)}
-                  slotProps={{ textField: { size: 'small' } }}
-                  />
-                  {/* slots={{ textField: TextField }}
-                  slotProps={{ textField: { fullWidth: true } }} */}
-              </Box>
-              <Box display="flex">
-                <Button
-                  variant="contained"
-                  color="primary"
-                  onClick={() => {
-                    setStartDate(null);
-                    setEndDate(null);
-                  }}
-                >
-                  Restablecer
-                </Button>
-              </Box>
-            </Box>
+                  onChange={(date) => { setEndDate(date); setPage(0); }}
+                  slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                />
+              </Grid>
+            </Grid>
           </Card>
         </Grid>
 
@@ -584,7 +683,10 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                 alignItems="center"
               >
                 <Typography variant="h5" color="primary" gutterBottom>
-                  Historial de Aportes
+                  Historial de aportes
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {filteredTransactions.length} resultado{filteredTransactions.length === 1 ? '' : 's'} de {savings.length}
                 </Typography>
                 <Button
                   variant="outlined"
@@ -601,6 +703,9 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
               <StyledTable
                 columns={columns}
                 rows={paginatedRows}
+                exportRows={filteredTransactions}
+                exportFilename="historial_aportes"
+                exportSheetName="Aportes"
                 renderCell={(column, row, index) => {
                   if (column.field === "fechaAporte") {
                     return (

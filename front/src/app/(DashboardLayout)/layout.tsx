@@ -5,11 +5,13 @@ import Header from "@/app/(DashboardLayout)/layout/header/Header";
 import Sidebar from "@/app/(DashboardLayout)/layout/sidebar/Sidebar";
 import { useRouter } from "next/navigation";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
+import { authService } from "@/app/authentication/services/authService";
 
 const MainWrapper = styled("div")(() => ({
   display: "flex",
   minHeight: "100vh",
   width: "100%",
+  background: "#f3f6fa",
 }));
 
 const SidebarWrapper = styled("div")(() => ({
@@ -29,6 +31,9 @@ const PageWrapper = styled("div")(() => ({
   flexDirection: "column",
   zIndex: 1,
   opacity: 1,
+  minWidth: 0,
+  background:
+    "radial-gradient(circle at 100% 0%, rgba(93, 135, 255, 0.08), transparent 26rem), #f3f6fa",
 }));
 
 export default function RootLayout({
@@ -38,12 +43,22 @@ export default function RootLayout({
 }) {
   const [isSidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // initialize once for every page
+    if (!authService.isAuthenticated()) {
+      router.replace("/authentication/login");
+      return;
+    }
+
+    setIsCheckingAuth(false);
     setupAxiosInterceptors(router);
   }, [router]);
+
+  if (isCheckingAuth) {
+    return null;
+  }
 
   return (
     <MainWrapper className="mainwrapper">
@@ -76,8 +91,9 @@ export default function RootLayout({
         <Container
           sx={{
             width: "100%",
-            bgcolor: "background.default",
+            bgcolor: "transparent",
             paddingTop: { xs: "16px", sm: "24px" },
+            paddingBottom: { xs: "16px", sm: "32px" },
             maxWidth: "1440px",
             px: { xs: 2, sm: 3, lg: 4 },
           }}

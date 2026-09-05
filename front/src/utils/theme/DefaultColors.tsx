@@ -12,7 +12,7 @@ const baselightTheme = createTheme({
   direction: "ltr",
   palette: {
     background: {
-      default: "#f5f7fb",
+      default: "#f3f6fa",
       paper: "#ffffff",
     },
     primary: {
@@ -21,9 +21,9 @@ const baselightTheme = createTheme({
       dark: "#4570EA",
     },
     secondary: {
-      main: "#49BEFF",
-      light: "#E8F7FF",
-      dark: "#23afdb",
+      main: "#0f9d8a",
+      light: "#e4f7f3",
+      dark: "#087f70",
     },
     success: {
       main: "#13DEB9",
@@ -150,11 +150,11 @@ const baselightTheme = createTheme({
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: "10px",
-          border: "1px solid #e6ebf2",
+          borderRadius: "12px",
+          border: "1px solid #e2e8f0",
           transition:
             "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out",
-          boxShadow: "0 2px 8px rgba(16,24,40,0.04)",
+          boxShadow: "0 4px 14px rgba(30, 55, 90, 0.06)",
           "&:hover": {
             transform: "translateY(-2px)",
             boxShadow: "0 10px 24px rgba(16,24,40,0.08)",
@@ -211,18 +211,44 @@ const baselightTheme = createTheme({
     MuiTableCell: {
       styleOverrides: {
         root: {
-          borderBottom: "1px solid #f1f5f9",
+          borderBottom: "1px solid #e8edf3",
+          padding: "13px 16px",
         },
         head: {
           fontWeight: 600,
-          backgroundColor: "#f8fafc",
+          backgroundColor: "#f6f8fb",
+          color: "#344054",
+          whiteSpace: "nowrap",
+        },
+      },
+    },
+    MuiTableRow: {
+      styleOverrides: {
+        root: {
+          transition: "background-color 0.16s ease",
+          "&:hover": {
+            backgroundColor: "#f7fbff",
+          },
         },
       },
     },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
-          borderRadius: "10px",
+          borderRadius: "9px",
+          backgroundColor: "#ffffff",
+          transition: "box-shadow 0.2s ease, border-color 0.2s ease",
+          "&.Mui-focused": {
+            boxShadow: "0 0 0 3px rgba(93, 135, 255, 0.14)",
+          },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          borderRadius: "7px",
+          fontWeight: 600,
         },
       },
     },

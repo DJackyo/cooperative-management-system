@@ -29,6 +29,7 @@ import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCa
 import dynamic from "next/dynamic";
 import { Asociado } from "@/interfaces/User";
 import { creditsService } from "@/services/creditRequestService";
+import TableExportButton from "@/components/TableExportButton";
 
 const DynamicModal = dynamic(() => import("@mui/material/Modal"), {
   ssr: false, // Desactiva el prerenderizado para este componente
@@ -138,6 +139,19 @@ const Credits = () => {
       <Grid  size={{ xs: 12, md: 12}}>
         {/* Tabla de solicitudes de crédito */}
         <DashboardCard title="Lista de Solicitudes de Crédito">
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 1 }}>
+            <TableExportButton
+              columns={[
+                { field: "name", headerName: "Nombre" },
+                { field: "amountRequested", headerName: "Monto Solicitado" },
+                { field: "requestDate", headerName: "Fecha de Solicitud" },
+                { field: "status", headerName: "Estado" },
+              ]}
+              rows={filteredRequests}
+              filename="solicitudes_credito"
+              sheetName="Solicitudes"
+            />
+          </Box>
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
