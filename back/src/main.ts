@@ -10,15 +10,27 @@ async function bootstrap() {
 
   // Configurar CORS
   app.enableCors({
-    origin: [
-      'http://localhost:4000',
-      'http://localhost:3000',
-      'http://127.0.0.1:4000',
-      'http://127.0.0.1:3000',
-      ...(process.env.FRONTEND_URL
-        ? [process.env.FRONTEND_URL.replace(/\/$/, '')]
-        : ['https://cooperative-management-system-g14j.vercel.app']),
-    ],
+    origin: (requestOrigin, callback) => {
+      const configuredOrigin = process.env.FRONTEND_URL?.replace(/\/$/, '');
+      const allowedOrigins = [
+        'http://localhost:4000',
+        'http://localhost:3000',
+        'http://127.0.0.1:4000',
+        'http://127.0.0.1:3000',
+        ...(configuredOrigin ? [configuredOrigin] : []),
+      ];
+      const isVercelDeployment =
+        requestOrigin?.match(
+          /^https:\/\/cooperative-management-system-[a-z0-9-]+\.vercel\.app$/,
+        ) !== null;
+
+      if (!requestOrigin || allowedOrigins.includes(requestOrigin) || isVercelDeployment) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error('Origin not allowed by CORS'));
+    },
   });
   // Servir archivos estáticos desde la carpeta uploads
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
