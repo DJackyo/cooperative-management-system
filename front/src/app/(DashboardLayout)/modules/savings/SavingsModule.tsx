@@ -69,6 +69,7 @@ import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
 import { usePageLoading } from "@/hooks/usePageLoading";
 import StyledTable from "@/components/StyledTable";
 import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
+import ModuleStatCard from "@/app/(DashboardLayout)/components/shared/ModuleStatCard";
 
 // Agregar el tipo de las props
 interface SavingsModuleProps {
@@ -399,31 +400,31 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     return (
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">Total ahorrado</Typography>
-              <Typography variant="h4" fontWeight={800} color="success.main" sx={{ mt: 0.5 }}>$ {formatCurrency(totalUsersSavings)}</Typography>
-              <Typography variant="caption" color="text.secondary">Acumulado de todos los asociados</Typography>
-            </CardContent>
-          </Card>
+          <ModuleStatCard
+            label="Total ahorrado"
+            value={`$ ${formatCurrency(totalUsersSavings)}`}
+            subtitle="Acumulado de todos los asociados"
+            icon={<IconCoins size={20} />}
+            color="#10b981"
+          />
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">Asociados activos</Typography>
-              <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{activeUsers}</Typography>
-              <Typography variant="caption" color="text.secondary">De {allUsers.length} registrados</Typography>
-            </CardContent>
-          </Card>
+          <ModuleStatCard
+            label="Asociados activos"
+            value={activeUsers}
+            subtitle={`De ${allUsers.length} registrados`}
+            icon={<IconUser size={20} />}
+            color="#3b82f6"
+          />
         </Grid>
         <Grid size={{ xs: 12, sm: 4 }}>
-          <Card variant="outlined" sx={{ height: '100%' }}>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">Resultados visibles</Typography>
-              <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{filteredUsers.length}</Typography>
-              <Typography variant="caption" color="text.secondary">Según los filtros actuales</Typography>
-            </CardContent>
-          </Card>
+          <ModuleStatCard
+            label="Resultados visibles"
+            value={filteredUsers.length}
+            subtitle="Según los filtros actuales"
+            icon={<IconSearch size={20} />}
+            color="#8b5cf6"
+          />
         </Grid>
         <Grid size={{ xs: 12 }}>
           <DashboardCard
@@ -572,72 +573,35 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Grid container spacing={3}>
-        <Grid  size={{ xs: 12, md: 8 }}>
+        <Grid  size={{ xs: 12, sm: 6, md: 3 }}>
           <UserCard id={id} userInfo={userInfo} />
         </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <Card variant="outlined" sx={{ boxShadow: 3 }}>
-            <CardContent>
-              <Box
-                display="flex"
-                sx={{
-                  display: "flex",
-                  justifyContent: "start",
-                  alignItems: "center",
-                  marginRight: 2,
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 40,
-                    marginRight: 3,
-                  }}
-                >
-                  <Avatar
-                    sx={{
-                      bgcolor: "#e3f2fd",
-                      width: 40,
-                      height: 40,
-                      display: "flex",
-                      justifyContent: "center",
-                      alignItems: "center",
-                      marginRight: 2,
-                    }}
-                  >
-                    <Typography variant="h6" color="primary.main">
-                      <IconCoins />
-                    </Typography>
-                  </Avatar>
-                </Box>
-                <Box>
-                  <Typography variant="h6" color="primary" gutterBottom>
-                    Total ahorrado
-                  </Typography>
-                  <Typography variant="h5" fontWeight={800} display="flex" alignItems="center" color="success.main">
-                    <AttachMoney sx={{ mr: 1 }} /> {formattedTotalAhorrado}
-                  </Typography>
-                </Box>
-              </Box>
-            </CardContent>
-          </Card>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <ModuleStatCard
+            label="Total ahorrado"
+            value={formattedTotalAhorrado}
+            subtitle="Acumulado con los filtros actuales"
+            icon={<IconCoins size={20} />}
+            color="#10b981"
+          />
         </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <Card variant="outlined" sx={{ boxShadow: 3, height: '100%' }}>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">Aportes visibles</Typography>
-              <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{filteredTransactions.length}</Typography>
-              <Typography variant="caption" color="text.secondary">Con los filtros actuales</Typography>
-            </CardContent>
-          </Card>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <ModuleStatCard
+            label="Aportes visibles"
+            value={filteredTransactions.length}
+            subtitle="Con los filtros actuales"
+            icon={<IconReceipt size={20} />}
+            color="#3b82f6"
+          />
         </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <Card variant="outlined" sx={{ boxShadow: 3, height: '100%' }}>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">Último aporte</Typography>
-              <Typography variant="h6" fontWeight={800} sx={{ mt: 0.7 }}>{lastAporte ? formatDateWithoutTime(lastAporte) : 'Sin registros'}</Typography>
-              <Typography variant="caption" color="text.secondary">Registro más reciente</Typography>
-            </CardContent>
-          </Card>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <ModuleStatCard
+            label="Último aporte"
+            value={lastAporte ? formatDateWithoutTime(lastAporte) : "Sin registros"}
+            subtitle="Registro más reciente"
+            icon={<IconRefresh size={20} />}
+            color="#8b5cf6"
+          />
         </Grid>
 
         <Grid  size={{ xs: 12, md: 12 }}>

@@ -40,6 +40,7 @@ import UserModal from "./components/UserModal";
 import AsociadoPerfilModal from "./components/AsociadoPerfilModal";
 import AsistenciaAsambleaModal from "./components/AsistenciaAsambleaModal";
 import DashboardCard from "../../components/shared/DashboardCard";
+import ModuleStatCard from "../../components/shared/ModuleStatCard";
 import { useRouter } from "next/navigation";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
 // dinámico para evitar SSR en formularios pesados
@@ -542,39 +543,31 @@ const UserManagementModule = () => {
   return (
     <Grid container spacing={3}>
       <Grid size={{ xs: 12, md: 4 }}>
-        <DashboardCard title="">
-          <Box
-            display="flex"
-            alignItems="center"
-            justifyContent="space-between"
-          >
-            <Avatar
-              sx={{ bgcolor: "#e3f2fd", width: 56, height: 56, marginRight: 2 }}
-            >
-              <IconUsersGroup width={24} color="#1976d2" />
-            </Avatar>
-            <Box>
-              <Typography variant="h4" fontWeight="800" lineHeight={1}>
-                {activeUsersCount}
-              </Typography>
-              <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>
-                Usuarios Activos
-              </Typography>
-            </Box>
-          </Box>
-        </DashboardCard>
+        <ModuleStatCard
+          label="Usuarios activos"
+          value={activeUsersCount}
+          subtitle="Asociados con estado activo"
+          icon={<IconUsersGroup size={20} />}
+          color="#3b82f6"
+        />
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-        <DashboardCard title="">
-          <Typography variant="h4" fontWeight="800" lineHeight={1}>{users.length}</Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>Usuarios registrados</Typography>
-        </DashboardCard>
+        <ModuleStatCard
+          label="Usuarios registrados"
+          value={users.length}
+          subtitle="Total en el sistema"
+          icon={<IconUserPlus size={20} />}
+          color="#10b981"
+        />
       </Grid>
       <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-        <DashboardCard title="">
-          <Typography variant="h4" fontWeight="800" lineHeight={1}>{filteredUsers.length}</Typography>
-          <Typography variant="body2" color="textSecondary" sx={{ mt: 0.5 }}>Resultados visibles</Typography>
-        </DashboardCard>
+        <ModuleStatCard
+          label="Resultados visibles"
+          value={filteredUsers.length}
+          subtitle="Según los filtros actuales"
+          icon={<IconSearch size={20} />}
+          color="#8b5cf6"
+        />
       </Grid>
 
       <Grid  size={{ xs: 12 }}>
