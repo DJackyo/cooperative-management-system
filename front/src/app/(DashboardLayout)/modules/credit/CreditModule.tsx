@@ -26,6 +26,14 @@ import {
   Select,
   TextField,
   InputAdornment,
+  Paper,
+  Stack,
+  Chip,
+  Avatar,
+  Divider,
+  Alert,
+  Fade,
+  LinearProgress,
 } from "@mui/material";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
@@ -35,8 +43,36 @@ import UserCard from "../../utilities/UserCard";
 import { Asociado, LoggedUser } from "@/interfaces/User";
 import { Prestamo } from "@/interfaces/Prestamo";
 import { authService } from "@/app/authentication/services/authService";
-import { defaultLoggedUser, formatCurrency, formatDateTime, formatDateWithoutTime, getComparator, getEstadoChip, roleAdmin, validateRoles } from "../../utilities/utils";
-import { IconChecks, IconEyeDollar, IconPencilDollar, IconX, IconTrash, IconFileReport, IconFileDownload, IconRefresh, IconSearch, IconPrinter } from "@tabler/icons-react";
+import {
+  defaultLoggedUser,
+  formatCurrency,
+  formatDateTime,
+  formatDateWithoutTime,
+  getComparator,
+  getEstadoChip,
+  roleAdmin,
+  validateRoles,
+} from "../../utilities/utils";
+import {
+  IconChecks,
+  IconEyeDollar,
+  IconPencilDollar,
+  IconX,
+  IconTrash,
+  IconFileReport,
+  IconFileDownload,
+  IconRefresh,
+  IconSearch,
+  IconPrinter,
+  IconFilter,
+  IconClock,
+  IconCircleCheck,
+  IconAlertTriangle,
+  IconCash,
+  IconPlus,
+  IconUserCircle,
+  IconListDetails,
+} from "@tabler/icons-react";
 import { creditsService } from "@/services/creditRequestService";
 import { userService } from "@/services/userService";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
@@ -44,6 +80,7 @@ import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
 import { usePageLoading } from "@/hooks/usePageLoading";
 import StyledTable from "@/components/StyledTable";
 import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
+import ModuleStatCard from "@/app/(DashboardLayout)/components/shared/ModuleStatCard";
 
 // Componente cargado dinámicamente
 const CreditForm = dynamic(() => import("./components/CreditForm"), {
@@ -78,15 +115,13 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const [statusFilter, setStatusFilter] = useState("TODOS");
   const [paymentFilter, setPaymentFilter] = useState("TODOS");
   const [refreshing, setRefreshing] = useState(false);
+  const [tasas, setTasas] = useState<any[]>([]);
 
-  // Ordenar por fechaCredito descendente, manejando posibilidad de valor nulo
   const sortedCredits = [...credits].sort((a, b) => {
     const fechaA = a.fechaCredito ? new Date(a.fechaCredito).getTime() : 0;
     const fechaB = b.fechaCredito ? new Date(b.fechaCredito).getTime() : 0;
     return fechaB - fechaA;
   });
-
-  const [tasas, setTasas] = useState<any[]>([]);
 
   const loadCredits = useCallback(async () => {
     setRefreshing(true);
@@ -97,15 +132,18 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         setCredits(response);
         if (response.length > 0) {
           setUserInfo(response[0].idAsociado);
-        }
-        else if (userId > 0) {
-          // Si no hay créditos para el usuario, obtener datos del usuario directamente
+        } else if (userId > 0) {
           try {
             const userResp: any = await userService.fetchById(userId);
             const asoci = userResp?.idAsociado || userResp;
             if (asoci) {
               const nombres = [asoci.nombre1, asoci.nombre2, asoci.apellido1, asoci.apellido2].filter(Boolean).join(' ');
-              setUserInfo({ id: asoci.id || userId, nombres: nombres || asoci.nombres || '', numeroDeIdentificacion: asoci.numeroDeIdentificacion || '', idEstado: asoci.idEstado || { id: 1, estado: '' } });
+              setUserInfo({
+                id: asoci.id || userId,
+                nombres: nombres || asoci.nombres || '',
+                numeroDeIdentificacion: asoci.numeroDeIdentificacion || '',
+                idEstado: asoci.idEstado || { id: 1, estado: '' },
+              });
             }
           } catch (e) {
             console.warn('No se pudo obtener info de usuario:', e);
@@ -115,7 +153,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     } catch (error: any) {
       console.error("Error loading credits:", error);
       if (error.response?.status === 401) {
-        // Redirigir al login si no está autenticado
         router.push("/authentication/login");
       } else {
         setCredits([]);
@@ -129,9 +166,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     if (!tasas || tasas.length === 0) {
       try {
         const response = await creditsService.getTasas();
-        if (response) {
-          setTasas(response);
-        }
+        if (response) setTasas(response);
       } catch (error: any) {
         console.error("Error loading tasas:", error);
         if (error.response?.status === 401) {
@@ -162,12 +197,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     const userRoles = authService.getUserRoles();
     const isAdmin = validateRoles(roleAdmin, userRoles);
     setIsUserAdmin(isAdmin);
-  };
-
-  const handleRequestSort = (property: string) => {
-    const isAsc = orderBy === property && order === "desc";
-    setOrder(isAsc ? "asc" : "desc");
-    setOrderBy(property);
   };
 
   const stableSort = (array: Prestamo[], comparator: (a: Prestamo, b: Prestamo) => number) => {
@@ -207,14 +236,11 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
   const handleRequestSubmit = async (formData: any) => {
     if (formData.monto) {
-      // Mostrar loading
       Swal.fire({
         title: "Procesando...",
         text: "Creando solicitud de crédito",
         allowOutsideClick: false,
-        didOpen: () => {
-          Swal.showLoading();
-        },
+        didOpen: () => { Swal.showLoading(); },
       });
 
       formData.idAsociado = userInfo;
@@ -227,7 +253,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
           icon: "success",
           confirmButtonText: "Entendido",
           confirmButtonColor: "#4caf50",
-          
         });
         await loadCredits();
       } else {
@@ -236,7 +261,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
           text: "No se pudo crear la solicitud. Intente nuevamente.",
           icon: "error",
           confirmButtonText: "Entendido",
-          
         });
       }
     }
@@ -245,7 +269,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
   const handleModifySubmit = async (formData: any) => {
     if (selectedPrestamo) {
-      // Confirmación antes de editar
       const result = await Swal.fire({
         title: "¿Confirmar Cambios?",
         text: "Se actualizarán los datos del crédito seleccionado.",
@@ -255,19 +278,14 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         cancelButtonColor: "#f44336",
         confirmButtonText: "Sí, Actualizar",
         cancelButtonText: "Cancelar",
-        
       });
 
       if (result.isConfirmed) {
-        // Mostrar loading
         Swal.fire({
           title: "Procesando...",
           text: "Actualizando crédito",
           allowOutsideClick: false,
-          
-          didOpen: () => {
-            Swal.showLoading();
-          },
+          didOpen: () => { Swal.showLoading(); },
         });
 
         const saved = await creditsService.update(selectedPrestamo.id, formData);
@@ -279,7 +297,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
             icon: "success",
             confirmButtonText: "Entendido",
             confirmButtonColor: "#4caf50",
-            
           });
           await loadCredits();
           handleCloseModifyModal();
@@ -289,7 +306,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
             text: "No se pudieron guardar los cambios. Intente nuevamente.",
             icon: "error",
             confirmButtonText: "Entendido",
-            
           });
         }
       }
@@ -298,10 +314,8 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
   const handleApproveCredit = async (formData: any) => {
     if (formData && selectedPrestamo) {
-      // Cerrar modal temporalmente para mostrar SweetAlert2
       handleCloseApproveModal();
 
-      // Confirmación antes de aprobar
       const result = await Swal.fire({
         title: "¿Confirmar Aprobación?",
         html: `
@@ -325,14 +339,11 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       });
 
       if (result.isConfirmed) {
-        // Mostrar loading
         Swal.fire({
           title: "Procesando...",
           text: "Aprobando el crédito",
           allowOutsideClick: false,
-          didOpen: () => {
-            Swal.showLoading();
-          },
+          didOpen: () => { Swal.showLoading(); },
         });
 
         formData.estado = "APROBADO";
@@ -361,7 +372,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
           });
         }
       } else {
-        // Si cancela, reabrir el modal
         setOpenApproveModal(true);
       }
     }
@@ -369,10 +379,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
   const handleDelete = async (prestamo: Prestamo) => {
     const paymentsCount = prestamo.presCuotas
-      ? prestamo.presCuotas.reduce(
-          (sum: number, c: any) => sum + (c.presPagos ? c.presPagos.length : 0),
-          0
-        )
+      ? prestamo.presCuotas.reduce((sum: number, c: any) => sum + (c.presPagos ? c.presPagos.length : 0), 0)
       : 0;
 
     const result = await Swal.fire({
@@ -523,19 +530,15 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         Swal.fire({
           icon: "warning",
           title: "Sin datos",
-          text: "No hay cr\u00e9ditos aprobados para exportar",
+          text: "No hay créditos aprobados para exportar",
           confirmButtonText: "Entendido",
         });
         return;
       }
 
-      // Preparar datos para Excel
       const excelData = [];
+      excelData.push(["COD", "IDENTIFICACIÓN", "NOMBRES COMPLETOS", "VALOR CRÉDITO", "PLAZO MESES", "CUOTAS PAGADAS", "MESES FALTANTES", "CUOTAS ATRASADAS", "MESES CON PAGO", "ABONO CAPITAL", "INTERESES"]);
 
-      // Encabezados
-      excelData.push(["COD", "IDENTIFICACI\u00d3N", "NOMBRES COMPLETOS", "VALOR CR\u00c9DITO", "PLAZO MESES", "CUOTAS PAGADAS", "MESES FALTANTES", "CUOTAS ATRASADAS", "MESES CON PAGO", "ABONO CAPITAL", "INTERESES"]);
-
-      // Datos de cada crédito
       creditosAprobados.forEach((credit) => {
         const cuotasPagadas = credit.presCuotas?.filter((c) => c.estado === "PAGADO").length || 0;
         const mesesFaltantes = credit.plazoMeses - cuotasPagadas;
@@ -567,7 +570,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         ]);
       });
 
-      // Fila de totales
       const totalCredito = creditosAprobados.reduce((sum, c) => sum + Number(c.monto), 0);
       const totalAbonoCapital = creditosAprobados.reduce((sum, c) => {
         return sum + (c.presCuotas?.filter((cu) => cu.estado === "PAGADO").reduce((s, cu) => s + (Number(cu.abonoCapital) || 0), 0) || 0);
@@ -585,136 +587,77 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
       excelData.push(["TOTALES", "", "", totalCredito, creditosAprobados.length, totalCuotasPagadas, "", totalCuotasAtrasadas, "", totalAbonoCapital, totalIntereses]);
 
-      // Crear libro de Excel
       const worksheet = XLSX.utils.aoa_to_sheet(excelData);
 
-      // Aplicar estilos de columnas (anchos)
       worksheet["!cols"] = [
-        { wch: 8 }, // COD
-        { wch: 15 }, // IDENTIFICACIÓN
-        { wch: 35 }, // NOMBRES COMPLETOS
-        { wch: 15 }, // VALOR CRÉDITO
-        { wch: 12 }, // PLAZO MESES
-        { wch: 15 }, // CUOTAS PAGADAS
-        { wch: 15 }, // MESES FALTANTES
-        { wch: 16 }, // CUOTAS ATRASADAS
-        { wch: 15 }, // MESES CON PAGO
-        { wch: 15 }, // ABONO CAPITAL
-        { wch: 15 }, // INTERESES
+        { wch: 8 }, { wch: 15 }, { wch: 35 }, { wch: 15 }, { wch: 12 },
+        { wch: 15 }, { wch: 15 }, { wch: 16 }, { wch: 15 }, { wch: 15 }, { wch: 15 },
       ];
 
-      // Aplicar estilos a las celdas (encabezados y datos)
       const range = XLSX.utils.decode_range(worksheet["!ref"] || "A1");
 
-      // Estilos para encabezados (fila 1)
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const address = XLSX.utils.encode_col(C) + "1";
         if (!worksheet[address]) continue;
-
-        // Aplicar estilo según columna
         worksheet[address].s = {
           fill: {
             fgColor: {
-              rgb:
-                C === 8
-                  ? "4CAF50" // CUOTAS PAGADAS - verde
-                  : C === 9
-                    ? "FF9800" // MESES FALTANTES - naranja
-                    : C === 10
-                      ? "F44336" // CUOTAS ATRASADAS - rojo
-                      : "1976D2", // Resto - azul
+              rgb: C === 8 ? "4CAF50" : C === 9 ? "FF9800" : C === 10 ? "F44336" : "1976D2",
             },
           },
-          font: {
-            bold: true,
-            color: { rgb: "FFFFFF" },
-            sz: 11,
-          },
-          alignment: {
-            horizontal: "center",
-            vertical: "center",
-          },
+          font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
+          alignment: { horizontal: "center", vertical: "center" },
         };
       }
 
-      // Aplicar estilos condicionales a las filas de datos
       for (let R = range.s.r + 1; R < range.e.r; ++R) {
-        // Excluir última fila (totales)
-        const cuotasAtrasadasAddr = XLSX.utils.encode_col(7) + (R + 1); // Columna H (índice 7)
-        const cuotasPagadasAddr = XLSX.utils.encode_col(5) + (R + 1); // Columna F (índice 5)
-        const plazoMesesAddr = XLSX.utils.encode_col(4) + (R + 1); // Columna E (índice 4)
+        const cuotasAtrasadasAddr = XLSX.utils.encode_col(7) + (R + 1);
+        const cuotasPagadasAddr = XLSX.utils.encode_col(5) + (R + 1);
+        const plazoMesesAddr = XLSX.utils.encode_col(4) + (R + 1);
 
         const cuotasAtrasadas = worksheet[cuotasAtrasadasAddr]?.v || 0;
         const cuotasPagadas = worksheet[cuotasPagadasAddr]?.v || 0;
         const plazoMeses = worksheet[plazoMesesAddr]?.v || 0;
         const isCompleted = cuotasPagadas === plazoMeses && plazoMeses > 0;
 
-        // Colorear toda la fila según estado
         const bgColor = cuotasAtrasadas > 0 ? "FFEBEE" : isCompleted ? "E8F5E9" : "FFFFFF";
 
         for (let C = range.s.c; C <= range.e.c; ++C) {
           const address = XLSX.utils.encode_col(C) + (R + 1);
           if (!worksheet[address]) continue;
-
           worksheet[address].s = {
             fill: { fgColor: { rgb: bgColor } },
-            alignment: {
-              horizontal: C >= 3 ? "right" : "left",
-              vertical: "center",
-            },
+            alignment: { horizontal: C >= 3 ? "right" : "left", vertical: "center" },
           };
 
-          // Color especial para celda de cuotas atrasadas
           if (C === 7 && cuotasAtrasadas > 0) {
-            worksheet[address].s.font = {
-              bold: true,
-              color: { rgb: "D32F2F" }, // #d32f2f
-            };
-            worksheet[address].s.fill = {
-              fgColor: { rgb: "FFCDD2" }, // #ffcdd2
-            };
+            worksheet[address].s.font = { bold: true, color: { rgb: "D32F2F" } };
+            worksheet[address].s.fill = { fgColor: { rgb: "FFCDD2" } };
           }
-
-          // Color verde para cuotas pagadas (texto)
           if (C === 5 && cuotasPagadas > 0) {
-            worksheet[address].s.font = {
-              bold: true,
-              color: { rgb: "4CAF50" }, // #4caf50
-            };
+            worksheet[address].s.font = { bold: true, color: { rgb: "4CAF50" } };
           }
-
-          // Color para meses faltantes (texto)
           if (C === 6) {
             const mesesFaltantes = worksheet[address].v || 0;
-            worksheet[address].s.font = {
-              color: { rgb: mesesFaltantes > 0 ? "FF9800" : "4CAF50" }, // #ff9800 o #4caf50
-            };
+            worksheet[address].s.font = { color: { rgb: mesesFaltantes > 0 ? "FF9800" : "4CAF50" } };
           }
         }
       }
 
-      // Estilo para fila de totales (última fila)
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const address = XLSX.utils.encode_col(C) + (range.e.r + 1);
         if (!worksheet[address]) continue;
-
         worksheet[address].s = {
           fill: { fgColor: { rgb: "E3F2FD" } },
           font: { bold: true, sz: 11 },
-          alignment: {
-            horizontal: C >= 3 ? "right" : "left",
-            vertical: "center",
-          },
-          border: {
-            top: { style: "medium", color: { rgb: "1976D2" } },
-          },
+          alignment: { horizontal: C >= 3 ? "right" : "left", vertical: "center" },
+          border: { top: { style: "medium", color: { rgb: "1976D2" } } },
         };
       }
 
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, "Reporte Préstamos");
 
-      // Descargar archivo
       const fecha = new Date().toISOString().split("T")[0];
       XLSX.writeFile(workbook, `reporte_prestamos_${fecha}.xlsx`, {
         bookType: "xlsx",
@@ -739,47 +682,11 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     }
   };
 
-  const showSuccessMessage = (title: string, text?: string) => {
-    Swal.fire({
-      title,
-      text,
-      icon: "success",
-      confirmButtonText: "Entendido",
-      confirmButtonColor: "#4caf50",
-      
-    });
-  };
-
-  const showErrorMessage = (title: string, text?: string) => {
-    Swal.fire({
-      title,
-      text,
-      icon: "error",
-      confirmButtonText: "Entendido",
-      confirmButtonColor: "#f44336",
-      
-    });
-  };
-
-  const showInfoMessage = (title: string, text?: string) => {
-    Swal.fire({
-      title,
-      text,
-      icon: "info",
-      confirmButtonText: "Entendido",
-      confirmButtonColor: "#1976d2",
-      
-    });
-  };
-
-  // Función para calcular el estado de pagos de un crédito
   const getPaymentStatus = (prestamo: Prestamo) => {
-    // Si no es un crédito aprobado, retornar estado normal
     if (!prestamo || prestamo.estado !== "APROBADO") {
       return { status: "normal", pendingPayments: 0, overduePayments: 0 };
     }
 
-    // Si tiene cuotas reales, usar esos datos
     if (prestamo.presCuotas && prestamo.presCuotas.length > 0) {
       const today = new Date();
       const pendingPayments = prestamo.presCuotas.filter((cuota) => cuota.estado === "PENDIENTE").length;
@@ -794,7 +701,6 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       return { status: "completed", pendingPayments, overduePayments };
     }
 
-    // Simular estado basado en fechas del crédito
     const today = new Date();
     const vencimiento = new Date(prestamo.fechaVencimiento);
     let desembolso: Date;
@@ -803,51 +709,30 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     } else if (prestamo.fechaCredito) {
       desembolso = new Date(prestamo.fechaCredito);
     } else {
-      // fallback to today if no dates available
       desembolso = today;
     }
 
-    // Calcular cuotas simuladas basadas en plazo
     const mesesTranscurridos = Math.floor((today.getTime() - desembolso.getTime()) / (1000 * 60 * 60 * 24 * 30));
     const cuotasPendientes = Math.max(0, prestamo.plazoMeses - mesesTranscurridos);
 
-    // Si ya venció el crédito completo
     if (today > vencimiento) {
       return { status: "overdue", pendingPayments: cuotasPendientes, overduePayments: cuotasPendientes };
     }
-
-    // Si tiene cuotas pendientes
     if (cuotasPendientes > 0) {
       return { status: "pending", pendingPayments: cuotasPendientes, overduePayments: 0 };
     }
-
-    // Si está al día
     return { status: "completed", pendingPayments: 0, overduePayments: 0 };
   };
 
-  // Función para obtener el estilo de fila según el estado de pagos
   const getRowStyle = (prestamo: Prestamo) => {
     const paymentStatus = getPaymentStatus(prestamo);
-
     switch (paymentStatus.status) {
       case "overdue":
-        return {
-          backgroundColor: "#ffebee",
-          borderLeft: "4px solid #f44336",
-          "&:hover": { backgroundColor: "#ffcdd2" },
-        };
+        return { backgroundColor: "#fef2f2", borderLeft: "3px solid #ef4444", "&:hover": { backgroundColor: "#fee2e2" } };
       case "pending":
-        return {
-          backgroundColor: "#fff3e0",
-          borderLeft: "4px solid #ff9800",
-          "&:hover": { backgroundColor: "#ffe0b2" },
-        };
+        return { backgroundColor: "#fffbeb", borderLeft: "3px solid #f59e0b", "&:hover": { backgroundColor: "#fef3c7" } };
       case "completed":
-        return {
-          backgroundColor: "#e8f5e8",
-          borderLeft: "4px solid #4caf50",
-          "&:hover": { backgroundColor: "#c8e6c9" },
-        };
+        return { backgroundColor: "#f0fdf4", borderLeft: "3px solid #10b981", "&:hover": { backgroundColor: "#dcfce7" } };
       default:
         return {};
     }
@@ -858,7 +743,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     { field: "fechaCredito", headerName: "Fecha crédito", width: 150 },
     { field: "idAsociado", headerName: "Asociado", width: 150 },
     { field: "monto", headerName: "Monto", width: 150 },
-    { field: "plazoMeses", headerName: "Plazo meses", width: 130 },
+    { field: "plazoMeses", headerName: "Plazo meses", width: 80 },
     { field: "tasa", headerName: "Tasa", width: 130 },
     { field: "cuotaMensual", headerName: "Cuota mensual", width: 130 },
     { field: "estado", headerName: "Estado", width: 130 },
@@ -882,15 +767,13 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
           </Typography>
         );
       }
-
       const paymentStatus = getPaymentStatus(row);
-
       switch (paymentStatus.status) {
         case "overdue":
           return (
             <Box display="flex" alignItems="center" gap={0.5}>
-              <Box width={8} height={8} borderRadius="50%" bgcolor="#f44336" />
-              <Typography variant="body2" color="#f44336" fontWeight="medium">
+              <Box width={8} height={8} borderRadius="50%" bgcolor="#ef4444" />
+              <Typography variant="body2" color="#ef4444" fontWeight={600}>
                 {paymentStatus.overduePayments} vencidas
               </Typography>
             </Box>
@@ -898,8 +781,8 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         case "pending":
           return (
             <Box display="flex" alignItems="center" gap={0.5}>
-              <Box width={8} height={8} borderRadius="50%" bgcolor="#ff9800" />
-              <Typography variant="body2" color="#ff9800" fontWeight="medium">
+              <Box width={8} height={8} borderRadius="50%" bgcolor="#f59e0b" />
+              <Typography variant="body2" color="#f59e0b" fontWeight={600}>
                 {paymentStatus.pendingPayments} pendientes
               </Typography>
             </Box>
@@ -907,8 +790,8 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         case "completed":
           return (
             <Box display="flex" alignItems="center" gap={0.5}>
-              <Box width={8} height={8} borderRadius="50%" bgcolor="#4caf50" />
-              <Typography variant="body2" color="#4caf50" fontWeight="medium">
+              <Box width={8} height={8} borderRadius="50%" bgcolor="#10b981" />
+              <Typography variant="body2" color="#10b981" fontWeight={600}>
                 Al día
               </Typography>
             </Box>
@@ -956,340 +839,475 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   }
 
   return (
-    <Grid container spacing={3}>
+    <Box>
+      {/* Header para admin */}
       {userId === 0 && (
-        <>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <Card variant="outlined" sx={{ height: "100%" }}>
-              <CardContent>
-                <Typography variant="body2" color="text.secondary">Solicitudes pendientes</Typography>
-                <Typography variant="h4" fontWeight={800} sx={{ mt: 0.5 }}>{requestedCredits}</Typography>
-                <Typography variant="caption" color="text.secondary">Requieren revisión</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <Card variant="outlined" sx={{ height: "100%" }}>
-              <CardContent>
-                <Typography variant="body2" color="text.secondary">Créditos aprobados</Typography>
-                <Typography variant="h4" fontWeight={800} color="success.main" sx={{ mt: 0.5 }}>{approvedCredits}</Typography>
-                <Typography variant="caption" color="text.secondary">En seguimiento</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid size={{ xs: 12, sm: 4 }}>
-            <Card variant="outlined" sx={{ height: "100%", borderColor: overdueCredits ? "error.light" : undefined }}>
-              <CardContent>
-                <Typography variant="body2" color="text.secondary">Con cuotas vencidas</Typography>
-                <Typography variant="h4" fontWeight={800} color={overdueCredits ? "error.main" : "text.primary"} sx={{ mt: 0.5 }}>{overdueCredits}</Typography>
-                <Typography variant="caption" color="text.secondary">Atención prioritaria</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </>
-      )}
-      {/* Información de la Solicitud */}
-      <Grid size={{ xs: 12, md: 8 }}>{userId > 0 && <UserCard id={userId} userInfo={userInfo} />}</Grid>
-
-      <Grid size={{ xs: 12, md: 4 }}>
-        {userId > 0 && (
-          <Card variant="outlined" sx={{ boxShadow: 3 }}>
-            <CardContent>
-              <Typography variant="h5" color="primary" gutterBottom>
-                Gestión de préstamos
+        <Box sx={{ mb: 3 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+            <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>
+              <IconCash size={22} color="white" />
+            </Avatar>
+            <Box>
+              <Typography variant="h5" fontWeight={700}>
+                Gestión de Créditos
               </Typography>
-              {/* Botones para abrir formulario en modal */}
-              <Suspense fallback={<Skeleton variant="text" width="100%" />}>
-                <Button variant="contained" color="primary" onClick={handleOpenRequestModal}>
+              <Typography variant="body2" color="text.secondary">
+                Administra las solicitudes y créditos aprobados del sistema
+              </Typography>
+            </Box>
+          </Stack>
+
+          <Grid container spacing={2}>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <ModuleStatCard
+                label="Solicitudes pendientes"
+                value={requestedCredits}
+                icon={<IconClock size={20} />}
+                color="#f59e0b"
+                subtitle="Requieren revisión"
+                highlight={requestedCredits > 0}
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <ModuleStatCard
+                label="Créditos aprobados"
+                value={approvedCredits}
+                icon={<IconCircleCheck size={20} />}
+                color="#10b981"
+                subtitle="En seguimiento"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <ModuleStatCard
+                label="Con cuotas vencidas"
+                value={overdueCredits}
+                icon={<IconAlertTriangle size={20} />}
+                color="#ef4444"
+                subtitle="Atención prioritaria"
+                highlight={overdueCredits > 0}
+              />
+            </Grid>
+          </Grid>
+        </Box>
+      )}
+
+      {/* Header para usuario específico */}
+      {userId > 0 && (
+        <Grid container spacing={2} alignItems="flex-start" sx={{ mb: 2 }}>
+          <Grid size={{ xs: 12, md: 8 }}>
+            <UserCard id={userId} userInfo={userInfo} />
+          </Grid>
+          <Grid size={{ xs: 12, md: 4 }}>
+            <Paper
+              elevation={0}
+              sx={{
+                p: { xs: 1.5, sm: 2 },
+                minHeight: { xs: 112, sm: 88 },
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                justifyContent: "space-between",
+                alignItems: "center",
+                textAlign: { xs: "center", sm: "left" },
+                gap: { xs: 1.25, sm: 1.5 },
+                background: (theme) =>
+                  `linear-gradient(135deg, ${theme.palette.primary.main}08 0%, ${theme.palette.primary.main}15 100%)`,
+              }}
+            >
+             
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Typography variant="subtitle1" fontWeight={700} noWrap>
+                  Nueva Solicitud
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                >
+                  Solicita un nuevo crédito con los términos actuales
+                </Typography>
+              </Box>
+              <Suspense fallback={<Skeleton variant="rectangular" width="100%" height={40} />}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="medium"
+                  onClick={handleOpenRequestModal}
+                  startIcon={<IconPlus size={18} />}
+                  sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2, px: { xs: 2, sm: 2.5 }, flexShrink: 0 }}
+                >
                   Solicitar crédito
                 </Button>
               </Suspense>
-            </CardContent>
-          </Card>
-        )}
-      </Grid>
+            </Paper>
+          </Grid>
+        </Grid>
+      )}
 
       {/* Filtros */}
-      <Grid size={{ xs: 12, md: 12 }}>
-        <DashboardCard
-          title="Filtros"
-          subtitle="Busca créditos por asociado, estado y situación de pagos."
-          action={
-            <Box display="flex" gap={1} flexWrap="wrap">
-              <Button variant="outlined" size="small" startIcon={<IconRefresh />} onClick={loadCredits} disabled={refreshing}>
-                {refreshing ? "Actualizando..." : "Actualizar"}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          mb: 3,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "divider",
+        }}
+      >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }} flexWrap="wrap" gap={1}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <IconFilter size={18} color="#64748b" />
+            <Typography variant="subtitle2" fontWeight={600}>
+              Filtros de búsqueda
+            </Typography>
+          </Stack>
+          <Stack direction="row" spacing={1} flexWrap="wrap">
+            <Button
+              size="small"
+              color="inherit"
+              onClick={clearFilters}
+              disabled={!search && statusFilter === "TODOS" && paymentFilter === "TODOS"}
+            >
+              Limpiar filtros
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<IconRefresh size={16} />}
+              onClick={loadCredits}
+              disabled={refreshing}
+            >
+              {refreshing ? "Actualizando..." : "Actualizar"}
+            </Button>
+            {userId === 0 && isUserAdmin && (
+              <Button
+                size="small"
+                variant="contained"
+                color="success"
+                startIcon={<IconFileReport size={16} />}
+                onClick={handleOpenReportModal}
+              >
+                Generar reporte
               </Button>
-              {userId === 0 && isUserAdmin && (
-                <Button variant="contained" color="success" startIcon={<IconFileReport />} onClick={handleOpenReportModal}>
-                  Generar reporte
-                </Button>
-              )}
-            </Box>
-          }
-        >
-            <Grid container spacing={1.5}>
-              <Grid size={{ xs: 12, md: 5 }}>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="Buscar crédito o asociado"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Nombre, identificación o ID"
-                  InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={18} /></InputAdornment> }}
-                />
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="credit-status-filter">Estado</InputLabel>
-                  <Select labelId="credit-status-filter" value={statusFilter} label="Estado" onChange={(event) => setStatusFilter(event.target.value)}>
-                    <MenuItem value="TODOS">Todos</MenuItem>
-                    <MenuItem value="SOLICITADO">Solicitados</MenuItem>
-                    <MenuItem value="APROBADO">Aprobados</MenuItem>
-                    <MenuItem value="RECHAZADO">Rechazados</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
-                <FormControl fullWidth size="small">
-                  <InputLabel id="payment-status-filter">Pagos</InputLabel>
-                  <Select labelId="payment-status-filter" value={paymentFilter} label="Pagos" onChange={(event) => setPaymentFilter(event.target.value)}>
-                    <MenuItem value="TODOS">Todos</MenuItem>
-                    <MenuItem value="MORA">Con mora</MenuItem>
-                    <MenuItem value="PENDIENTE">Pendientes</MenuItem>
-                    <MenuItem value="AL_DIA">Al día</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid size={{ xs: 12, md: 2 }} display="flex" alignItems="center" justifyContent={{ xs: "flex-start", md: "flex-end" }}>
-                <Button size="small" color="inherit" onClick={clearFilters} disabled={!search && statusFilter === "TODOS" && paymentFilter === "TODOS"}>
-                  Limpiar filtros
-                </Button>
-              </Grid>
-            </Grid>
-        </DashboardCard>
-      </Grid>
+            )}
+          </Stack>
+        </Stack>
 
-      {/* Historial de Préstamos */}
-      <Grid size={{ xs: 12, md: 12 }}>
-        <DashboardCard
-          title={userId === 0 ? "Listado de créditos" : "Historial de préstamos"}
-          subtitle={`${filteredTransactions.length} resultado${filteredTransactions.length === 1 ? "" : "s"} de ${credits.length}`}
-        >
-            <Suspense fallback={<Skeleton variant="rectangular" width="100%" height={300} />}>
-              {/* Tabla */}
-              <StyledTable
-                columns={filteredColumns}
-                rows={filteredTransactions}
-                withPagination={true}
-                pageSizeOptions={[10, 25, 50]}
-                renderCell={(column, row) => {
-                  return formatRules[column.field] ? formatRules[column.field](row[column.field], row) : row[column.field];
-                }}
-                rowSx={(row) => {
-                  return getRowStyle(row);
-                }}
-                actions={(row: any) => (
-                  <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
-                    {isUserAdmin && (
-                      <Tooltip title="Editar" arrow>
-                        <IconButton
-                          onClick={() => handleEditClick(row)}
-                          color="info"
-                          size="small"
-                          aria-label="Editar"
-                          sx={{
-                            "&:hover": { backgroundColor: "#e1f5fe", transform: "scale(1.1)" },
-                            transition: "all 0.2s ease",
-                          }}
-                        >
-                          <IconPencilDollar />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    {isUserAdmin && row["estado"] === "SOLICITADO" && (
-                      <Tooltip title="Aprobar" arrow>
-                        <IconButton
-                          onClick={() => handleApproveClick(row)}
-                          color="success"
-                          size="small"
-                          aria-label="Aprobar"
-                          sx={{
-                            "&:hover": { backgroundColor: "#e8f5e9", transform: "scale(1.1)" },
-                            transition: "all 0.2s ease",
-                          }}
-                        >
-                          <IconChecks />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    {isUserAdmin && row["estado"] !== "SOLICITADO" && (
-                      <Tooltip title="Ver préstamo" arrow>
-                        <IconButton
-                          onClick={() => handleOpenDetail(row)}
-                          color="warning"
-                          size="small"
-                          aria-label="Ver préstamo"
-                          sx={{
-                            "&:hover": { backgroundColor: "#fff3e0", transform: "scale(1.1)" },
-                            transition: "all 0.2s ease",
-                          }}
-                        >
-                          <IconEyeDollar />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    <Tooltip title="Imprimir crédito" arrow>
-                      <IconButton
-                        onClick={() => handlePrintCredit(row)}
-                        color="primary"
-                        size="small"
-                        aria-label="Imprimir crédito"
-                      >
-                        <IconPrinter />
-                      </IconButton>
-                    </Tooltip>
-                    {isUserAdmin && (
-                      <Tooltip title="Eliminar" arrow>
-                        <IconButton
-                          onClick={() => handleDelete(row)}
-                          color="error"
-                          size="small"
-                          aria-label="Eliminar"
-                          sx={{
-                            "&:hover": { backgroundColor: "#ffebee", transform: "scale(1.1)" },
-                            transition: "all 0.2s ease",
-                          }}
-                        >
-                          <IconTrash />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </Box>
+        <Grid container spacing={2}>
+          <Grid size={{ xs: 12, md: 5 }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Buscar por nombre, identificación o ID"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <IconSearch size={18} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="credit-status-filter">Estado</InputLabel>
+              <Select
+                labelId="credit-status-filter"
+                value={statusFilter}
+                label="Estado"
+                onChange={(event) => setStatusFilter(event.target.value)}
+              >
+                <MenuItem value="TODOS">Todos</MenuItem>
+                <MenuItem value="SOLICITADO">Solicitados</MenuItem>
+                <MenuItem value="APROBADO">Aprobados</MenuItem>
+                <MenuItem value="RECHAZADO">Rechazados</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <FormControl fullWidth size="small">
+              <InputLabel id="payment-status-filter">Pagos</InputLabel>
+              <Select
+                labelId="payment-status-filter"
+                value={paymentFilter}
+                label="Pagos"
+                onChange={(event) => setPaymentFilter(event.target.value)}
+              >
+                <MenuItem value="TODOS">Todos</MenuItem>
+                <MenuItem value="MORA">Con mora</MenuItem>
+                <MenuItem value="PENDIENTE">Pendientes</MenuItem>
+                <MenuItem value="AL_DIA">Al día</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid size={{ xs: 12, md: 1 }} display="flex" alignItems="center" justifyContent="center">
+            <Chip
+              label={filteredTransactions.length}
+              size="small"
+              color="primary"
+              variant="outlined"
+            />
+          </Grid>
+        </Grid>
+      </Paper>
+
+      {/* Tabla */}
+      <Paper
+        elevation={0}
+        sx={{
+          p: 2,
+          borderRadius: 2,
+          border: "1px solid",
+          borderColor: "divider",
+        }}
+      >
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+          <Avatar sx={{ width: 32, height: 32, bgcolor: "primary.main" }}>
+            <IconListDetails size={18} color="white" />
+          </Avatar>
+          <Box>
+            <Typography variant="subtitle2" fontWeight={700}>
+              {userId === 0 ? "Listado de créditos" : "Historial de préstamos"}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {filteredTransactions.length} resultado{filteredTransactions.length === 1 ? "" : "s"} de {credits.length}
+            </Typography>
+          </Box>
+        </Stack>
+
+        <Suspense fallback={<Skeleton variant="rectangular" width="100%" height={300} />}>
+          <StyledTable
+            columns={filteredColumns}
+            rows={filteredTransactions}
+            withPagination={true}
+            pageSizeOptions={[10, 25, 50]}
+            renderCell={(column, row) => {
+              return formatRules[column.field] ? formatRules[column.field](row[column.field], row) : row[column.field];
+            }}
+            rowSx={(row) => getRowStyle(row)}
+            actions={(row: any) => (
+              <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
+                {isUserAdmin && (
+                  <Tooltip title="Editar" arrow>
+                    <IconButton
+                      onClick={() => handleEditClick(row)}
+                      color="info"
+                      size="small"
+                      sx={{
+                        "&:hover": { backgroundColor: "#e1f5fe", transform: "scale(1.1)" },
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <IconPencilDollar size={18} />
+                    </IconButton>
+                  </Tooltip>
                 )}
-              />
-            </Suspense>
-        </DashboardCard>
-      </Grid>
+                {isUserAdmin && row["estado"] === "SOLICITADO" && (
+                  <Tooltip title="Aprobar" arrow>
+                    <IconButton
+                      onClick={() => handleApproveClick(row)}
+                      color="success"
+                      size="small"
+                      sx={{
+                        "&:hover": { backgroundColor: "#e8f5e9", transform: "scale(1.1)" },
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <IconChecks size={18} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                {isUserAdmin && row["estado"] !== "SOLICITADO" && (
+                  <Tooltip title="Ver préstamo" arrow>
+                    <IconButton
+                      onClick={() => handleOpenDetail(row)}
+                      color="warning"
+                      size="small"
+                      sx={{
+                        "&:hover": { backgroundColor: "#fff3e0", transform: "scale(1.1)" },
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <IconEyeDollar size={18} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+                <Tooltip title="Imprimir crédito" arrow>
+                  <IconButton
+                    onClick={() => handlePrintCredit(row)}
+                    color="primary"
+                    size="small"
+                    sx={{ "&:hover": { backgroundColor: "#e3f2fd", transform: "scale(1.1)" }, transition: "all 0.2s ease" }}
+                  >
+                    <IconPrinter size={18} />
+                  </IconButton>
+                </Tooltip>
+                {isUserAdmin && (
+                  <Tooltip title="Eliminar" arrow>
+                    <IconButton
+                      onClick={() => handleDelete(row)}
+                      color="error"
+                      size="small"
+                      sx={{
+                        "&:hover": { backgroundColor: "#ffebee", transform: "scale(1.1)" },
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <IconTrash size={18} />
+                    </IconButton>
+                  </Tooltip>
+                )}
+              </Box>
+            )}
+          />
+        </Suspense>
+      </Paper>
 
       {/* Modal para Solicitud de Préstamo */}
-      <Dialog open={openRequestModal} onClose={handleCloseRequestModal} fullWidth maxWidth="md">
-        <DialogTitle>
-          <Typography variant="h6" component="span">
+      <Dialog
+        open={openRequestModal}
+        onClose={handleCloseRequestModal}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, pb: 1 }}>
+          <Avatar sx={{ bgcolor: "primary.main", width: 32, height: 32 }}>
+            <IconPlus size={18} color="white" />
+          </Avatar>
+          <Typography component="span" variant="h6" fontWeight={600}>
             Nueva Solicitud de Crédito
           </Typography>
         </DialogTitle>
-        <DialogContent>
+        <Divider />
+        <DialogContent sx={{ pt: 2 }}>
           <CreditForm mode="create" tasas={tasas} onSubmit={handleRequestSubmit} />
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={handleCloseRequestModal} color="secondary" variant="outlined" startIcon={<IconX />}>
+        <Divider />
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseRequestModal} color="inherit" startIcon={<IconX size={16} />}>
             Cancelar
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Modal para Modificación de Préstamo */}
-      <Dialog open={openModifyModal} onClose={handleCloseModifyModal} fullWidth maxWidth="md">
-        <DialogTitle>
-          <Box display="flex" alignItems="center" gap={1}>
-            <IconPencilDollar color="#1976d2" />
-            <Typography variant="h6" component="span">
-              Editar Crédito
-            </Typography>
-          </Box>
+      {/* Modal para Modificación */}
+      <Dialog
+        open={openModifyModal}
+        onClose={handleCloseModifyModal}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, pb: 1 }}>
+          <Avatar sx={{ bgcolor: "info.main", width: 32, height: 32 }}>
+            <IconPencilDollar size={18} color="white" />
+          </Avatar>
+          <Typography component="span" variant="h6" fontWeight={600}>
+            Editar Crédito
+          </Typography>
         </DialogTitle>
-        <DialogContent>
+        <Divider />
+        <DialogContent sx={{ pt: 2 }}>
           <CreditForm mode="edit" tasas={tasas} existingData={selectedPrestamo} onSubmit={handleModifySubmit} />
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={handleCloseModifyModal} color="secondary" variant="outlined" startIcon={<IconX />}>
+        <Divider />
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseModifyModal} color="inherit" startIcon={<IconX size={16} />}>
             Cancelar
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Modal para Aprobación de Préstamo */}
-      <Dialog open={openApproveModal} onClose={handleCloseApproveModal} fullWidth maxWidth="md">
-        <DialogTitle sx={{ pb: 1 }}>
-          <Box display="flex" alignItems="center" gap={1}>
-            <IconChecks color="green" />
-            <Typography variant="h6" component="span">
-              Aprobar Solicitud de Crédito
-            </Typography>
-          </Box>
+      {/* Modal para Aprobación */}
+      <Dialog
+        open={openApproveModal}
+        onClose={handleCloseApproveModal}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, pb: 1 }}>
+          <Avatar sx={{ bgcolor: "success.main", width: 32, height: 32 }}>
+            <IconChecks size={18} color="white" />
+          </Avatar>
+          <Typography component="span" variant="h6" fontWeight={600}>
+            Aprobar Solicitud de Crédito
+          </Typography>
         </DialogTitle>
-
-        <DialogContent sx={{ pt: 1 }}>
+        <Divider />
+        <DialogContent sx={{ pt: 2 }}>
           {selectedPrestamo && (
-            <Card variant="outlined" sx={{ mb: 3, bgcolor: "#f8f9fa" }}>
-              <CardContent sx={{ py: 2 }}>
-                <Typography variant="subtitle1" color="primary" gutterBottom>
+            <Paper
+              elevation={0}
+              sx={{ p: 2, mb: 3, bgcolor: "success.light", borderRadius: 2, border: "1px solid", borderColor: "success.main" }}
+            >
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
+                <IconUserCircle size={18} color="#10b981" />
+                <Typography variant="subtitle2" fontWeight={700} color="success.dark">
                   Información del Crédito a Aprobar
                 </Typography>
-                <Grid container spacing={2}>
-                  <Grid size={{ xs: 6, sm: 4 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Asociado
-                    </Typography>
-                    <Typography variant="body1" fontWeight="medium">
-                      {selectedPrestamo.idAsociado?.nombres}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 6, sm: 4 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Monto Solicitado
-                    </Typography>
-                    <Typography variant="body1" fontWeight="medium" color="primary">
-                      ${formatCurrency(selectedPrestamo.monto)}
-                    </Typography>
-                  </Grid>
-                  <Grid size={{ xs: 6, sm: 4 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Plazo
-                    </Typography>
-                    <Typography variant="body1" fontWeight="medium">
-                      {selectedPrestamo.plazoMeses} meses
-                    </Typography>
-                  </Grid>
+              </Stack>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Typography variant="caption" color="text.secondary">Asociado</Typography>
+                  <Typography variant="body2" fontWeight={600}>{selectedPrestamo.idAsociado?.nombres}</Typography>
                 </Grid>
-              </CardContent>
-            </Card>
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Typography variant="caption" color="text.secondary">Monto Solicitado</Typography>
+                  <Typography variant="body2" fontWeight={700} color="primary">${formatCurrency(selectedPrestamo.monto)}</Typography>
+                </Grid>
+                <Grid size={{ xs: 6, sm: 4 }}>
+                  <Typography variant="caption" color="text.secondary">Plazo</Typography>
+                  <Typography variant="body2" fontWeight={600}>{selectedPrestamo.plazoMeses} meses</Typography>
+                </Grid>
+              </Grid>
+            </Paper>
           )}
 
-          <Typography variant="subtitle1" gutterBottom sx={{ mb: 2 }}>
-            Configurar Términos de Aprobación
-          </Typography>
+          <Alert severity="info" sx={{ mb: 2, borderRadius: 1.5 }}>
+            Revise cuidadosamente los términos antes de aprobar
+          </Alert>
+
           <CreditForm mode="approve" tasas={tasas} existingData={selectedPrestamo} onSubmit={handleApproveCredit} />
         </DialogContent>
-
-        <DialogActions sx={{ justifyContent: "space-between", p: 3, bgcolor: "#f8f9fa" }}>
-          <Button onClick={handleCloseApproveModal} color="secondary" variant="outlined" startIcon={<IconX />}>
+        <Divider />
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={handleCloseApproveModal} color="inherit" startIcon={<IconX size={16} />}>
             Cancelar
           </Button>
-          <Typography variant="body2" color="text.secondary" sx={{ fontStyle: "italic" }}>
-            Revise cuidadosamente los términos antes de aprobar
-          </Typography>
         </DialogActions>
       </Dialog>
 
-      {/* Modal de Reporte de Préstamos */}
-      <Dialog open={openReportModal} onClose={handleCloseReportModal} fullWidth maxWidth="xl">
-        <DialogTitle sx={{ bgcolor: "#f5f5f5", borderBottom: "2px solid #4caf50" }}>
-          <Box display="flex" alignItems="center" justifyContent="space-between">
-            <Box display="flex" alignItems="center" gap={1}>
-              <IconFileReport color="#4caf50" size={28} />
-              <Box>
-                <Typography variant="h5" component="span" fontWeight="bold">
-                  Reporte de Préstamos Aprobados
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Total de créditos: {credits.filter((c) => c.estado === "APROBADO").length}
-                </Typography>
-              </Box>
+      {/* Modal de Reporte */}
+      <Dialog
+        open={openReportModal}
+        onClose={handleCloseReportModal}
+        fullWidth
+        maxWidth="xl"
+        PaperProps={{ sx: { borderRadius: 2 } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={1}>
+            <Avatar sx={{ bgcolor: "success.main", width: 32, height: 32 }}>
+              <IconFileReport size={18} color="white" />
+            </Avatar>
+            <Box>
+              <Typography component="span" variant="h6" fontWeight={600}>
+                Reporte de Préstamos Aprobados
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Total de créditos: {credits.filter((c) => c.estado === "APROBADO").length}
+              </Typography>
             </Box>
-          </Box>
+          </Stack>
         </DialogTitle>
+        <Divider />
         <DialogContent sx={{ p: 0 }}>
           {credits.filter((c) => c.estado === "APROBADO").length === 0 ? (
             <Box sx={{ p: 8, textAlign: "center" }}>
@@ -1305,45 +1323,17 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
               <Table stickyHeader size="small">
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: "bold", bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>COD</TableCell>
-                    <TableCell sx={{ fontWeight: "bold", bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>IDENTIFICACIÓN</TableCell>
-                    <TableCell sx={{ fontWeight: "bold", bgcolor: "#1976d2", color: "white", fontSize: "0.75rem", minWidth: 200 }}>NOMBRES COMPLETOS</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: "bold", bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>
-                      VALOR CRÉDITO
-                    </TableCell>
-                    <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>
-                      PLAZO
-                      <br />
-                      MESES
-                    </TableCell>
-                    <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "#4caf50", color: "white", fontSize: "0.75rem" }}>
-                      CUOTAS
-                      <br />
-                      PAGADAS
-                    </TableCell>
-                    <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "#ff9800", color: "white", fontSize: "0.75rem" }}>
-                      MESES
-                      <br />
-                      FALTANTES
-                    </TableCell>
-                    <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "#f44336", color: "white", fontSize: "0.75rem" }}>
-                      CUOTAS
-                      <br />
-                      ATRASADAS
-                    </TableCell>
-                    <TableCell align="center" sx={{ fontWeight: "bold", bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>
-                      MESES
-                      <br />
-                      CON PAGO
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: "bold", bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>
-                      ABONO
-                      <br />
-                      CAPITAL
-                    </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: "bold", bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>
-                      INTERESES
-                    </TableCell>
+                    <TableCell sx={{ fontWeight: 600, bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>COD</TableCell>
+                    <TableCell sx={{ fontWeight: 600, bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>IDENTIFICACIÓN</TableCell>
+                    <TableCell sx={{ fontWeight: 600, bgcolor: "#1976d2", color: "white", fontSize: "0.75rem", minWidth: 200 }}>NOMBRES COMPLETOS</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>VALOR CRÉDITO</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600, bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>PLAZO MESES</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600, bgcolor: "#4caf50", color: "white", fontSize: "0.75rem" }}>CUOTAS PAGADAS</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600, bgcolor: "#ff9800", color: "white", fontSize: "0.75rem" }}>MESES FALTANTES</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600, bgcolor: "#f44336", color: "white", fontSize: "0.75rem" }}>CUOTAS ATRASADAS</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600, bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>MESES CON PAGO</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>ABONO CAPITAL</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 600, bgcolor: "#1976d2", color: "white", fontSize: "0.75rem" }}>INTERESES</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -1355,78 +1345,43 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                       const today = new Date();
                       const cuotasAtrasadas = credit.presCuotas?.filter((c) => c.estado === "PENDIENTE" && new Date(c.fechaVencimiento) < today).length || 0;
                       const mesesConPago = new Set(credit.presCuotas?.filter((c) => c.presPagos && c.presPagos.length > 0).map((c) => new Date(c.fechaVencimiento).getMonth())).size || 0;
-                      // Sumar solo el abono capital e intereses de las cuotas PAGADAS
                       const abonoCapital = credit.presCuotas?.filter((c) => c.estado === "PAGADO").reduce((sum, c) => sum + (Number(c.abonoCapital) || 0), 0) || 0;
                       const intereses = credit.presCuotas?.filter((c) => c.estado === "PAGADO").reduce((sum, c) => sum + (Number(c.intereses) || 0), 0) || 0;
 
-                      // Extraer nombres del asociado
                       const asociado = credit.idAsociado;
-                      const apellido1 = asociado?.apellido1 || "";
-                      const apellido2 = asociado?.apellido2 || "";
-                      const nombre1 = asociado?.nombre1 || "";
-                      const nombre2 = asociado?.nombre2 || "";
-                      const nombreCompleto = [apellido1, apellido2, nombre1, nombre2].filter((n) => n).join(" ") || asociado?.nombres || "N/A";
+                      const nombreCompleto = [asociado?.apellido1, asociado?.apellido2, asociado?.nombre1, asociado?.nombre2].filter((n) => n).join(" ") || asociado?.nombres || "N/A";
 
-                      // Determinar color de fila según estado
-                      const rowBgColor = cuotasAtrasadas > 0 ? "#ffebee" : cuotasPagadas === credit.plazoMeses ? "#e8f5e9" : "#fff";
+                      const rowBgColor = cuotasAtrasadas > 0 ? "#fef2f2" : cuotasPagadas === credit.plazoMeses ? "#f0fdf4" : "#fff";
 
                       return (
-                        <TableRow
-                          key={credit.id}
-                          hover
-                          sx={{
-                            bgcolor: rowBgColor,
-                            "&:hover": {
-                              bgcolor: cuotasAtrasadas > 0 ? "#ffcdd2" : cuotasPagadas === credit.plazoMeses ? "#c8e6c9" : "#f5f5f5",
-                            },
-                          }}
-                        >
-                          <TableCell sx={{ fontWeight: "medium" }}>{credit.id}</TableCell>
+                        <TableRow key={credit.id} hover sx={{ bgcolor: rowBgColor }}>
+                          <TableCell sx={{ fontWeight: 500 }}>{credit.id}</TableCell>
                           <TableCell>{asociado?.numeroDeIdentificacion || "N/A"}</TableCell>
                           <TableCell>{nombreCompleto}</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: "medium" }}>
-                            ${formatCurrency(credit.monto)}
-                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 500 }}>${formatCurrency(credit.monto)}</TableCell>
                           <TableCell align="center">{credit.plazoMeses}</TableCell>
-                          <TableCell
-                            align="center"
-                            sx={{
-                              fontWeight: "bold",
-                              color: cuotasPagadas > 0 ? "#4caf50" : "text.secondary",
-                            }}
-                          >
+                          <TableCell align="center" sx={{ fontWeight: 700, color: cuotasPagadas > 0 ? "#10b981" : "text.secondary" }}>
                             {cuotasPagadas}
                           </TableCell>
-                          <TableCell
-                            align="center"
-                            sx={{
-                              fontWeight: "medium",
-                              color: mesesFaltantes > 0 ? "#ff9800" : "#4caf50",
-                            }}
-                          >
+                          <TableCell align="center" sx={{ fontWeight: 500, color: mesesFaltantes > 0 ? "#f59e0b" : "#10b981" }}>
                             {mesesFaltantes}
                           </TableCell>
                           <TableCell
                             align="center"
                             sx={{
-                              fontWeight: "bold",
-                              color: cuotasAtrasadas > 0 ? "#d32f2f" : "#4caf50",
-                              bgcolor: cuotasAtrasadas > 0 ? "#ffcdd2" : "transparent",
+                              fontWeight: 700,
+                              color: cuotasAtrasadas > 0 ? "#ef4444" : "#10b981",
+                              bgcolor: cuotasAtrasadas > 0 ? "#fee2e2" : "transparent",
                             }}
                           >
                             {cuotasAtrasadas > 0 ? `⚠️ ${cuotasAtrasadas}` : cuotasAtrasadas}
                           </TableCell>
                           <TableCell align="center">{mesesConPago}</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: "medium" }}>
-                            ${formatCurrency(abonoCapital)}
-                          </TableCell>
-                          <TableCell align="right" sx={{ fontWeight: "medium" }}>
-                            ${formatCurrency(intereses)}
-                          </TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 500 }}>${formatCurrency(abonoCapital)}</TableCell>
+                          <TableCell align="right" sx={{ fontWeight: 500 }}>${formatCurrency(intereses)}</TableCell>
                         </TableRow>
                       );
                     })}
-                  {/* Fila de totales */}
                   {(() => {
                     const creditosAprobados = credits.filter((c) => c.estado === "APROBADO");
                     const totalCredito = creditosAprobados.reduce((sum, c) => sum + Number(c.monto), 0);
@@ -1446,29 +1401,17 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
                     return (
                       <TableRow sx={{ bgcolor: "#e3f2fd", borderTop: "2px solid #1976d2" }}>
-                        <TableCell colSpan={3} sx={{ fontWeight: "bold", fontSize: "0.95rem" }}>
-                          TOTALES
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: "bold", fontSize: "0.95rem" }}>
-                          ${formatCurrency(totalCredito)}
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: "bold" }}>
-                          {creditosAprobados.length}
-                        </TableCell>
-                        <TableCell align="center" sx={{ fontWeight: "bold", color: "#4caf50" }}>
-                          {totalCuotasPagadas}
-                        </TableCell>
+                        <TableCell colSpan={3} sx={{ fontWeight: 700, fontSize: "0.95rem" }}>TOTALES</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.95rem" }}>${formatCurrency(totalCredito)}</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 700 }}>{creditosAprobados.length}</TableCell>
+                        <TableCell align="center" sx={{ fontWeight: 700, color: "#10b981" }}>{totalCuotasPagadas}</TableCell>
                         <TableCell align="center">-</TableCell>
-                        <TableCell align="center" sx={{ fontWeight: "bold", color: totalCuotasAtrasadas > 0 ? "#d32f2f" : "#4caf50" }}>
+                        <TableCell align="center" sx={{ fontWeight: 700, color: totalCuotasAtrasadas > 0 ? "#ef4444" : "#10b981" }}>
                           {totalCuotasAtrasadas > 0 ? `⚠️ ${totalCuotasAtrasadas}` : totalCuotasAtrasadas}
                         </TableCell>
                         <TableCell align="center">-</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: "bold", fontSize: "0.95rem" }}>
-                          ${formatCurrency(totalAbonoCapital)}
-                        </TableCell>
-                        <TableCell align="right" sx={{ fontWeight: "bold", fontSize: "0.95rem" }}>
-                          ${formatCurrency(totalIntereses)}
-                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.95rem" }}>${formatCurrency(totalAbonoCapital)}</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700, fontSize: "0.95rem" }}>${formatCurrency(totalIntereses)}</TableCell>
                       </TableRow>
                     );
                   })()}
@@ -1477,19 +1420,21 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
             </TableContainer>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2, bgcolor: "#f5f5f5", borderTop: "1px solid #e0e0e0" }}>
-          <Typography variant="body2" color="text.secondary" sx={{ mr: "auto", fontStyle: "italic" }}>
-            💡 Filas en rojo indican cuotas atrasadas • Filas en verde indican crédito completado
+        <Divider />
+        <DialogActions sx={{ p: 2 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ mr: "auto", display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Box component="span" sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: "#fef2f2", border: "1px solid #ef4444", display: "inline-block" }} /> Atrasadas
+            <Box component="span" sx={{ width: 10, height: 10, borderRadius: "50%", bgcolor: "#f0fdf4", border: "1px solid #10b981", display: "inline-block", ml: 1 }} /> Completadas
           </Typography>
-          <Button onClick={handleCloseReportModal} color="secondary" variant="outlined" startIcon={<IconX />}>
+          <Button onClick={handleCloseReportModal} color="inherit" startIcon={<IconX size={16} />}>
             Cerrar
           </Button>
-          <Button variant="contained" color="primary" startIcon={<IconFileDownload />} onClick={handleExportToExcel}>
+          <Button variant="contained" color="primary" startIcon={<IconFileDownload size={16} />} onClick={handleExportToExcel}>
             Exportar a Excel
           </Button>
         </DialogActions>
       </Dialog>
-    </Grid>
+    </Box>
   );
 };
 

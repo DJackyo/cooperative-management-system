@@ -19,11 +19,15 @@ const UserCreditPage = () => {
   const userId = searchParams.get("userId");
   const creditId = searchParams.get("creditId");
 
-  // Lógica condicional antes del retorno
-  if (
-    (!userId || parseInt(userId) < 0) &&
-    (!creditId || parseInt(creditId) < 0)
-  ) {
+  const parsedUserId = Number(userId);
+  const parsedCreditId = Number(creditId);
+  const hasValidParams =
+    Number.isInteger(parsedUserId) &&
+    parsedUserId > 0 &&
+    Number.isInteger(parsedCreditId) &&
+    parsedCreditId > 0;
+
+  if (!hasValidParams) {
     return (
       <Card
         variant="outlined"
@@ -52,8 +56,8 @@ const UserCreditPage = () => {
         gradient="linear-gradient(135deg, #7e22ce 0%, #c084fc 120%)"
       />
       <CreditDetailModule
-        userId={parseInt(userId!)}
-        creditId={parseInt(creditId!)}
+        userId={parsedUserId}
+        creditId={parsedCreditId}
       />
     </Box>
   );
