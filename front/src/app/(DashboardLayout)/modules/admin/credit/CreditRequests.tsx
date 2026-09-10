@@ -102,6 +102,24 @@ const Credits = () => {
 
   return (
     <Grid container spacing={3}>
+      <Grid size={{ xs: 12, sm: 4 }}>
+        <DashboardCard title="">
+          <Typography variant="h4" fontWeight={800} lineHeight={1}>{credits.length}</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Solicitudes registradas</Typography>
+        </DashboardCard>
+      </Grid>
+      <Grid size={{ xs: 12, sm: 4 }}>
+        <DashboardCard title="">
+          <Typography variant="h4" fontWeight={800} lineHeight={1}>{credits.filter((credit: any) => credit.status === "pendiente").length}</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Solicitudes pendientes</Typography>
+        </DashboardCard>
+      </Grid>
+      <Grid size={{ xs: 12, sm: 4 }}>
+        <DashboardCard title="">
+          <Typography variant="h4" fontWeight={800} lineHeight={1}>{filteredRequests.length}</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Resultados visibles</Typography>
+        </DashboardCard>
+      </Grid>
       <Grid  size={{ xs: 12, md: 12}}>
         {/* Filtros en un Card separado */}
         <DashboardCard title="Filtros">

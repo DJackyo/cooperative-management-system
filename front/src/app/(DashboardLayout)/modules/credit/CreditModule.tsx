@@ -36,13 +36,14 @@ import { Asociado, LoggedUser } from "@/interfaces/User";
 import { Prestamo } from "@/interfaces/Prestamo";
 import { authService } from "@/app/authentication/services/authService";
 import { defaultLoggedUser, formatCurrency, formatDateTime, formatDateWithoutTime, getComparator, getEstadoChip, roleAdmin, validateRoles } from "../../utilities/utils";
-import { IconChecks, IconEyeDollar, IconPencilDollar, IconX, IconTrash, IconFileReport, IconFileDownload, IconRefresh, IconSearch } from "@tabler/icons-react";
+import { IconChecks, IconEyeDollar, IconPencilDollar, IconX, IconTrash, IconFileReport, IconFileDownload, IconRefresh, IconSearch, IconPrinter } from "@tabler/icons-react";
 import { creditsService } from "@/services/creditRequestService";
 import { userService } from "@/services/userService";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
 import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
 import { usePageLoading } from "@/hooks/usePageLoading";
 import StyledTable from "@/components/StyledTable";
+import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
 
 // Componente cargado dinámicamente
 const CreditForm = dynamic(() => import("./components/CreditForm"), {
@@ -423,6 +424,95 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         });
       }
     }
+  };
+
+  const handlePrintCredit = (prestamo: Prestamo) => {
+    const printWindow = window.open("", "_blank", "width=1200,height=800");
+    if (!printWindow) {
+      Swal.fire({
+        icon: "warning",
+        title: "No se pudo abrir la impresión",
+        text: "Permite las ventanas emergentes para generar el PDF.",
+        confirmButtonText: "Entendido",
+      });
+      return;
+    }
+
+    const escapeHtml = (value: unknown) => String(value ?? "-")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+    const money = (value: number) => `$ ${new Intl.NumberFormat("es-CO", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(value) || 0)}`;
+    const date = (value: Date | string | null | undefined) => value
+      ? new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(new Date(value))
+      : "-";
+    const asociado = prestamo.idAsociado;
+    const nombre = [asociado?.apellido1, asociado?.apellido2, asociado?.nombre1, asociado?.nombre2]
+      .filter(Boolean).join(" ") || asociado?.nombres || "N/A";
+    const monto = Number(prestamo.monto) || 0;
+    const plazo = Number(prestamo.plazoMeses) || 0;
+    const tasaMensual = Number(prestamo.idTasa?.tasa ?? (prestamo as any).tasa) || 0;
+    const cuotaMensual = tasaMensual > 0
+      ? (monto * tasaMensual * Math.pow(1 + tasaMensual, plazo)) / (Math.pow(1 + tasaMensual, plazo) - 1)
+      : plazo > 0 ? monto / plazo : 0;
+    let saldoCapital = monto;
+    let saldoCapitalTmp = monto;
+    const fechaInicial = new Date(prestamo.fechaCredito || prestamo.fechaDesembolso || new Date());
+    const amortizacion = Array.from({ length: plazo + 1 }, (_, index) => {
+      if (index === 0) {
+        return { cuota: 0, vencimiento: fechaInicial, saldo: monto, proteccion: 0, capital: 0, intereses: 0, total: cuotaMensual };
+      }
+      const intereses = saldoCapital * tasaMensual;
+      const capital = cuotaMensual - intereses;
+      const proteccion = saldoCapitalTmp * 0.001;
+      saldoCapital -= capital;
+      saldoCapitalTmp -= capital;
+      const vencimiento = new Date(fechaInicial);
+      vencimiento.setMonth(vencimiento.getMonth() + index);
+      return { cuota: index, vencimiento, saldo: saldoCapital, proteccion, capital, intereses, total: cuotaMensual };
+    });
+    const cuotasReales = prestamo.presCuotas || [];
+    const filas = amortizacion.map((fila) => {
+      const cuotaReal = cuotasReales.find((cuota: any) => Number(cuota.numeroCuota) === fila.cuota);
+      const estado = fila.cuota === 0 ? "Saldo inicial" : cuotaReal?.estado || "Pendiente";
+      return `<tr><td>${fila.cuota}</td><td>${date(fila.vencimiento)}</td><td class="right">${money(fila.saldo)}</td><td class="right">${money(fila.proteccion)}</td><td class="right">${money(fila.capital)}</td><td class="right">${money(fila.intereses)}</td><td class="right">${money(fila.total)}</td><td>${escapeHtml(estado)}</td></tr>`;
+    }).join("");
+
+    printWindow.document.write(`<!doctype html><html><head><title>Crédito #${escapeHtml(prestamo.id)}</title><style>
+      @page { size: letter portrait; margin: 10mm 8mm; }
+      * { box-sizing: border-box; } body { font-family: Arial, sans-serif; color: #1f2937; margin: 0; font-size: 10px; }
+      h1 { color: #0f766e; margin: 0 0 3px; font-size: 19px; } h2 { color: #0f766e; border-bottom: 2px solid #13deb9; padding-bottom: 4px; margin: 14px 0 8px; }
+      .subtitle { color: #6b7280; margin-bottom: 12px; } .details { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
+      .detail { border: 1px solid #cbd5e1; border-radius: 3px; padding: 5px; } .label { color: #6b7280; font-size: 8px; text-transform: uppercase; } .value { font-weight: bold; margin-top: 2px; }
+      table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 7px; } th { background: #0f766e; color: white; text-align: left; } th, td { border: 1px solid #cbd5e1; padding: 3px 2px; overflow: hidden; white-space: nowrap; } thead { display: table-header-group; } tr { page-break-inside: avoid; } tr:nth-child(even) { background: #f0fdfa; } .right { text-align: right; }
+      .footer { color: #6b7280; margin-top: 8px; font-size: 8px; } @media print { .footer { position: fixed; bottom: 0; } }
+    </style></head><body>
+      <h1>Detalle de crédito #${escapeHtml(prestamo.id)}</h1><div class="subtitle">Cooperativa de Ahorro y Crédito</div>
+      <div class="details">
+        <div class="detail"><div class="label">Asociado</div><div class="value">${escapeHtml(nombre)}</div></div>
+        <div class="detail"><div class="label">Identificación</div><div class="value">${escapeHtml(asociado?.numeroDeIdentificacion)}</div></div>
+        <div class="detail"><div class="label">Monto</div><div class="value">${money(monto)}</div></div>
+        <div class="detail"><div class="label">Estado</div><div class="value">${escapeHtml(prestamo.estado)}</div></div>
+        <div class="detail"><div class="label">Fecha del crédito</div><div class="value">${date(prestamo.fechaCredito)}</div></div>
+        <div class="detail"><div class="label">Plazo</div><div class="value">${plazo} meses</div></div>
+        <div class="detail"><div class="label">Tasa mensual</div><div class="value">${(tasaMensual * 100).toFixed(2)}%</div></div>
+        <div class="detail"><div class="label">Cuota mensual</div><div class="value">${money(Number(prestamo.cuotaMensual) || cuotaMensual)}</div></div>
+      </div>
+      <h2>Tabla de amortización</h2>
+      <table><colgroup><col style="width: 7%"><col style="width: 13%"><col style="width: 14%"><col style="width: 14%"><col style="width: 14%"><col style="width: 13%"><col style="width: 14%"><col style="width: 11%"></colgroup><thead><tr><th>Cuota</th><th>Vencimiento</th><th>Saldo capital</th><th>Protección cartera</th><th>Abono capital</th><th>Intereses</th><th>Total cuota</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table>
+      <div class="footer">Documento generado el ${escapeHtml(new Date().toLocaleString("es-CO"))}</div>
+    </body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.onload = () => {
+      printWindow.print();
+      printWindow.close();
+    };
   };
 
   const handleExportToExcel = () => {
@@ -919,31 +1009,25 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         )}
       </Grid>
 
-      {/* Historial de Préstamos */}
+      {/* Filtros */}
       <Grid size={{ xs: 12, md: 12 }}>
-        <Card variant="outlined" sx={{ boxShadow: 3 }}>
-          <CardContent>
-            <Box display="flex" justifyContent="space-between" alignItems={{ xs: "flex-start", md: "center" }} gap={2} mb={2} flexWrap="wrap">
-              <Box>
-                <Typography variant="h5" color="primary" gutterBottom>
-                  {userId === 0 ? "Listado de créditos" : "Historial de préstamos"}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {filteredTransactions.length} resultado{filteredTransactions.length === 1 ? "" : "s"} de {credits.length}
-                </Typography>
-              </Box>
-              <Box display="flex" gap={1} flexWrap="wrap">
-                <Button variant="outlined" size="small" startIcon={<IconRefresh />} onClick={loadCredits} disabled={refreshing}>
-                  {refreshing ? "Actualizando..." : "Actualizar"}
+        <DashboardCard
+          title="Filtros"
+          subtitle="Busca créditos por asociado, estado y situación de pagos."
+          action={
+            <Box display="flex" gap={1} flexWrap="wrap">
+              <Button variant="outlined" size="small" startIcon={<IconRefresh />} onClick={loadCredits} disabled={refreshing}>
+                {refreshing ? "Actualizando..." : "Actualizar"}
+              </Button>
+              {userId === 0 && isUserAdmin && (
+                <Button variant="contained" color="success" startIcon={<IconFileReport />} onClick={handleOpenReportModal}>
+                  Generar reporte
                 </Button>
-                {userId === 0 && isUserAdmin && (
-                  <Button variant="contained" color="success" startIcon={<IconFileReport />} onClick={handleOpenReportModal}>
-                    Generar reporte
-                  </Button>
-                )}
-              </Box>
+              )}
             </Box>
-            <Grid container spacing={1.5} sx={{ mb: 2 }}>
+          }
+        >
+            <Grid container spacing={1.5}>
               <Grid size={{ xs: 12, md: 5 }}>
                 <TextField
                   fullWidth
@@ -983,6 +1067,15 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                 </Button>
               </Grid>
             </Grid>
+        </DashboardCard>
+      </Grid>
+
+      {/* Historial de Préstamos */}
+      <Grid size={{ xs: 12, md: 12 }}>
+        <DashboardCard
+          title={userId === 0 ? "Listado de créditos" : "Historial de préstamos"}
+          subtitle={`${filteredTransactions.length} resultado${filteredTransactions.length === 1 ? "" : "s"} de ${credits.length}`}
+        >
             <Suspense fallback={<Skeleton variant="rectangular" width="100%" height={300} />}>
               {/* Tabla */}
               <StyledTable
@@ -1046,6 +1139,16 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                         </IconButton>
                       </Tooltip>
                     )}
+                    <Tooltip title="Imprimir crédito" arrow>
+                      <IconButton
+                        onClick={() => handlePrintCredit(row)}
+                        color="primary"
+                        size="small"
+                        aria-label="Imprimir crédito"
+                      >
+                        <IconPrinter />
+                      </IconButton>
+                    </Tooltip>
                     {isUserAdmin && (
                       <Tooltip title="Eliminar" arrow>
                         <IconButton
@@ -1066,8 +1169,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                 )}
               />
             </Suspense>
-          </CardContent>
-        </Card>
+        </DashboardCard>
       </Grid>
 
       {/* Modal para Solicitud de Préstamo */}

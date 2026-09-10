@@ -183,6 +183,11 @@ const baselightTheme = createTheme({
         },
       },
     },
+    MuiTextField: {
+      defaultProps: {
+        size: "small",
+      },
+    },
     MuiListItemButton: {
       styleOverrides: {
         root: {
@@ -241,6 +246,12 @@ const baselightTheme = createTheme({
           "&.Mui-focused": {
             boxShadow: "0 0 0 3px rgba(93, 135, 255, 0.14)",
           },
+        },
+        input: {
+          padding: "9px 12px",
+        },
+        inputSizeSmall: {
+          padding: "7px 12px",
         },
       },
     },

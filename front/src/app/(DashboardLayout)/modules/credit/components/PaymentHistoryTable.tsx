@@ -23,10 +23,22 @@ import {
   Grid,
   TextField,
   InputAdornment,
+  Stack,
 } from "@mui/material";
 import React from "react";
 import { useState } from "react";
-import { CheckCircle, Warning, AccessTime, Payment, AttachFile, Visibility, KeyboardArrowDown, KeyboardArrowUp, Search } from "@mui/icons-material";
+import {
+  CheckCircle,
+  Warning,
+  AccessTime,
+  Payment,
+  AttachFile,
+  Visibility,
+  KeyboardArrowDown,
+  KeyboardArrowUp,
+  Search,
+  Print,
+} from "@mui/icons-material";
 import {
   calcularDiasEnMora,
   calcularMora,
@@ -39,8 +51,6 @@ import {
 } from "@/app/(DashboardLayout)/utilities/utils";
 import { Cuota } from "@/interfaces/Prestamo";
 import PresPagosForm from "./PresPagosForm";
-import InfoTooltip from "@/components/InfoTooltip";
-import StyledTable from "@/components/StyledTable";
 import TableExportButton from "@/components/TableExportButton";
 
 interface PaymentHistoryProps {
@@ -50,6 +60,41 @@ interface PaymentHistoryProps {
   idAsociado: number;
   onPaymentSuccess?: () => void;
 }
+
+// Mini stat component - con mejor balance
+const MiniStatBox: React.FC<{
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  color: string;
+}> = ({ label, value, icon, color }) => (
+  <Paper
+    elevation={0}
+    sx={{
+      display: "flex",
+      alignItems: "center",
+      gap: 1,
+      px: 1.5,
+      py: 0.75,
+      borderRadius: 1.5,
+      border: "1px solid",
+      borderColor: `${color}30`,
+      bgcolor: `${color}06`,
+      flex: 1,
+      minWidth: 80,
+    }}
+  >
+    <Box sx={{ color, display: "flex", alignItems: "center" }}>{icon}</Box>
+    <Box>
+      <Typography variant="caption" sx={{ fontSize: 10, color: "text.secondary", display: "block", lineHeight: 1 }}>
+        {label}
+      </Typography>
+      <Typography variant="body2" fontWeight={600} sx={{ fontSize: 14, lineHeight: 1.2 }}>
+        {value}
+      </Typography>
+    </Box>
+  </Paper>
+);
 
 const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
   presCuotas,
@@ -103,13 +148,11 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
     const parts = value.split('/');
     if (parts.length === 3) {
       let [loan, year, name] = parts;
-      // Normalize to loan-first; if we accidentally receive year-first, reorder
       if (/^\d{4}$/.test(loan) && /^\d+$/.test(year)) {
         [loan, year] = [year, loan];
       }
       return `${base}/pagos/comprobante/${encodeURIComponent(loan)}/${encodeURIComponent(year)}/${encodeURIComponent(name)}`;
     }
-    // Legacy flat filename
     return `${base}/pagos/comprobante/${encodeURIComponent(value)}`;
   };
 
@@ -128,7 +171,6 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
   let sortedCuotas = [...presCuotas].sort(
     (a: any, b: any) => a.numeroCuota - b.numeroCuota
   );
-  // console.debug("sortedCuotas->", sortedCuotas);
 
   sortedCuotas = sortedCuotas.map((cuota) => ({
     ...cuota,
@@ -154,36 +196,88 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
 
   const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(event.target.value);
-    setPage(0); // Resetear a la primera página al buscar
+    setPage(0);
   };
 
-  // Filtrar cuotas basándose en el término de búsqueda
+  const handlePrintPaymentHistory = () => {
+    const printWindow = window.open("", "_blank", "width=900,height=1100");
+    if (!printWindow) {
+      window.alert("Permite las ventanas emergentes para generar el PDF.");
+      return;
+    }
+
+    const escapeHtml = (value: unknown) => String(value ?? "-")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+    const money = (value: unknown) => `$ ${new Intl.NumberFormat("es-CO", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(value) || 0)}`;
+    const date = (value: unknown) => value
+      ? new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "2-digit", year: "numeric" }).format(new Date(String(value)))
+      : "-";
+    const paymentRows = filteredCuotas.map((cuota: any) => {
+      const payments = cuota.presPagos || [];
+      const paymentDetails = payments.length
+        ? payments.map((pago: any) => `${date(pago.diaDePago || pago.fechaPago)} - ${money(pago.totalPagado || pago.montoPagado)} - ${pago.metodoPago?.nombre || "-"}`).join("<br>")
+        : "-";
+      return `<tr>
+        <td>${escapeHtml(cuota.numeroCuota)}</td>
+        <td>${date(cuota.fechaVencimiento)}</td>
+        <td class="right">${money(cuota.monto)}</td>
+        <td>${escapeHtml(cuota.estado)}</td>
+        <td class="right">${money(cuota.abonoCapital)}</td>
+        <td class="right">${money(cuota.intereses)}</td>
+        <td class="right">${money(cuota.mora)}</td>
+        <td>${paymentDetails}</td>
+      </tr>`;
+    }).join("");
+
+    printWindow.document.write(`<!doctype html><html><head><title>Historial de pagos - Crédito #${escapeHtml(creditId)}</title><style>
+      @page { size: portrait; margin: 12mm; } * { box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; color: #1f2937; margin: 0; font-size: 9px; }
+      h1 { color: #0f766e; margin: 0 0 4px; font-size: 19px; } .subtitle { color: #6b7280; margin-bottom: 14px; }
+      .summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; margin-bottom: 14px; }
+      .summary div { border: 1px solid #cbd5e1; border-radius: 3px; padding: 6px; } .label { color: #6b7280; font-size: 8px; text-transform: uppercase; } .value { font-weight: bold; margin-top: 2px; }
+      h2 { color: #0f766e; border-bottom: 2px solid #13deb9; padding-bottom: 4px; margin: 14px 0 8px; font-size: 13px; }
+      table { border-collapse: collapse; width: 100%; table-layout: fixed; } th { background: #0f766e; color: #fff; text-align: left; } th, td { border: 1px solid #cbd5e1; padding: 4px 3px; overflow-wrap: anywhere; vertical-align: top; } tr:nth-child(even) { background: #f0fdfa; }
+      th:nth-child(1), td:nth-child(1) { width: 7%; } th:nth-child(2), td:nth-child(2) { width: 12%; } th:nth-child(3), td:nth-child(3) { width: 13%; } th:nth-child(4), td:nth-child(4) { width: 11%; } th:nth-child(5), td:nth-child(5), th:nth-child(6), td:nth-child(6), th:nth-child(7), td:nth-child(7) { width: 12%; } th:nth-child(8), td:nth-child(8) { width: 21%; }
+      .right { text-align: right; } .footer { color: #6b7280; margin-top: 10px; font-size: 8px; }
+    </style></head><body>
+      <h1>Historial de pagos</h1><div class="subtitle">Crédito #${escapeHtml(creditId)} | Plazo: ${escapeHtml(plazoMeses)} meses</div>
+      <div class="summary"><div><div class="label">Cuotas pagadas</div><div class="value">${cuotasPagadas}</div></div><div><div class="label">Cuotas pendientes</div><div class="value">${cuotasPendientes}</div></div><div><div class="label">Cuotas canceladas</div><div class="value">${cuotasCanceladas}</div></div><div><div class="label">Cuotas atrasadas</div><div class="value">${cuotasAtrasadas}</div></div></div>
+      <h2>Detalle de cuotas y pagos registrados</h2>
+      <table><thead><tr><th>Cuota</th><th>Vencimiento</th><th>Monto</th><th>Estado</th><th>Capital</th><th>Intereses</th><th>Mora</th><th>Pagos registrados</th></tr></thead><tbody>${paymentRows}</tbody></table>
+      <div class="footer">Documento generado el ${escapeHtml(new Date().toLocaleString("es-CO"))}</div>
+    </body></html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.onload = () => {
+      printWindow.print();
+      printWindow.close();
+    };
+  };
+
   const filteredCuotas = sortedCuotas.filter((cuota: any) => {
     if (!searchTerm) return true;
-    
     const searchLower = searchTerm.toLowerCase();
     const numeroCuota = cuota.numeroCuota?.toString() || "";
     const estado = cuota.estado?.toLowerCase() || "";
     const monto = cuota.monto?.toString() || "";
     const fechaVenc = formatNameDate(cuota.fechaVencimiento)?.toLowerCase() || "";
-    const abonoCapital = cuota.abonoCapital?.toString() || "";
-    const intereses = cuota.intereses?.toString() || "";
-    const metodoPago = cuota.presPagos?.[0]?.metodoPago?.nombre?.toLowerCase() || "";
-    
     return (
       numeroCuota.includes(searchLower) ||
       estado.includes(searchLower) ||
       monto.includes(searchLower) ||
-      fechaVenc.includes(searchLower) ||
-      abonoCapital.includes(searchLower) ||
-      intereses.includes(searchLower) ||
-      metodoPago.includes(searchLower)
+      fechaVenc.includes(searchLower)
     );
   });
 
   const paginatedRows = filteredCuotas.slice(page * pageSize, page * pageSize + pageSize);
 
-  // Calcular estadísticas (siempre sobre todas las cuotas, no filtradas)
   const cuotasPagadas = sortedCuotas.filter(c => c.estado === "PAGADO").length;
   const cuotasPendientes = sortedCuotas.filter(c => c.estado === "PENDIENTE").length;
   const cuotasCanceladas = sortedCuotas.filter(c => c.estado === "CANCELADO").length;
@@ -196,63 +290,48 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
     return false;
   }).length;
 
-  // Función para obtener el estilo de fila según el estado de pagos
   const getRowStyle = (cuota: any) => {
     if (cuota.estado === "PAGADO") {
       return {
-        backgroundColor: "#e8f5e9",
-        borderLeft: "4px solid #4caf50",
-        "&:hover": { backgroundColor: "#c8e6c9" }
+        backgroundColor: "#f0fdf4",
+        "&:hover": { backgroundColor: "#dcfce7" }
       };
     }
-    
     if (cuota.estado === "CANCELADO") {
       return {
-        backgroundColor: "#f5f5f5",
-        borderLeft: "4px solid #9e9e9e",
+        backgroundColor: "#f8fafc",
         opacity: 0.6,
-        "&:hover": { backgroundColor: "#eeeeee" }
+        "&:hover": { backgroundColor: "#f1f5f9" }
       };
     }
-    
     if (cuota.estado === "PENDIENTE") {
       const today = new Date();
       const dueDate = new Date(cuota.fechaVencimiento);
-      
-      // Si está vencido
       if (dueDate < today) {
         return {
-          backgroundColor: "#ffebee",
-          borderLeft: "4px solid #f44336",
-          "&:hover": { backgroundColor: "#ffcdd2" }
+          backgroundColor: "#fef2f2",
+          "&:hover": { backgroundColor: "#fee2e2" }
         };
       }
-      
-      // Si está próximo a vencer (menos de 7 días)
       const diffTime = dueDate.getTime() - today.getTime();
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      
       if (diffDays <= 7 && diffDays > 0) {
         return {
-          backgroundColor: "#fff3e0",
-          borderLeft: "4px solid #ff9800",
-          "&:hover": { backgroundColor: "#ffe0b2" }
+          backgroundColor: "#fffbeb",
+          "&:hover": { backgroundColor: "#fef3c7" }
         };
       }
     }
-    
     return {};
   };
 
   const columns = [
-    { field: "expand", headerName: "", width: 30 },
-    { field: "numeroCuota", headerName: "# Cuota", width: 40 },
-    { field: "fechaVencimiento", headerName: "Vencimiento", width: 130 },
-    { field: "monto", headerName: "Valor Cuota", width: 115 },
-    { field: "diasEnMora", headerName: "Días Mora", width: 90 },
-    { field: "abonoExtra", headerName: "Abono Extra", width: 115 },
-    { field: "estado", headerName: "Estado", width: 80 },
-    { field: "fechaPago", headerName: "Fecha Pago", width: 140 },
+    { field: "expand", headerName: "", width: 40 },
+    { field: "numeroCuota", headerName: "Cuota", width: 70 },
+    { field: "fechaVencimiento", headerName: "Vencimiento", width: 120 },
+    { field: "monto", headerName: "Valor", width: 100 },
+    { field: "estado", headerName: "Estado", width: 110 },
+    { field: "fechaPago", headerName: "Fecha Pago", width: 120 },
     { field: "acciones", headerName: "Acciones", width: 100 },
   ];
 
@@ -261,118 +340,37 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       <IconButton
         size="small"
         onClick={() => toggleRowExpansion(row.id)}
-        sx={{ color: 'primary.main' }}
+        sx={{ p: 0.5 }}
       >
         {expandedRows.has(row.id) ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
       </IconButton>
     ),
     numeroCuota: (value) => (
-      <Chip 
-        label={`#${value}`} 
-        size="small" 
-        sx={{ fontWeight: 'bold', minWidth: 50 }}
-      />
+      <Chip label={`#${value}`} size="small" sx={{ fontWeight: 600, height: 24 }} />
     ),
     fechaVencimiento: (value, row) => {
-      if (!value) return "****";
+      if (!value) return "-";
       const today = new Date();
       const dueDate = new Date(value);
       const isPast = dueDate < today && row?.estado !== "PAGADO";
-      
       return (
-        <Box display="flex" alignItems="center" gap={0.5}>
-          {isPast && <Warning sx={{ fontSize: 18, color: 'error.main' }} />}
-          <Typography variant="body2" color={isPast ? 'error.main' : 'text.primary'}>
-            {formatNameDate(value)}
-          </Typography>
-        </Box>
-      );
-    },
-    abonoCapital: (value) => (
-      <Typography variant="body2" fontWeight="medium">
-        {value ? "$" + formatCurrency(formatNumber(redondearHaciaArriba(value))) : "$0.00"}
-      </Typography>
-    ),
-    intereses: (value) => (
-      <Typography variant="body2" fontWeight="medium">
-        {value ? "$" + formatCurrency(formatNumber(redondearHaciaArriba(value))) : "$0.00"}
-      </Typography>
-    ),
-    diasEnMora: (value) => {
-      const dias = value ? formatNumber(redondearHaciaArriba(value)) : "0";
-      const hasMora = Number(dias) > 0;
-      return (
-        <Chip 
-          label={dias} 
-          size="small"
-          color={hasMora ? "error" : "default"}
-          sx={{ fontWeight: 'bold', minWidth: 50 }}
-        />
-      );
-    },
-    mora: (value, row) => {
-      const mora = redondearHaciaArriba(calcularMora(row?.monto || 0, row?.diasEnMora || 0));
-      const hasMora = mora > 0;
-      return (
-        <Typography 
-          variant="body2" 
-          fontWeight="bold" 
-          color={hasMora ? "error.main" : "text.secondary"}
-        >
-          ${formatCurrency(formatNumber(mora))}
+        <Typography variant="body2" color={isPast ? 'error.main' : 'text.primary'}>
+          {formatNameDate(value)}
         </Typography>
       );
     },
-    proteccionCartera: (value) => (
-      <Typography variant="body2" fontWeight="medium">
-        {value ? "$" + formatCurrency(formatNumber(redondearHaciaArriba(value))) : "$0.00"}
+    monto: (value) => (
+      <Typography variant="body2" fontWeight={600} color="primary.main">
+        ${formatCurrency(formatNumber(redondearHaciaArriba(value || 0)))}
       </Typography>
     ),
-    monto: (value, row) => {
-      return (
-        <Typography variant="body2" fontWeight="bold" color="primary.main">
-          ${formatCurrency(formatNumber(redondearHaciaArriba(value || 0)))}
-        </Typography>
-      );
-    },
-    abonoExtra: (value, row) => {
-      const abonoExtra = row?.presPagos?.[0]?.abonoExtra || 0;
-      return abonoExtra > 0 ? (
-        <Typography variant="body2" fontWeight="bold" color="success.main">
-          ${formatCurrency(formatNumber(redondearHaciaArriba(abonoExtra)))}
-        </Typography>
-      ) : (
-        <Typography variant="body2" color="text.secondary">-</Typography>
-      );
-    },
     estado: (value) => getEstadoChip(value),
-    // fechaPago handled below (single definition)
-    metodoPago: (value, row) => {
-      const metodoPago = row?.presPagos?.[0]?.metodoPago?.nombre;
-      return metodoPago ? (
-        <Chip 
-          label={metodoPago} 
-          size="small"
-          color="info"
-          sx={{ fontWeight: 'medium' }}
-        />
-      ) : (
-        <Typography variant="body2" color="text.secondary" fontStyle="italic">
-          -
-        </Typography>
-      );
-    },
     fechaPago: (value, row) => {
       const fechaPago = (row as any)?.presPagos?.[0]?.diaDePago;
       return fechaPago ? (
-        <Box display="flex" alignItems="center" gap={0.5}>
-          <CheckCircle sx={{ fontSize: 18, color: 'success.main' }} />
-          <Typography variant="body2">{formatNameDate(fechaPago)}</Typography>
-        </Box>
+        <Typography variant="body2">{formatNameDate(fechaPago)}</Typography>
       ) : (
-        <Typography variant="body2" color="text.secondary" fontStyle="italic">
-          No registrado
-        </Typography>
+        <Typography variant="body2" color="text.disabled">-</Typography>
       );
     },
     acciones: (value, row) => {
@@ -383,30 +381,21 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       const hasValidComprobante = typeof comprobante === 'string' && /\.(pdf|png|jpg|jpeg)$/i.test(comprobante);
 
       return (
-        <Box display="flex" gap={1} alignItems="center">
+        <Box display="flex" gap={0.5} alignItems="center">
           {isEnabled && row.estado === "PENDIENTE" ? (
             <Button
               variant="contained"
               color="primary"
               onClick={() => handleOpenModal(row)}
               size="small"
-              startIcon={<Payment />}
-              sx={{ whiteSpace: 'nowrap' }}
+              sx={{ textTransform: 'none', minWidth: 70 }}
             >
-              Registrar
+              Pagar
             </Button>
-          ) : row.estado === "CANCELADO" ? (
-            <Typography variant="body2" color="text.disabled" fontStyle="italic">
-              Cancelada
-            </Typography>
           ) : hasValidComprobante ? (
             <Tooltip title="Ver comprobante">
-              <IconButton
-                color="primary"
-                size="small"
-                onClick={() => handleOpenComprobante(comprobante)}
-              >
-                <AttachFile />
+              <IconButton size="small" onClick={() => handleOpenComprobante(comprobante)}>
+                <AttachFile fontSize="small" />
               </IconButton>
             </Tooltip>
           ) : (
@@ -419,99 +408,55 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
 
   return (
     <>
-      {/* Estadísticas rápidas */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-        <Paper elevation={2} sx={{ p: 2, flex: 1, minWidth: 150, backgroundColor: '#e8f5e9', borderLeft: '4px solid #4caf50' }}>
-          <Box display="flex" alignItems="center" gap={1}>
-            <CheckCircle sx={{ color: 'success.main', fontSize: 30 }} />
-            <Box>
-              <Typography variant="body2" color="text.secondary">Cuotas Pagadas</Typography>
-              <Typography variant="h5" fontWeight="bold" color="success.main">{cuotasPagadas}</Typography>
-            </Box>
-          </Box>
-        </Paper>
-        <Paper elevation={2} sx={{ p: 2, flex: 1, minWidth: 150, backgroundColor: '#fff3e0', borderLeft: '4px solid #ff9800' }}>
-          <Box display="flex" alignItems="center" gap={1}>
-            <AccessTime sx={{ color: 'warning.main', fontSize: 30 }} />
-            <Box>
-              <Typography variant="body2" color="text.secondary">Cuotas Pendientes</Typography>
-              <Typography variant="h5" fontWeight="bold" color="warning.main">{cuotasPendientes}</Typography>
-            </Box>
-          </Box>
-        </Paper>
-        {cuotasCanceladas > 0 ? (
-          <Paper elevation={2} sx={{ p: 2, flex: 1, minWidth: 150, backgroundColor: '#f5f5f5', borderLeft: '4px solid #9e9e9e' }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <CheckCircle sx={{ color: 'text.secondary', fontSize: 30 }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">Cuotas Canceladas</Typography>
-                <Typography variant="h5" fontWeight="bold" color="text.secondary">{cuotasCanceladas}</Typography>
-              </Box>
-            </Box>
-          </Paper>
-        ) : cuotasAtrasadas > 0 ? (
-          <Paper elevation={2} sx={{ p: 2, flex: 1, minWidth: 150, backgroundColor: '#ffebee', borderLeft: '4px solid #f44336' }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <Warning sx={{ color: 'error.main', fontSize: 30 }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">Cuotas Atrasadas</Typography>
-                <Typography variant="h5" fontWeight="bold" color="error.main">{cuotasAtrasadas}</Typography>
-              </Box>
-            </Box>
-          </Paper>
-        ) : (
-          <Paper elevation={2} sx={{ p: 2, flex: 1, minWidth: 150, backgroundColor: '#e3f2fd', borderLeft: '4px solid #2196f3' }}>
-            <Box display="flex" alignItems="center" gap={1}>
-              <CheckCircle sx={{ color: 'info.main', fontSize: 30 }} />
-              <Box>
-                <Typography variant="body2" color="text.secondary">Estado del Crédito</Typography>
-                <Typography variant="body1" fontWeight="bold" color="info.main">Al día</Typography>
-              </Box>
-            </Box>
-          </Paper>
+      {/* Stats en línea - mejor balance */}
+      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
+        <MiniStatBox label="Pagadas" value={cuotasPagadas} icon={<CheckCircle sx={{ fontSize: 18 }} />} color="#22c55e" />
+        <MiniStatBox label="Pendientes" value={cuotasPendientes} icon={<AccessTime sx={{ fontSize: 18 }} />} color="#eab308" />
+        {cuotasCanceladas > 0 && (
+          <MiniStatBox label="Canceladas" value={cuotasCanceladas} icon={<CheckCircle sx={{ fontSize: 18 }} />} color="#94a3b8" />
         )}
-      </Box>
+        {cuotasAtrasadas > 0 && (
+          <MiniStatBox label="Atrasadas" value={cuotasAtrasadas} icon={<Warning sx={{ fontSize: 18 }} />} color="#ef4444" />
+        )}
+      </Stack>
 
-      {/* Campo de búsqueda */}
-      <Box sx={{ mb: 2 }}>
+      {/* Buscador y acciones */}
+      <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center', flexWrap: 'wrap' }}>
         <TextField
-          fullWidth
-          placeholder="Buscar por cuota, estado, monto, fecha..."
+          size="small"
+          placeholder="Buscar cuota, estado, monto..."
           value={searchTerm}
           onChange={handleSearchChange}
+          sx={{ flex: 1, minWidth: 200 }}
           InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search />
-              </InputAdornment>
-            ),
-          }}
-          sx={{
-            backgroundColor: 'white',
-            '& .MuiOutlinedInput-root': {
-              '&:hover fieldset': {
-                borderColor: 'primary.main',
-              },
-            },
+            startAdornment: <InputAdornment position="start"><Search /></InputAdornment>,
           }}
         />
-        {searchTerm && (
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-            Mostrando {filteredCuotas.length} de {sortedCuotas.length} cuotas
-          </Typography>
-        )}
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-          <TableExportButton
-            columns={columns}
-            rows={filteredCuotas}
-            filename="historial_pagos"
-            sheetName="Pagos"
-          />
-        </Box>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<Print />}
+          onClick={handlePrintPaymentHistory}
+        >
+          PDF
+        </Button>
+        <TableExportButton
+          columns={columns}
+          rows={filteredCuotas}
+          filename="historial_pagos"
+          sheetName="Pagos"
+        />
       </Box>
 
-      <Paper sx={{ width: '100%', overflow: 'hidden' }}>
-        <TableContainer >
+      {searchTerm && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+          Mostrando {filteredCuotas.length} de {sortedCuotas.length} cuotas
+        </Typography>
+      )}
+
+      {/* Tabla */}
+      <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 2 }}>
+        <TableContainer sx={{ maxHeight: 550 }}>
           <Table stickyHeader>
             <TableHead>
               <TableRow>
@@ -519,9 +464,10 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
                   <TableCell
                     key={column.field}
                     sx={{
-                      fontWeight: 'bold',
-                      backgroundColor: '#f5f5f5',
-                      minWidth: column.width
+                      fontWeight: 600,
+                      backgroundColor: '#f8fafc',
+                      minWidth: column.width,
+                      py: 1,
                     }}
                   >
                     {column.headerName}
@@ -535,11 +481,12 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
                   <TableRow
                     sx={{
                       ...getRowStyle(row),
-                      '& > *': { borderBottom: expandedRows.has(row.id) ? 'none' : undefined }
+                      '& > *': { borderBottom: expandedRows.has(row.id) ? 'none' : undefined },
+                      '&:last-child td': { borderBottom: 0 },
                     }}
                   >
                     {columns.map((column) => (
-                      <TableCell key={column.field}>
+                      <TableCell key={column.field} sx={{ py: 1 }}>
                         {(formatRules as any)[column.field]
                           ? (formatRules as any)[column.field]((row as any)[column.field], row as any)
                           : (row as any)[column.field]}
@@ -548,94 +495,41 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
                   </TableRow>
                   {expandedRows.has(row.id) && (
                     <TableRow sx={{ ...getRowStyle(row), backgroundColor: 'rgba(0,0,0,0.02)' }}>
-                      <TableCell colSpan={columns.length} sx={{ py: 3, px: 0 }}>
-                        <Box sx={{ width: '100%', px: 3 }}>
-                          <Grid container spacing={2} sx={{ width: '100%' }}>
-                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                              <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #1976d2' }}>
-                                <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                                  Abono Capital
-                                </Typography>
-                                <Typography variant="h6" fontWeight="medium" color="primary.main" sx={{ mt: 0.5 }}>
-                                  {row.abonoCapital ? "$" + formatCurrency(formatNumber(redondearHaciaArriba(row.abonoCapital))) : "$0.00"}
-                                </Typography>
-                              </Paper>
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                              <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #1976d2' }}>
-                                <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                                  Intereses
-                                </Typography>
-                                <Typography variant="h6" fontWeight="medium" color="primary.main" sx={{ mt: 0.5 }}>
-                                  {row.intereses ? "$" + formatCurrency(formatNumber(redondearHaciaArriba(row.intereses))) : "$0.00"}
-                                </Typography>
-                              </Paper>
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                              <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #4caf50' }}>
-                                <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                                  Protección Cartera
-                                </Typography>
-                                <Typography variant="h6" fontWeight="medium" color="success.main" sx={{ mt: 0.5 }}>
-                                  {(row as any).proteccionCartera ? "$" + formatCurrency(formatNumber(redondearHaciaArriba((row as any).proteccionCartera))) : "$0.00"}
-                                </Typography>
-                              </Paper>
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                              <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #f44336' }}>
-                                <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                                  Días en Mora
-                                </Typography>
-                                <Box sx={{ mt: 0.5 }}>
-                                  {(formatRules as any).diasEnMora((row as any).diasEnMora, row as any)}
-                                </Box>
-                              </Paper>
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                              <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #d32f2f' }}>
-                                <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                                  Mora
-                                </Typography>
-                                <Box sx={{ mt: 0.5 }}>
-                                  {(formatRules as any).mora((row as any).mora, row as any)}
-                                </Box>
-                              </Paper>
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                              <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #ff9800' }}>
-                                <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                                  Método de Pago
-                                </Typography>
-                                <Box sx={{ mt: 0.5 }}>
-                                  {formatRules.metodoPago(null, row)}
-                                </Box>
-                              </Paper>
-                            </Grid>
-                            {(row as any)?.presPagos?.[0]?.comprobante && typeof (row as any).presPagos[0].comprobante === 'string' && /\.(pdf|png|jpg|jpeg)$/i.test((row as any).presPagos[0].comprobante) && (
-                              <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-                                <Paper elevation={2} sx={{ p: 2, height: '100%', borderLeft: '3px solid #9c27b0' }}>
-                                  <Typography variant="caption" color="text.secondary" fontWeight="bold">
-                                    Comprobante
-                                  </Typography>
-                                  <Box sx={{ mt: 0.5 }}>
-                                    <Tooltip title="Ver comprobante">
-                                      <Button
-                                        variant="outlined"
-                                        color="primary"
-                                        size="small"
-                                        startIcon={<AttachFile fontSize="small" />}
-                                        onClick={() => handleOpenComprobante((row as any).presPagos[0].comprobante)}
-                                        sx={{ textTransform: 'none' }}
-                                      >
-                                        Ver archivo
-                                      </Button>
-                                    </Tooltip>
-                                  </Box>
-                                </Paper>
-                              </Grid>
-                            )}
+                      <TableCell colSpan={columns.length} sx={{ py: 2, px: 2 }}>
+                        <Grid container spacing={1.5} sx={{ width: '100%' }}>
+                          <Grid size={{ xs: 6, sm: 3 }}>
+                            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: '#f0fdf4' }}>
+                              <Typography variant="caption" color="text.secondary">Capital</Typography>
+                              <Typography variant="subtitle2" fontWeight={600}>
+                                ${formatCurrency(formatNumber(redondearHaciaArriba(row.abonoCapital || 0)))}
+                              </Typography>
+                            </Paper>
                           </Grid>
-                        </Box>
+                          <Grid size={{ xs: 6, sm: 3 }}>
+                            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: '#eff6ff' }}>
+                              <Typography variant="caption" color="text.secondary">Intereses</Typography>
+                              <Typography variant="subtitle2" fontWeight={600}>
+                                ${formatCurrency(formatNumber(redondearHaciaArriba(row.intereses || 0)))}
+                              </Typography>
+                            </Paper>
+                          </Grid>
+                          <Grid size={{ xs: 6, sm: 3 }}>
+                            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: '#fef2f2' }}>
+                              <Typography variant="caption" color="text.secondary">Mora</Typography>
+                              <Typography variant="subtitle2" fontWeight={600} color="error.main">
+                                ${formatCurrency(formatNumber(redondearHaciaArriba(calcularMora(row?.monto || 0, row?.diasEnMora || 0))))}
+                              </Typography>
+                            </Paper>
+                          </Grid>
+                          <Grid size={{ xs: 6, sm: 3 }}>
+                            <Paper variant="outlined" sx={{ p: 1.5, bgcolor: '#f5f3ff' }}>
+                              <Typography variant="caption" color="text.secondary">Método de Pago</Typography>
+                              <Typography variant="subtitle2" fontWeight={500}>
+                                {row?.presPagos?.[0]?.metodoPago?.nombre || '-'}
+                              </Typography>
+                            </Paper>
+                          </Grid>
+                        </Grid>
                       </TableCell>
                     </TableRow>
                   )}
@@ -652,25 +546,14 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
           rowsPerPage={pageSize}
           onRowsPerPageChange={handlePageSizeChange}
           rowsPerPageOptions={[20, 30, 50]}
-          labelRowsPerPage="Filas por página:"
+          labelRowsPerPage="Filas por página"
         />
       </Paper>
-      {/* Modal para Registrar Pago */}
-      <Dialog 
-        open={open} 
-        onClose={handleCloseModal} 
-        maxWidth="md"
-        fullScreen={isMobile}
-        PaperProps={{
-          sx: {
-            margin: isMobile ? 0 : 2,
-            width: isMobile ? '100%' : 'auto',
-          }
-        }}
-      >
-        <DialogTitle sx={{ backgroundColor: '#1976d2', color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Payment />
-          Registrar Pago
+
+      {/* Modal de Pago */}
+      <Dialog open={open} onClose={handleCloseModal} maxWidth="md" fullScreen={isMobile}>
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Payment /> Registrar Pago
         </DialogTitle>
         <DialogContent sx={{ mt: 2 }}>
           <PresPagosForm 
@@ -680,59 +563,39 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
             onSuccess={handlePaymentSuccess}
           />
         </DialogContent>
-        <DialogActions sx={{ p: 2, backgroundColor: '#f5f5f5' }}>
-          <Button onClick={handleCloseModal} color="secondary" variant="outlined">
-            Cancelar
-          </Button>
+        <DialogActions sx={{ p: 2, bgcolor: '#f8fafc' }}>
+          <Button onClick={handleCloseModal} variant="outlined">Cancelar</Button>
         </DialogActions>
       </Dialog>
 
-      {/* Modal para ver comprobante */}
-      <Dialog 
-        open={comprobanteDialogOpen} 
-        onClose={handleCloseComprobante}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle sx={{ backgroundColor: '#1976d2', color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AttachFile />
-          Comprobante de Pago
+      {/* Modal Comprobante */}
+      <Dialog open={comprobanteDialogOpen} onClose={handleCloseComprobante} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AttachFile /> Comprobante de Pago
         </DialogTitle>
         <DialogContent sx={{ mt: 2, textAlign: 'center' }}>
           {selectedComprobante && (
             <Box>
-              {selectedComprobante.toLowerCase().endsWith('.pdf') ? (                
+              {selectedComprobante.toLowerCase().endsWith('.pdf') ? (
                 <iframe
                   src={getComprobanteUrl(selectedComprobante)}
                   width="100%"
-                  height="600px"
-                  style={{ border: 'none' }}
+                  height="500px"
+                  style={{ border: 'none', borderRadius: 4 }}
                   title="Comprobante PDF"
                 />
               ) : (
                 <img
                   src={getComprobanteUrl(selectedComprobante)}
                   alt="Comprobante"
-                  style={{ maxWidth: '100%', height: 'auto', borderRadius: '8px' }}
+                  style={{ maxWidth: '100%', maxHeight: 500, borderRadius: 4 }}
                 />
               )}
-              <Button
-                variant="outlined"
-                color="primary"
-                startIcon={<Visibility />}
-                href={getComprobanteUrl(selectedComprobante)}
-                target="_blank"
-                sx={{ mt: 2 }}
-              >
-                Abrir en nueva pestaña
-              </Button>
             </Box>
           )}
         </DialogContent>
-        <DialogActions sx={{ p: 2, backgroundColor: '#f5f5f5' }}>
-          <Button onClick={handleCloseComprobante} color="secondary" variant="outlined">
-            Cerrar
-          </Button>
+        <DialogActions sx={{ p: 2, bgcolor: '#f8fafc' }}>
+          <Button onClick={handleCloseComprobante} variant="outlined">Cerrar</Button>
         </DialogActions>
       </Dialog>
     </>

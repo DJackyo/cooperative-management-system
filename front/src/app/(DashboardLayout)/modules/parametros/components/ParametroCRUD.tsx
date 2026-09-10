@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Button,
+  Grid,
   TextField,
   Modal,
   Typography,
@@ -166,16 +167,30 @@ const handleOpenCreate = () => {
   ];
 return (
     <Box>
-      <Button
-        variant="contained"
-        startIcon={<IconPlus size={18} />}
-        onClick={handleOpenCreate}
-        sx={{ mb: 2 }}
-      >
-        Nuevo {title}
-      </Button>
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <DashboardCard title="">
+            <Typography variant="h4" fontWeight={800} lineHeight={1}>{data.length}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Registros de {title.toLowerCase()}</Typography>
+          </DashboardCard>
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6 }}>
+          <DashboardCard title="">
+            <Typography variant="h4" fontWeight={800} lineHeight={1}>{fields.length}</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>Campos configurados</Typography>
+          </DashboardCard>
+        </Grid>
+      </Grid>
 
-      <DashboardCard title="">
+      <DashboardCard
+        title={`Listado de ${title.toLowerCase()}`}
+        subtitle={`${data.length} registro${data.length === 1 ? "" : "s"} disponibles`}
+        action={
+          <Button variant="contained" startIcon={<IconPlus size={18} />} onClick={handleOpenCreate}>
+            Nuevo {title}
+          </Button>
+        }
+      >
         <StyledTable
           columns={columns}
           rows={data}
@@ -185,20 +200,12 @@ return (
           actions={(row: any) => (
             <>
               <Tooltip title="Editar">
-                <IconButton
-                  size="small"
-                  color="primary"
-                  onClick={() => handleOpenEdit(row)}
-                >
+                <IconButton size="small" color="primary" onClick={() => handleOpenEdit(row)}>
                   <IconEdit size={16} />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Eliminar">
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => handleDelete(row)}
-                >
+                <IconButton size="small" color="error" onClick={() => handleDelete(row)}>
                   <IconTrash size={16} />
                 </IconButton>
               </Tooltip>

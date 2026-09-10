@@ -68,6 +68,7 @@ import UserCard from "../../utilities/UserCard";
 import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
 import { usePageLoading } from "@/hooks/usePageLoading";
 import StyledTable from "@/components/StyledTable";
+import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
 
 // Agregar el tipo de las props
 interface SavingsModuleProps {
@@ -425,54 +426,76 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
           </Card>
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <Card variant="outlined" sx={{ boxShadow: 3 }}>
-            <CardContent>
-              <Box display="flex" justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} gap={2} flexWrap="wrap" mb={2}>
-                <Box>
-                  <Typography variant="h5" color="primary">Ahorros de asociados</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                    {filteredUsers.length} resultado{filteredUsers.length === 1 ? '' : 's'} encontrados
-                  </Typography>
-                </Box>
-                <Box display="flex" gap={1} alignItems="center" flexWrap="wrap" justifyContent="flex-end">
-                  <Button size="small" color="inherit" startIcon={<IconX size={17} />} onClick={() => { setUsersSearch(''); setEstadoFilter('ACTIVO'); }} disabled={!usersSearch && estadoFilter === 'ACTIVO'}>
-                    Limpiar
-                  </Button>
-                  <FormControl size="small" sx={{ minWidth: 150 }}>
-                    <InputLabel id="estado-filter-label">Estado</InputLabel>
-                    <Select
-                      labelId="estado-filter-label"
-                      value={estadoFilter}
-                      onChange={(e) => setEstadoFilter(e.target.value)}
-                      label="Estado"
-                    >
-                      <MenuItem value="TODOS">Todos</MenuItem>
-                      <MenuItem value="ACTIVO">Activos</MenuItem>
-                      <MenuItem value="RSD">Retirados</MenuItem>
-                      <MenuItem value="SUS">Suspendidos</MenuItem>
-                    </Select>
-                  </FormControl>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    onClick={() => setBulkModalOpen(true)}
-                    startIcon={<IconCoins />}
-                  >
-                    Aportes en masa
-                  </Button>
-                  <TextField
-                    label="Buscar usuarios"
-                    variant="outlined"
-                    size="small"
-                    value={usersSearch}
-                    onChange={handleUsersSearchChange}
-                    placeholder="ID, nombre, identificación o estado..."
-                    sx={{ minWidth: { xs: '100%', md: 280 } }}
-                    InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={18} /></InputAdornment> }}
-                  />
-                </Box>
+          <DashboardCard
+            title="Filtros"
+            subtitle="Busca asociados por nombre, identificación, estado o ID."
+            action={
+              <Box display="flex" gap={1} flexWrap="wrap">
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<IconRefresh size={17} />}
+                  onClick={loadSavings}
+                  disabled={loading}
+                >
+                  {loading ? "Actualizando..." : "Actualizar"}
+                </Button>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  size="small"
+                  onClick={() => setBulkModalOpen(true)}
+                  startIcon={<IconCoins size={17} />}
+                >
+                  Aportes en masa
+                </Button>
               </Box>
-              
+            }
+          >
+            <Grid container spacing={1.5} alignItems="center">
+              <Grid size={{ xs: 12, md: 5 }}>
+                <TextField
+                  fullWidth
+                  size="small"
+                  label="Buscar asociado"
+                  value={usersSearch}
+                  onChange={handleUsersSearchChange}
+                  placeholder="Nombre, identificación o ID"
+                  InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={18} /></InputAdornment> }}
+                />
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 2.5 }}>
+                <FormControl fullWidth size="small">
+                  <InputLabel id="estado-filter-label">Estado</InputLabel>
+                  <Select
+                    labelId="estado-filter-label"
+                    value={estadoFilter}
+                    onChange={(e) => setEstadoFilter(e.target.value)}
+                    label="Estado"
+                  >
+                    <MenuItem value="TODOS">Todos</MenuItem>
+                    <MenuItem value="ACTIVO">Activos</MenuItem>
+                    <MenuItem value="RSD">Retirados</MenuItem>
+                    <MenuItem value="SUS">Suspendidos</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 2 }} display="flex" alignItems="center" justifyContent={{ xs: "flex-start", md: "flex-end" }}>
+                <Button
+                  size="small"
+                  color="inherit"
+                  startIcon={<IconX size={17} />}
+                  onClick={() => { setUsersSearch(''); setEstadoFilter('ACTIVO'); }}
+                  disabled={!usersSearch && estadoFilter === 'ACTIVO'}
+                >
+                  Limpiar filtros
+                </Button>
+              </Grid>
+            </Grid>
+          </DashboardCard>
+        </Grid>
+        <Grid size={{ xs: 12 }}>
+          <DashboardCard title="Ahorros de asociados" subtitle={`${filteredUsers.length} resultado${filteredUsers.length === 1 ? '' : 's'} encontrados`}>
               <StyledTable
                 columns={[
                   { field: "id", headerName: "ID", width: 70 },
@@ -531,8 +554,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   </Button>
                 )}
               />
-            </CardContent>
-          </Card>
+          </DashboardCard>
         </Grid>
         {/* Modal de Creación en Masa */}
         <BulkAporteModal
@@ -619,16 +641,11 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
         </Grid>
 
         <Grid  size={{ xs: 12, md: 12 }}>
-          <Card variant="outlined" sx={{ boxShadow: 3, padding: 2 }}>
-            <Box display="flex" justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} gap={2} flexWrap="wrap" mb={1.5}>
-              <Box>
-                <Typography variant="h6" color="primary">Buscar y filtrar aportes</Typography>
-                <Typography variant="body2" color="text.secondary">Consulta por fecha, estado, método o identificador.</Typography>
-              </Box>
-              <Button size="small" color="inherit" startIcon={<IconX size={17} />} onClick={clearAporteFilters} disabled={!startDate && !endDate && !aporteSearch && aporteEstadoFilter === 'TODOS' && aporteMetodoFilter === 'TODOS'}>
-                Limpiar filtros
-              </Button>
-            </Box>
+          <DashboardCard
+            title="Filtros"
+            subtitle="Consulta los aportes por fecha, estado, método o identificador."
+            action={<Button size="small" color="inherit" startIcon={<IconX size={17} />} onClick={clearAporteFilters} disabled={!startDate && !endDate && !aporteSearch && aporteEstadoFilter === 'TODOS' && aporteMetodoFilter === 'TODOS'}>Limpiar filtros</Button>}
+          >
             <Grid container spacing={1.5} alignItems="center">
               <Grid size={{ xs: 12, md: 3 }}>
                 <TextField fullWidth size="small" label="Buscar aporte" placeholder="ID, tipo o método" value={aporteSearch} onChange={(event) => { setAporteSearch(event.target.value); setPage(0); }} InputProps={{ startAdornment: <InputAdornment position="start"><IconSearch size={18} /></InputAdornment> }} />
@@ -671,33 +688,15 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                 />
               </Grid>
             </Grid>
-          </Card>
+          </DashboardCard>
         </Grid>
 
         <Grid  size={{xs: 12, md: 12 }}>
-          <Card variant="outlined" sx={{ boxShadow: 3 }}>
-            <CardContent>
-              <Box
-                display="flex"
-                justifyContent="space-between"
-                alignItems="center"
-              >
-                <Typography variant="h5" color="primary" gutterBottom>
-                  Historial de aportes
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {filteredTransactions.length} resultado{filteredTransactions.length === 1 ? '' : 's'} de {savings.length}
-                </Typography>
-                <Button
-                  variant="outlined"
-                  color="secondary"
-                  onClick={handleCreateAporteClick}
-                  sx={{ mb: 2 }}
-                  startIcon={<IconUserDollar />}
-                >
-                  Registrar Aporte
-                </Button>
-              </Box>
+          <DashboardCard
+            title="Historial de aportes"
+            subtitle={`${filteredTransactions.length} resultado${filteredTransactions.length === 1 ? '' : 's'} de ${savings.length}`}
+            action={<Button variant="outlined" color="secondary" onClick={handleCreateAporteClick} startIcon={<IconUserDollar />}>Registrar Aporte</Button>}
+          >
 
               {/* Tabla */}
               <StyledTable
@@ -799,8 +798,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                 onPageChange={handlePageChange}
                 onRowsPerPageChange={handlePageSizeChange}
               />
-            </CardContent>
-          </Card>
+          </DashboardCard>
         </Grid>
       </Grid>
 
