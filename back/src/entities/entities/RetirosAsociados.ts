@@ -24,6 +24,12 @@ export class RetirosAsociados {
   @Column('timestamp without time zone', { name: 'fecha_retiro', nullable: true })
   fechaRetiro: Date | null;
 
+  @Column('text', { name: 'motivo', nullable: true })
+  motivo: string | null;
+
+  @Column('text', { name: 'adjunto', nullable: true })
+  adjunto: string | null;
+
   @Column('numeric', { name: 'total_aportes', precision: 14, scale: 2, default: 0 })
   totalAportes: number;
 
@@ -35,6 +41,12 @@ export class RetirosAsociados {
 
   @Column('varchar', { name: 'estado', length: 30, default: 'PENDIENTE' })
   estado: string;
+
+  @Column('varchar', { name: 'estado_solicitud', length: 20, default: 'PENDIENTE' })
+  estadoSolicitud: string;
+
+  @Column('text', { name: 'motivo_rechazo', nullable: true })
+  motivoRechazo: string | null;
 
   @Column('text', { name: 'observaciones', nullable: true })
   observaciones: string | null;

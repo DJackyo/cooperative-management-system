@@ -31,6 +31,13 @@ export class AsociadosService {
     private readonly asistenciaRepository: Repository<AsocAsistenciaAsamblea>,
   ) {}
 
+  private normalizeNullableDate(value: unknown): Date | null {
+    if (value === null || value === undefined || value === '') return null;
+
+    const date = value instanceof Date ? value : new Date(String(value));
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
   // Obtener todos los asociados, incluyendo las relaciones
   async getAll(): Promise<Asociados[]> {
     return this.asociadosRepository.find({
@@ -126,9 +133,17 @@ export class AsociadosService {
       asociado.ubicacion = ubicacion;
       await this.asociadosRepository.save(asociado);
     }
-    await saveRelation(this.laboralRepository, profile.laboral);
+    const laboral = profile.laboral ? { ...profile.laboral } : profile.laboral;
+    if (laboral && Object.prototype.hasOwnProperty.call(laboral, 'fechaDeRetiro')) {
+      laboral.fechaDeRetiro = this.normalizeNullableDate(laboral.fechaDeRetiro);
+    }
+    await saveRelation(this.laboralRepository, laboral);
     await saveRelation(this.economicaRepository, profile.economica);
-    await saveRelation(this.asistenciaRepository, profile.asistencia);
+    const asistencia = profile.asistencia ? { ...profile.asistencia } : profile.asistencia;
+    if (asistencia && Object.prototype.hasOwnProperty.call(asistencia, 'fecha')) {
+      asistencia.fecha = this.normalizeNullableDate(asistencia.fecha);
+    }
+    await saveRelation(this.asistenciaRepository, asistencia);
 
     if (Array.isArray(profile.familiares)) {
       for (const familiar of profile.familiares) {
