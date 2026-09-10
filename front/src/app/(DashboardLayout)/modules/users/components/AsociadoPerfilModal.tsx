@@ -25,8 +25,12 @@ interface AsociadoPerfilModalProps {
   onSubmit: (profile: any) => Promise<void>;
 }
 
-const dateValue = (value: string | null | undefined) =>
-  value ? new Date(value).toISOString().slice(0, 10) : "";
+const dateValue = (value: string | null | undefined) => {
+  if (!value) return "";
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+};
 
 const emptyProfile = {
   asociado: {},

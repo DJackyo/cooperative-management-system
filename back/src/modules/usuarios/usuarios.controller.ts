@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Put,
+  Patch,
   Delete,
   Query,
 } from '@nestjs/common';
@@ -67,6 +68,11 @@ export class UsuariosController {
     @Body() updateUsuarioDto: UpdateUsuarioDto,
   ): Promise<Usuarios> {
     return this.usuariosService.update(id, updateUsuarioDto);
+  }
+
+  @Patch(':id/deactivate')
+  deactivate(@Param('id') id: number): Promise<Usuarios> {
+    return this.usuariosService.deactivate(id);
   }
 
   @Delete(':id')

@@ -5,15 +5,15 @@ import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { JwtAuthGuard } from './jwt-auth.guard';
-import { UsuariosService } from 'src/modules/usuarios/usuarios.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Usuarios } from 'src/entities/entities/Usuarios';
-import { Prestamos } from 'src/entities/entities/Prestamos';
+import { UsuariosModule } from 'src/modules/usuarios/usuarios.module';
 
 @Module({
   imports: [
     ConfigModule, // Asegúrate de importar ConfigModule
-    TypeOrmModule.forFeature([Usuarios, Prestamos]),
+    TypeOrmModule.forFeature([Usuarios]),
+    UsuariosModule,
     JwtModule.registerAsync({
       imports: [ConfigModule], // ConfigModule se debe inyectar
       inject: [ConfigService], // Inyectamos ConfigService
@@ -24,7 +24,7 @@ import { Prestamos } from 'src/entities/entities/Prestamos';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, UsuariosService, JwtStrategy, JwtAuthGuard],
+  providers: [AuthService, JwtStrategy, JwtAuthGuard],
   exports: [JwtAuthGuard],
 })
 export class AuthModule {}

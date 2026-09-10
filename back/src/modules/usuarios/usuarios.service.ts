@@ -2,6 +2,7 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Usuarios } from '../../entities/entities/Usuarios';
+import { Asociados } from '../../entities/entities/Asociados';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { Prestamos } from '../../entities/entities/Prestamos';
@@ -13,6 +14,8 @@ export class UsuariosService {
     private usuariosRepository: Repository<Usuarios>,
     @InjectRepository(Prestamos)
     private prestamosRepository: Repository<Prestamos>,
+    @InjectRepository(Asociados)
+    private asociadosRepository: Repository<Asociados>,
   ) { }
 
   async create(createUsuarioDto: CreateUsuarioDto): Promise<Usuarios> {
@@ -67,6 +70,20 @@ export class UsuariosService {
 
   async update(id: number, updateUsuarioDto: UpdateUsuarioDto): Promise<Usuarios> {
     await this.usuariosRepository.update(id, updateUsuarioDto);
+    return this.findOne(id);
+  }
+
+  async deactivate(id: number): Promise<Usuarios> {
+    const usuario = await this.findOne(id);
+
+    if (!usuario?.idAsociado) {
+      throw new BadRequestException('El usuario no tiene un asociado relacionado');
+    }
+
+    await this.asociadosRepository.update(usuario.idAsociado.id, {
+      idEstado: { id: 2 },
+    });
+
     return this.findOne(id);
   }
 

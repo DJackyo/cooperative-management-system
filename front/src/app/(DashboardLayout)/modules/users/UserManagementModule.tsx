@@ -393,8 +393,7 @@ const UserManagementModule = () => {
 
   const handleDeactivate = async (user: User) => {
     try {
-      user.idAsociado.idEstado.id = 5;
-      await userService.deactivate(user.id, user);
+      await userService.deactivate(user.id);
       setUsers((currentUsers) => currentUsers.filter((currentUser) => currentUser.id !== user.id));
     } catch (error) {
       console.error("Error al eliminar el usuario:", error);
@@ -657,7 +656,7 @@ const UserManagementModule = () => {
             >
                 <Box>
                   <Typography variant="h5" color="primary" gutterBottom>
-                    Listado de usuarios
+                    Listado de asociados
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     {filteredUsers.length} resultado{filteredUsers.length === 1 ? "" : "s"} con los filtros actuales

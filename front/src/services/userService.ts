@@ -56,9 +56,9 @@ export const userService = {
       throw error;
     }
   },
-  async deactivate(id: number, user: Omit<User, "id">) {
+  async deactivate(id: number) {
     try {
-      const response = await axiosClient.patch(`/${baseURL}/${id}`, user);
+      const response = await axiosClient.patch(`${baseURL}/${id}/deactivate`);
       if (response?.data) {
         return response.data?.data;
       }
