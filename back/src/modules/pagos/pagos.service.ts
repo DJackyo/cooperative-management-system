@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { CreatePagoDto } from './dto/create-pago.dto';
 import { UpdatePagoDto } from './dto/update-pago.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -9,7 +9,7 @@ import { PresMetodosPago } from 'src/entities/entities/PresMetodosPago';
 import { Prestamos } from 'src/entities/entities/Prestamos';
 
 @Injectable()
-export class PagosService {
+export class PagosService implements OnModuleInit {
   constructor(
     @InjectRepository(Prestamos)
     private readonly prestamosRepository: Repository<Prestamos>,
@@ -21,6 +21,26 @@ export class PagosService {
     private readonly metodosPagoRepository: Repository<PresMetodosPago>,
     private readonly dataSource: DataSource,
   ) {}
+
+  async onModuleInit() {
+    await this.syncSequence('pres_pagos', 'id_pago');
+    await this.syncSequence('pres_cuotas', 'id');
+  }
+
+  async syncSequence(tableName: string = 'pres_pagos', pkColumn: string = 'id_pago', manager?: any) {
+    try {
+      const queryRunner = manager || this.dataSource;
+      await queryRunner.query(`
+        SELECT setval(
+          pg_get_serial_sequence('${tableName}', '${pkColumn}'),
+          COALESCE((SELECT MAX("${pkColumn}") FROM "${tableName}"), 1)
+        );
+      `);
+      console.log(`✅ Secuencia sincronizada correctamente para ${tableName}.${pkColumn}`);
+    } catch (error) {
+      console.error(`Error sincronizando secuencia para ${tableName}.${pkColumn}:`, error.message);
+    }
+  }
 
   create(createPagoDto: CreatePagoDto) {
     return 'This action adds a new pago';
@@ -34,8 +54,63 @@ export class PagosService {
     return `This action returns a #${id} pago`;
   }
 
-  update(id: number, updatePagoDto: UpdatePagoDto) {
-    return `This action updates a #${id} pago`;
+  async update(id: number, updatePagoDto: UpdatePagoDto) {
+    return this.editPago(id, updatePagoDto);
+  }
+
+  async editPago(pagoId: number, updateData: any) {
+    return await this.dataSource.transaction(async (manager) => {
+      const pagoExistente = await manager.findOne(PresPagos, {
+        where: { idPago: pagoId },
+        relations: ['idCuota', 'metodoPago'],
+      });
+
+      if (!pagoExistente) {
+        throw new Error('Pago no encontrado');
+      }
+
+      if (updateData.metodoPagoId) {
+        const metodoPago = await manager.findOne(PresMetodosPago, {
+          where: { id: updateData.metodoPagoId },
+        });
+        if (metodoPago) {
+          pagoExistente.metodoPago = metodoPago;
+        }
+      }
+
+      if (updateData.diaDePago !== undefined) pagoExistente.diaDePago = updateData.diaDePago;
+      if (updateData.diasEnMora !== undefined) pagoExistente.diasEnMora = updateData.diasEnMora;
+      if (updateData.mora !== undefined) pagoExistente.mora = updateData.mora;
+      if (updateData.abonoExtra !== undefined) pagoExistente.abonoExtra = updateData.abonoExtra;
+      if (updateData.abonoCapital !== undefined) pagoExistente.abonoCapital = updateData.abonoCapital;
+      if (updateData.intereses !== undefined) pagoExistente.intereses = updateData.intereses;
+      if (updateData.proteccionCartera !== undefined) pagoExistente.proteccionCartera = updateData.proteccionCartera;
+      if (updateData.totalPagado !== undefined) pagoExistente.totalPagado = updateData.totalPagado;
+      if (updateData.comprobante !== undefined) pagoExistente.comprobante = updateData.comprobante;
+
+      const pagoGuardado = await manager.save(PresPagos, pagoExistente);
+
+      // Si cambió el abono extra, recalcular las cuotas siguientes
+      if (updateData.abonoExtra !== undefined && pagoExistente.idCuota) {
+        const prestamo = await manager.findOne(Prestamos, {
+          where: { id: pagoExistente.idPrestamo },
+          relations: ['idTasa'],
+        });
+        if (prestamo) {
+          await this.recalcularCuotasSiguientes(
+            manager,
+            prestamo,
+            pagoExistente.idCuota.numeroCuota,
+            updateData.abonoExtra,
+          );
+        }
+      }
+
+      // Verificar si el préstamo ha finalizado completamente (todas sus cuotas pagadas o canceladas)
+      await this.verificarYActualizarEstadoPrestamo(manager, pagoExistente.idPrestamo);
+
+      return pagoGuardado;
+    });
   }
 
   remove(id: number) {
@@ -98,8 +173,22 @@ export class PagosService {
 
       console.log('🔍 Entidad creada:', nuevoPago);
 
-      // Guardar el pago
-      const pagoGuardado = await manager.save(PresPagos, nuevoPago);
+      // Sincronizar la secuencia antes de guardar para evitar conflicto de ID
+      await this.syncSequence('pres_pagos', 'id_pago', manager);
+
+      // Guardar el pago con reintento automático si ocurre error de clave duplicada
+      let pagoGuardado: PresPagos;
+      try {
+        pagoGuardado = await manager.save(PresPagos, nuevoPago);
+      } catch (error) {
+        if (error.code === '23505' || error.message?.includes('pagos_pkey')) {
+          console.warn('⚠️ Conflicto de secuencia en pagos_pkey detectado, re-sincronizando y reintentando...');
+          await this.syncSequence('pres_pagos', 'id_pago', manager);
+          pagoGuardado = await manager.save(PresPagos, nuevoPago);
+        } else {
+          throw error;
+        }
+      }
 
       console.log('✅ Pago guardado:', pagoGuardado);
 
@@ -130,16 +219,19 @@ export class PagosService {
         console.log('⚠️ NO se detectó abono extra o es <= 0');
       }
 
+      // Verificar si el préstamo ha finalizado completamente (todas sus cuotas pagadas o canceladas)
+      await this.verificarYActualizarEstadoPrestamo(manager, prestamo.id);
+
       console.log('🏁 === FIN DE REGISTRO DE PAGO ===');
       return pagoGuardado;
     });
   }
 
   /**
-   * Recalcula las cuotas siguientes después de aplicar un abono extra a capital
+   * Recalcula las cuotas siguientes después de aplicar o editar un abono extra a capital
    * @param manager - Transaction manager de TypeORM
    * @param prestamo - Préstamo al que pertenecen las cuotas
-   * @param numeroCuotaPagada - Número de la cuota que se acaba de pagar
+   * @param numeroCuotaPagada - Número de la cuota que se acaba de pagar o editar
    * @param abonoExtra - Monto del abono extra a capital
    */
   private async recalcularCuotasSiguientes(
@@ -168,39 +260,36 @@ export class PagosService {
 
     console.log('📊 Total de cuotas encontradas:', todasLasCuotas.length);
 
-    // Filtrar cuotas pendientes después de la cuota pagada
+    // Identificar todas las cuotas pagadas
+    const cuotasPagadas = todasLasCuotas.filter(c => c.estado === 'PAGADO');
+    const maxNumeroCuotaPagada = cuotasPagadas.length > 0
+      ? Math.max(...cuotasPagadas.map(c => c.numeroCuota))
+      : numeroCuotaPagada;
+
+    // Filtrar cuotas no pagadas después de la última cuota pagada (incluye PENDIENTE y CANCELADO)
     const cuotasPendientes = todasLasCuotas.filter(
-      c => c.numeroCuota > numeroCuotaPagada && c.estado === 'PENDIENTE'
+      c => c.numeroCuota > maxNumeroCuotaPagada && c.estado !== 'PAGADO'
     );
 
-    console.log('📋 Cuotas pendientes a recalcular:', cuotasPendientes.length);
+    console.log('📋 Cuotas pendientes/canceladas a recalcular:', cuotasPendientes.length);
 
     if (cuotasPendientes.length === 0) {
       console.log('⚠️ No hay cuotas pendientes para recalcular');
       return;
     }
 
-    // Calcular el saldo de capital actual
-    // Saldo = Monto original - suma de todos los abonos a capital hasta la cuota pagada - abono extra
+    // Calcular el saldo de capital actual restando los abonos a capital de TODAS las cuotas pagadas
     let saldoCapital = prestamo.monto;
     
     console.log('💰 Calculando saldo de capital...');
     console.log('   Monto original del préstamo:', prestamo.monto);
     
-    // Obtener todas las cuotas hasta la cuota recién pagada (incluyéndola)
-    const cuotasHastaCuotaPagada = todasLasCuotas.filter(
-      c => c.numeroCuota <= numeroCuotaPagada
-    );
-    
-    console.log('   Cuotas hasta la cuota pagada:', cuotasHastaCuotaPagada.length);
-    
-    // Restar el abono a capital de cada cuota pagada
-    for (const cuotaPagada of cuotasHastaCuotaPagada) {
+    for (const cuotaPagada of cuotasPagadas) {
       console.log(`   Cuota ${cuotaPagada.numeroCuota}: Abono capital = ${cuotaPagada.abonoCapital}`);
       saldoCapital -= cuotaPagada.abonoCapital || 0;
     }
     
-    // 🔥 IMPORTANTE: También debemos restar todos los abonos extra de pagos anteriores
+    // Restar todos los abonos extra de pagos registrados en cuotas pagadas
     const todosLosPagos = await manager.find(PresPagos, {
       where: {
         idPrestamo: prestamo.id,
@@ -208,31 +297,25 @@ export class PagosService {
       relations: ['idCuota'],
     });
     
-    console.log('💰 Total de pagos encontrados:', todosLosPagos.length);
-    
-    // Sumar todos los abonos extra de pagos de cuotas anteriores o igual a la cuota pagada
-    // (pero sin contar el abono extra actual que ya lo vamos a restar después)
-    let totalAbonosExtraPrevios = 0;
+    let totalAbonosExtra = 0;
     for (const pago of todosLosPagos) {
-      if (pago.idCuota && pago.idCuota.numeroCuota <= numeroCuotaPagada) {
+      if (pago.idCuota && pago.idCuota.estado === 'PAGADO') {
         const abonoExtraPago = pago.abonoExtra || 0;
         if (abonoExtraPago > 0) {
           console.log(`   Pago de cuota ${pago.idCuota.numeroCuota}: Abono extra = ${abonoExtraPago}`);
-          totalAbonosExtraPrevios += abonoExtraPago;
+          totalAbonosExtra += abonoExtraPago;
         }
       }
     }
     
-    console.log('💰 Total de abonos extra previos:', totalAbonosExtraPrevios);
-    saldoCapital -= totalAbonosExtraPrevios;
-    
-    // NOTA: No restamos el abono extra actual porque ya está incluido en totalAbonosExtraPrevios
-    // Ya que el pago actual ya se guardó antes de llamar a esta función
+    console.log('💰 Total de abonos extra en cuotas pagadas:', totalAbonosExtra);
+    saldoCapital -= totalAbonosExtra;
 
-    console.log('📊 Saldo de capital después del abono extra:', saldoCapital);
+    console.log('📊 Saldo de capital restante:', saldoCapital);
 
-    if (saldoCapital <= 0) {
-      console.log('🎉 El préstamo ha sido cancelado completamente');
+    // Si el saldo de capital restante es menor o igual a $100 pesos (remanente insignificante de centavos/redondeos), dar por cancelado el crédito
+    if (saldoCapital <= 100) {
+      console.log('🎉 El préstamo ha sido cancelado completamente (saldo restante insignificante <= $100)');
       // Marcar todas las cuotas restantes como canceladas
       for (const cuota of cuotasPendientes) {
         await manager.update(PresCuotas, cuota.id, {
@@ -249,12 +332,11 @@ export class PagosService {
 
     // Obtener la tasa de interés y otros parámetros
     const tasa = parseFloat(prestamo.idTasa.tasa);
+    const aplicaProteccion = prestamo.aplicaProteccionCartera !== false;
     const porcentajeProteccionCartera = prestamo.porcentajeProteccionCartera || 0.001;
 
-    // 🔥 IMPORTANTE: Obtener la cuota mensual de la PRIMERA cuota (la que se acaba de pagar)
-    // La cuota mensual NO cambia, se mantiene la original
-    // Solo cambian los intereses (bajan) y el abono a capital (sube)
-    const primeracuota = todasLasCuotas.find(c => c.numeroCuota === numeroCuotaPagada);
+    // Obtener la cuota mensual de la primera cuota
+    const primeracuota = todasLasCuotas.find(c => c.numeroCuota === 1);
     const cuotaMensualOriginal = primeracuota ? primeracuota.monto : cuotasPendientes[0].monto;
 
     console.log('📐 Parámetros para recálculo:', {
@@ -272,7 +354,7 @@ export class PagosService {
     
     for (const cuota of cuotasPendientes) {
       // Si ya encontramos la última cuota, marcar todas las siguientes como CANCELADAS
-      if (ultimaCuotaEncontrada || saldoCapitalActual <= 0.01) { // Usar 0.01 para evitar problemas de precisión
+      if (ultimaCuotaEncontrada || saldoCapitalActual <= 0.01) {
         await manager.update(PresCuotas, cuota.id, {
           estado: 'CANCELADO',
           monto: 0,
@@ -288,7 +370,7 @@ export class PagosService {
       const nuevosIntereses = saldoCapitalActual * tasa;
       
       // Calcular protección de cartera sobre el saldo actual
-      const nuevaProteccionCartera = saldoCapitalTmp * porcentajeProteccionCartera;
+      const nuevaProteccionCartera = aplicaProteccion ? saldoCapitalTmp * porcentajeProteccionCartera : 0;
       
       // Calcular abono a capital: cuota - intereses
       let nuevoAbonoCapital = cuotaMensualOriginal - nuevosIntereses;
@@ -297,51 +379,73 @@ export class PagosService {
       let montoFinal = cuotaMensualOriginal;
       if (nuevoAbonoCapital >= saldoCapitalActual) {
         nuevoAbonoCapital = saldoCapitalActual;
-        // 🔥 IMPORTANTE: Última cuota = abono capital + intereses + protección de cartera
+        // Última cuota = abono capital + intereses + protección de cartera
         montoFinal = nuevoAbonoCapital + nuevosIntereses + nuevaProteccionCartera;
-        ultimaCuotaEncontrada = true; // Marcar que esta es la última cuota
+        ultimaCuotaEncontrada = true;
+
+        if (montoFinal <= 100 || saldoCapitalActual <= 100) {
+          console.log(`🎯 Cuota ${cuota.numeroCuota} tiene un monto residual insignificante ($${montoFinal}), se marca como CANCELADA`);
+          await manager.update(PresCuotas, cuota.id, {
+            estado: 'CANCELADO',
+            monto: 0,
+            abonoCapital: 0,
+            intereses: 0,
+            proteccionCartera: 0,
+          });
+          continue;
+        }
+
         console.log(`🎯 Cuota ${cuota.numeroCuota} será la ÚLTIMA (cuota ajustada: $${Math.round(montoFinal * 100) / 100})`);
       }
 
-      // 🔥 Redondear a 2 decimales para evitar problemas de precisión con REAL/FLOAT
+      // Redondear a 2 decimales
       const montoRedondeado = Math.round(montoFinal * 100) / 100;
       const interesesRedondeado = Math.round(nuevosIntereses * 100) / 100;
       const abonoCapitalRedondeado = Math.round(nuevoAbonoCapital * 100) / 100;
       const proteccionCarteraRedondeado = Math.round(nuevaProteccionCartera * 100) / 100;
 
-      const updateResult = await manager.update(PresCuotas, cuota.id, {
+      await manager.update(PresCuotas, cuota.id, {
+        estado: 'PENDIENTE',
         monto: montoRedondeado,
         intereses: interesesRedondeado,
         abonoCapital: abonoCapitalRedondeado,
         proteccionCartera: proteccionCarteraRedondeado,
       });
 
-      console.log(`📝 UPDATE ejecutado para cuota ${cuota.numeroCuota}:`, {
-        affected: updateResult.affected,
-        raw: updateResult.raw,
-      });
-
       // Reducir saldos usando valores NO redondeados para mantener precisión en cálculos
       saldoCapitalActual -= nuevoAbonoCapital;
       saldoCapitalTmp -= nuevoAbonoCapital;
-
-      console.log(`✅ Cuota ${cuota.numeroCuota} recalculada:`, {
-        montoAnterior: cuota.monto,
-        montoNuevo: montoRedondeado,
-        diferenciaMonto: montoRedondeado - cuota.monto,
-        interesesAnterior: cuota.intereses,
-        interesesNuevo: interesesRedondeado,
-        diferenciaIntereses: interesesRedondeado - cuota.intereses,
-        abonoCapitalAnterior: cuota.abonoCapital,
-        abonoCapitalNuevo: abonoCapitalRedondeado,
-        diferenciaAbonoCapital: abonoCapitalRedondeado - cuota.abonoCapital,
-        proteccionCarteraAnterior: cuota.proteccionCartera,
-        proteccionCarteraNueva: proteccionCarteraRedondeado,
-        saldoRestante: saldoCapitalActual,
-      });
     }
 
     console.log('🎯 Recálculo completado exitosamente');
+  }
+
+  /**
+   * Verifica si todas las cuotas de un préstamo están PAGADAS o CANCELADAS.
+   * De ser así, actualiza el estado del préstamo a 'FINALIZADO'.
+   */
+  private async verificarYActualizarEstadoPrestamo(manager: any, prestamoId: number) {
+    try {
+      const cuotas = await manager.find(PresCuotas, {
+        where: { idPrestamo: { id: prestamoId } },
+      });
+
+      if (!cuotas || cuotas.length === 0) return;
+
+      const cuotasPendientes = cuotas.filter(
+        (c: PresCuotas) => c.estado === 'PENDIENTE'
+      );
+
+      if (cuotasPendientes.length === 0) {
+        await manager.update(Prestamos, prestamoId, {
+          estado: 'FINALIZADO',
+          fechaActualizacion: new Date(),
+        });
+        console.log(`🏆 El préstamo #${prestamoId} ha sido actualizado a estado 'FINALIZADO'`);
+      }
+    } catch (error) {
+      console.error(`Error al verificar estado del préstamo #${prestamoId}:`, error);
+    }
   }
 
   /**

@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Put,
   Body,
   Patch,
   Param,
@@ -59,6 +60,97 @@ export class PagosController {
   @Patch(':id')
   update(@Param('id') id: string, @Body() updatePagoDto: UpdatePagoDto) {
     return this.pagosService.update(+id, updatePagoDto);
+  }
+
+  @Put(':id')
+  @UseInterceptors(
+    FileInterceptor('comprobante', {
+      storage: diskStorage({
+        destination: (req: any, file: Express.Multer.File, callback) => {
+          try {
+            const loanId = String(req.body?.idPrestamo || 'unknown');
+            const uploadPath = join(PATH_PAGOS, loanId, 'incoming');
+            fs.mkdirSync(uploadPath, { recursive: true });
+            callback(null, uploadPath);
+          } catch (err) {
+            callback(err as any, '');
+          }
+        },
+        filename: (req, file, callback) => {
+          try {
+            const safeName = file.originalname.replace(/[^\w\-.\s]/g, '');
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+            callback(null, `tmp-${uniqueSuffix}-${safeName}`);
+          } catch {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+            callback(null, `tmp-${uniqueSuffix}`);
+          }
+        },
+      }),
+      fileFilter: (req, file, callback) => {
+        if (!file.originalname.match(/\.(jpg|jpeg|png|pdf)$/i)) {
+          return callback(new Error('Solo se permiten archivos JPG, PNG o PDF'), false);
+        }
+        callback(null, true);
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024,
+      },
+    }),
+  )
+  async editPago(
+    @Param('id') id: number,
+    @Req() req: any,
+    @UploadedFile() file?: any,
+  ) {
+    try {
+      const updatePagoData: any = {
+        diaDePago: req.body.diaDePago,
+        diasEnMora: req.body.diasEnMora ? Number(req.body.diasEnMora) : 0,
+        mora: req.body.mora ? Number(req.body.mora) : 0,
+        abonoExtra: req.body.abonoExtra ? Number(req.body.abonoExtra) : 0,
+        totalPagado: req.body.totalPagado ? Number(req.body.totalPagado) : 0,
+        abonoCapital: req.body.abonoCapital ? Number(req.body.abonoCapital) : 0,
+        intereses: req.body.intereses ? Number(req.body.intereses) : 0,
+        proteccionCartera: req.body.proteccionCartera ? Number(req.body.proteccionCartera) : 0,
+        metodoPagoId: req.body.metodoPagoId ? Number(req.body.metodoPagoId) : undefined,
+      };
+
+      if (file && file.path && file.originalname) {
+        const loanId = String(req.body.idPrestamo || 'unknown');
+        const { year, month } = extractYearMonth(req.body?.diaDePago);
+        const finalDir = join(PATH_PAGOS, loanId, year);
+        fs.mkdirSync(finalDir, { recursive: true });
+        const safeName = file.originalname.replace(/[^\w\-.\s]/g, '');
+        let targetName = `${month}-${safeName}`;
+        let targetPath = join(finalDir, targetName);
+        if (fs.existsSync(targetPath)) {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          targetName = `${month}-${uniqueSuffix}-${safeName}`;
+          targetPath = join(finalDir, targetName);
+        }
+        try {
+          fs.renameSync(file.path, targetPath);
+        } catch (moveErr) {
+          console.error('Error moviendo comprobante:', moveErr);
+        }
+        updatePagoData.comprobante = `${loanId}/${year}/${targetName}`;
+      }
+
+      const result = await this.pagosService.editPago(+id, updatePagoData);
+      return {
+        status: 'success',
+        data: result,
+        message: 'Pago actualizado exitosamente',
+      };
+    } catch (error: any) {
+      console.error('Error al editar pago:', error);
+      return {
+        status: 'error',
+        data: null,
+        message: error.message || 'Error al actualizar el pago',
+      };
+    }
   }
 
   @Delete(':id')
