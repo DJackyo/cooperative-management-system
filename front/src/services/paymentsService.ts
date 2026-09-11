@@ -51,14 +51,14 @@ export const pagosService = {
       throw new Error("Error", error!);
     }
   },
-  async update(id: number, pago: Omit<Cuota, "id">) {
+  async update(id: number, payload: FormData) {
     try {
-      const response = await axiosClient.put(`${baseURL}/${id}`, pago);
+      const response = await axiosClient.put(`${baseURL}/${id}`, payload);
       if (response?.data) {
         return response.data?.data;
       }
     } catch (error) {
-      throw new Error("Error", error!);
+      throw new Error("Error al actualizar pago: " + (error as any)?.message);
     }
   },
   async deactivate(id: number, pago: Omit<Cuota, "id">) {
