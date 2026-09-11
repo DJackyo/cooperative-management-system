@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Box, Card, CardContent, TextField, Button, Grid, MenuItem, FormControl, InputLabel, Select, Typography } from "@mui/material";
+import { Box, Card, CardContent, TextField, Button, Grid, MenuItem, FormControl, InputLabel, Select, Typography, FormControlLabel, Switch } from "@mui/material";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DatePicker } from "@mui/x-date-pickers";
@@ -55,6 +55,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
     estado: "SOLICITADO",
     observaciones: "",
     idTasa: 1,
+    aplicaProteccionCartera: true,
   });
 
   const [originalData, setOriginalData]: any = useState(null);
@@ -77,6 +78,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
             estado: existingData.estado || "SOLICITADO",
             observaciones: existingData.observaciones,
             idTasa: existingData.idTasa?.id,
+            aplicaProteccionCartera: existingData.aplicaProteccionCartera !== undefined ? Boolean(existingData.aplicaProteccionCartera) : true,
           };
           setFormData(initialData);
           setOriginalData(initialData);
@@ -184,6 +186,12 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
               <Grid size={{ xs: 12, md: 6 }}>
                 <Typography variant="subtitle1" color="textPrimary">
                   <strong>TASA:</strong> {(formData?.tasa * 100).toFixed(2)}%
+                </Typography>
+              </Grid>
+
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Typography variant="subtitle1" color="textPrimary">
+                  <strong>PROTECCIÓN DE CARTERA:</strong> {formData?.aplicaProteccionCartera !== false ? "Aplica (0.1% mensual)" : "No Aplica"}
                 </Typography>
               </Grid>
 
@@ -303,12 +311,42 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
               </Grid>
             )}
 
+            {/* Protección de Cartera */}
+            <Grid size={{ xs: 12, md: 3 }} sx={{ display: mode === "approve" ? "none" : "flex", alignItems: "center" }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={formData.aplicaProteccionCartera ?? true}
+                    onChange={(e) => {
+                      const newFormData = { ...formData, aplicaProteccionCartera: e.target.checked };
+                      setFormData(newFormData);
+                      if (mode === "edit" && originalData) {
+                        setHasChanges(originalData.aplicaProteccionCartera !== e.target.checked);
+                      }
+                    }}
+                    disabled={mode === "approve"}
+                    color="primary"
+                  />
+                }
+                label="Aplica Protección de Cartera"
+              />
+            </Grid>
+
             {/* Observaciones */}
             <Grid size={{ xs: 12, sm: formData.estado === "SOLICITADO" ? 6 : 12 }}>
               <TextField label="Observaciones" name="observaciones" value={formData.observaciones ? formData.observaciones : ""} onChange={handleChange} fullWidth multiline rows={1} size="small" />
             </Grid>
             {/* Mostrar el Plan de Pagos solo si el formulario está completo */}
-            {isFormComplete() && <PaymentPlan monto={formData.monto} tasaInteres={parseFloat(formData.tasa)} plazoMeses={formData.plazoMeses} fechaCredito={formData.fechaCredito} mode={mode} />}
+            {isFormComplete() && (
+              <PaymentPlan
+                monto={formData.monto}
+                tasaInteres={parseFloat(formData.tasa)}
+                plazoMeses={formData.plazoMeses}
+                fechaCredito={formData.fechaCredito}
+                mode={mode}
+                aplicaProteccionCartera={formData.aplicaProteccionCartera ?? true}
+              />
+            )}
 
             {/* Botón de Enviar */}
             <Grid size={{ xs: 12, md: 9 }}></Grid>

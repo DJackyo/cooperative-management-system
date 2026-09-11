@@ -33,6 +33,7 @@ interface PaymentPlanProps {
   plazoMeses: number;
   fechaCredito: Date;
   mode: "create" | "edit" | "approve";
+  aplicaProteccionCartera?: boolean;
 }
 
 // ✅ Función para calcular el plan de pagos
@@ -41,7 +42,8 @@ const calculatePayments = (
   tasaMensual: number,
   plazoMeses: number,
   fechaCredito: Date,
-  porcentajeProteccionCartera = 0.001
+  porcentajeProteccionCartera = 0.001,
+  aplicaProteccionCartera = true
 ): { pagos: Payment[]; totals: any } => {
   const cuotaMensual =
     (monto * tasaMensual * Math.pow(1 + tasaMensual, plazoMeses)) /
@@ -73,7 +75,7 @@ const calculatePayments = (
     const intereses = saldoCapital * tasaMensual;
     const abonoCapital = cuotaMensual - intereses;
     const totalCuota = cuotaMensual;
-    const proteccionCartera = saldoCapitalTmp * porcentajeProteccionCartera;
+    const proteccionCartera = aplicaProteccionCartera ? saldoCapitalTmp * porcentajeProteccionCartera : 0;
     saldoCapital -= abonoCapital;
 
     fechaVencimiento.setMonth(fechaVencimiento.getMonth() + 1);
@@ -116,6 +118,7 @@ const PaymentPlan: React.FC<PaymentPlanProps> = ({
   plazoMeses,
   fechaCredito,
   mode,
+  aplicaProteccionCartera = true,
 }) => {
   const [expanded, setExpanded] = React.useState(mode !== "approve");
 
@@ -125,7 +128,9 @@ const PaymentPlan: React.FC<PaymentPlanProps> = ({
       monto,
       tasaInteres,
       plazoMeses,
-      fechaCredito
+      fechaCredito,
+      0.001,
+      aplicaProteccionCartera
     );
 
     // Formatear los valores después del cálculo
@@ -146,7 +151,7 @@ const PaymentPlan: React.FC<PaymentPlanProps> = ({
     };
 
     return { pagos: formattedPagos, totals: formattedTotals };
-  }, [monto, tasaInteres, plazoMeses, fechaCredito]);
+  }, [monto, tasaInteres, plazoMeses, fechaCredito, aplicaProteccionCartera]);
 
   const handleChange = () => {
     setExpanded((prev) => !prev);

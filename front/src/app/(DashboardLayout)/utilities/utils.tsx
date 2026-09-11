@@ -11,36 +11,38 @@ export const validateRoles = (roles: any, userRoles: any[]) => {
   return userRoles.some((role) => roles.includes(role));
 };
 
-export const formatDateToISO = (date: string | Date) => {
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-// Función para formatear la fecha sin la hora
-export const formatDateWithoutTime = (date: string | Date) => {
-  const d = new Date(date);
-  if (isNaN(d.getTime())) {
-    console.error("Fecha inválida:", date);
-    return "";
+export const formatDateToISO = (date: string | Date | null | undefined): string => {
+  if (!date) return "";
+
+  if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date.trim())) {
+    return date.trim();
   }
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (!(d instanceof Date) || isNaN(d.getTime())) return "";
+
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Bogota",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(d);
+  } catch {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
 };
 
-export const formatNameDate = (date: string | Date) => {
-  const d = new Date(date);
-  if (isNaN(d.getTime())) {
-    console.error("Fecha inválida:", date);
-    return "";
-  }
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+// Función para formatear la fecha sin la hora
+export const formatDateWithoutTime = (date: string | Date | null | undefined) => {
+  return formatDateToISO(date);
+};
+
+export const formatNameDate = (date: string | Date | null | undefined) => {
+  return formatDateToISO(date);
 };
 
 // Función para formatear el monto
@@ -211,8 +213,25 @@ export function redondearHaciaAbajo(
   return Math.floor(numero * factor) / factor;
 }
 
-export const formatDateTime = (date: Date): string => {
-  return dayjs(date).format("YYYY-MM-DD HH:mm:ss");
+export const formatDateTime = (date: Date | string | null | undefined): string => {
+  if (!date) return "";
+  const d = typeof date === "string" ? new Date(date) : date;
+  if (!(d instanceof Date) || isNaN(d.getTime())) return "";
+
+  try {
+    return new Intl.DateTimeFormat("sv-SE", {
+      timeZone: "America/Bogota",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    }).format(d);
+  } catch {
+    return dayjs(d).format("YYYY-MM-DD HH:mm:ss");
+  }
 };
 
 export const formatNumber = (number: number) => {
@@ -232,8 +251,13 @@ export const calcularDiasEnMora = (
 ): number => {
   if (!fechaVenc || !diaPago) return 0;
 
-  const fechaVencDate = new Date(fechaVenc);
-  const diaPagoDate = new Date(diaPago);
+  const fechaVencIso = formatDateToISO(fechaVenc);
+  const diaPagoIso = formatDateToISO(diaPago);
+
+  if (!fechaVencIso || !diaPagoIso) return 0;
+
+  const fechaVencDate = new Date(fechaVencIso + "T00:00:00");
+  const diaPagoDate = new Date(diaPagoIso + "T00:00:00");
 
   // Calcular la diferencia en días
   const diferenciaDias = Math.floor(

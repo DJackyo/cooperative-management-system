@@ -6,6 +6,7 @@ import CooperativeOverview from "./CooperativeOverview";
 import TotalUsersCard from "./TotalUsersCard";
 import SavingsTransactionsCard from "./SavingsTransactionsCard";
 import CreditDistribution from "./CreditDistribution";
+import LoanCollectionCard from "./LoanCollectionCard";
 import LoadingSkeleton from "@/components/LoadingSkeleton";
 
 // Encabezado de sección con ícono degradado
@@ -100,6 +101,14 @@ const AdminDashboard = () => {
           </Grid>
           <Grid size={{ xs: 12 }}>
             <CooperativeOverview data={dashboardData} />
+          </Grid>
+
+          {/* Tarjeta de Recaudo de Préstamos */}
+          <Grid size={{ xs: 12 }}>
+            <LoanCollectionCard
+              loanCollection={dashboardData.loanCollection}
+              totalCreditAmount={dashboardData.totalCreditAmount}
+            />
           </Grid>
 
           <Grid size={{ xs: 12 }}>

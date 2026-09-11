@@ -27,7 +27,7 @@ const CreditDistribution: React.FC<CreditDistributionProps> = ({ dashboardData }
       },
       height: 155,
     },
-    colors: [primary, primarylight, "#f44336"],
+    colors: [primary, primarylight, "#f44336", "#10b981"],
     plotOptions: {
       pie: {
         startAngle: 0,
@@ -64,9 +64,10 @@ const CreditDistribution: React.FC<CreditDistributionProps> = ({ dashboardData }
   };
 
   // Datos reales del backend
-  const totalCredits = dashboardData.activeCredits + dashboardData.pendingCredits + (dashboardData.overdueCredits || 0);
+  const completedCredits = dashboardData.completedCredits || 0;
+  const totalCredits = dashboardData.activeCredits + dashboardData.pendingCredits + (dashboardData.overdueCredits || 0) + completedCredits;
   const activePercentage = totalCredits > 0 ? Math.round((dashboardData.activeCredits / totalCredits) * 100) : 0;
-  const seriescolumnchart: any = [dashboardData.activeCredits, dashboardData.pendingCredits, dashboardData.overdueCredits || 0];
+  const seriescolumnchart: any = [dashboardData.activeCredits, dashboardData.pendingCredits, dashboardData.overdueCredits || 0, completedCredits];
 
   return (
     <DashboardCard title="Distribución de Créditos">
@@ -98,6 +99,14 @@ const CreditDistribution: React.FC<CreditDistributionProps> = ({ dashboardData }
                 Vencidos ({dashboardData.overdueCredits || 0})
               </Typography>
             </Stack>
+            {completedCredits > 0 && (
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Avatar sx={{ width: 9, height: 9, bgcolor: "#a7f3d0", svg: { display: "none" } }}></Avatar>
+                <Typography variant="subtitle2" color="textSecondary">
+                  Finalizados ({completedCredits})
+                </Typography>
+              </Stack>
+            )}
           </Stack>
         </Grid>
         {/* columna */}

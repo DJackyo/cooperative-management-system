@@ -1,5 +1,13 @@
 import { axiosClient } from './axiosClient';
 
+export interface LoanCollectionData {
+  totalCollected: number;
+  totalCapital: number;
+  totalInterest: number;
+  totalMora: number;
+  totalPaymentsCount: number;
+}
+
 export interface DashboardData {
   totalUsers: number;
   activeCredits: number;
@@ -12,6 +20,7 @@ export interface DashboardData {
   deactivationRequests: number[];
   recentTransactions?: Transaction[];
   usersByStatus?: UserStatus[];
+  loanCollection?: LoanCollectionData;
 }
 
 export interface UserStatus {

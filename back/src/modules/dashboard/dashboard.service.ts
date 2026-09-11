@@ -28,7 +28,15 @@ export class DashboardService {
 
   async getDashboardStats() {
     try {
-      const [totalUsers, creditCounts, totalCreditAmount, overdueCredits, usersByStatus, savingsData] = await Promise.all([
+      const [
+        totalUsers,
+        creditCounts,
+        totalCreditAmount,
+        overdueCredits,
+        usersByStatus,
+        savingsData,
+        loanCollectionData,
+      ] = await Promise.all([
         this.asociadosRepository.count(),
         this.prestamosRepository
           .createQueryBuilder('prestamo')
@@ -39,7 +47,7 @@ export class DashboardService {
         this.prestamosRepository
           .createQueryBuilder('prestamo')
           .select('SUM(prestamo.monto)', 'total')
-          .where('prestamo.estado = :estado', { estado: 'APROBADO' })
+          .where('prestamo.estado IN (:...estados)', { estados: ['APROBADO', 'FINALIZADO'] })
           .getRawOne(),
         this.prestamosRepository
           .createQueryBuilder('prestamo')
@@ -65,12 +73,21 @@ export class DashboardService {
           .addOrderBy('month', 'DESC')
           .limit(6)
           .getRawMany(),
+        this.pagosRepository
+          .createQueryBuilder('pago')
+          .select('SUM(COALESCE(pago.total_pagado, pago.monto, 0))', 'totalCollected')
+          .addSelect('SUM(COALESCE(pago.abono_capital, 0) + COALESCE(pago.abono_extra, 0))', 'totalCapital')
+          .addSelect('SUM(COALESCE(pago.intereses, 0))', 'totalInterest')
+          .addSelect('SUM(COALESCE(pago.mora, 0))', 'totalMora')
+          .addSelect('COUNT(pago.id_pago)', 'totalPaymentsCount')
+          .getRawOne(),
       ]);
 
       const counts = new Map(
         creditCounts.map((row) => [String(row.status || '').toUpperCase(), Number(row.count) || 0]),
       );
       const approvedCredits = counts.get('APROBADO') || 0;
+      const completedCredits = counts.get('FINALIZADO') || 0;
       const pendingCredits = ['SOLICITADO', 'EN_REVISION', 'EN REVISIÓN'].reduce(
         (total, status) => total + (counts.get(status) || 0),
         0,
@@ -81,6 +98,7 @@ export class DashboardService {
       return {
         totalUsers,
         activeCredits,
+        completedCredits,
         pendingCredits,
         totalCreditAmount: Number(totalCreditAmount?.total) || 0,
         overdueCredits,
@@ -92,6 +110,13 @@ export class DashboardService {
           status: row.status,
           count: Number(row.count) || 0,
         })),
+        loanCollection: {
+          totalCollected: Number(loanCollectionData?.totalCollected) || 0,
+          totalCapital: Number(loanCollectionData?.totalCapital) || 0,
+          totalInterest: Number(loanCollectionData?.totalInterest) || 0,
+          totalMora: Number(loanCollectionData?.totalMora) || 0,
+          totalPaymentsCount: Number(loanCollectionData?.totalPaymentsCount) || 0,
+        },
       };
     } catch (error) {
       console.error('Error in getDashboardStats:', error);
