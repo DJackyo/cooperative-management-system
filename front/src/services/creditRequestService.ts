@@ -133,4 +133,16 @@ export const creditsService = {
       throw new Error("Error", error!);
     }
   },
+  async recalcularCuotas(id: number) {
+    try {
+      const response = await axiosClient.patch(`${baseURL}/${id}/recalcular`);
+      if (response?.data) {
+        return response.data?.data;
+      }
+    } catch (error: any) {
+      console.error(error);
+      const msg = error.response?.data?.message || "Error al recalcular cuotas";
+      throw new Error(Array.isArray(msg) ? msg.join(", ") : msg);
+    }
+  },
 };

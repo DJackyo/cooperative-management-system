@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsOptional, IsDate, IsNumberString, IsInt, IsPositive, IsString, IsEnum } from "class-validator";
+import { IsOptional, IsDate, IsNumberString, IsInt, IsPositive, IsString, IsEnum, IsBoolean } from "class-validator";
 
 export class UpdatePrestamoDto {
     @IsOptional()
@@ -47,4 +47,11 @@ export class UpdatePrestamoDto {
     @IsDate()
     @Type(() => Date)
     fechaActualizacion?: Date | null;
+
+    @IsOptional()
+    @IsBoolean()
+    aplicaProteccionCartera?: boolean | null;
+
+    @IsOptional()
+    idTasa?: any;
   }

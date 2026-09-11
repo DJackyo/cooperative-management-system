@@ -21,6 +21,7 @@ const statusConfig: Record<string, { label: string; color: ChipProps["color"] }>
   RSD: { label: "RSD", color: "info" },
   EXASOCIADO: { label: "Exasociado", color: "warning" },
   CANCELADO: { label: "Cancelado", color: "info" },
+  FINALIZADO: { label: "Finalizado", color: "info" },
 };
 
 const StatusChip = ({ status, label, ...props }: StatusChipProps) => {

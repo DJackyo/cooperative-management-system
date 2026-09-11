@@ -1,4 +1,7 @@
 import { Asociado } from "./User";
+import { Cuota } from "./Cuota";
+
+export type { Cuota };
 
 export interface Prestamo {
   id: number;
@@ -12,11 +15,13 @@ export interface Prestamo {
   estado: string | null;
   observaciones: string | null;
   fechaActualizacion: string | null;
+  aplicaProteccionCartera?: boolean | null;
+  porcentajeProteccionCartera?: number | null;
 
   // Relaciones con otras entidades
   aprobacionPrestamos?: any[];
   presCancelaciones?: any[];
-  presCuotas?: any[];
+  presCuotas?: Cuota[];
   presHistorialPrestamos?: any[];
   presPagos?: any[];
   idAsociado: Asociado;
@@ -27,16 +32,4 @@ export interface Pago {
   id?: number;
   diaDePago?: string;
   montoPagado?: number;
-}
-
-export interface Cuota {
-  id: number;
-  numeroCuota: number;
-  fechaVencimiento: string;
-  monto: number;
-  estado: "PENDIENTE" | "PAGADO" | "CANCELADO";
-  presPagos: Pago[];
-  pagado: boolean;
-  abonoCapital?: number;
-  intereses?: number;
 }

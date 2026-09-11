@@ -74,6 +74,13 @@ export class Prestamos {
   })
   porcentajeProteccionCartera: number | null;
 
+  @Column("boolean", {
+    name: "aplica_proteccion_cartera",
+    nullable: true,
+    default: () => "true",
+  })
+  aplicaProteccionCartera: boolean | null;
+
   @OneToMany(
     () => PresAprobacionPrestamos,
     (presAprobacionPrestamos) => presAprobacionPrestamos.idPrestamo

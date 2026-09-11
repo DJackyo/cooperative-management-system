@@ -113,6 +113,12 @@ export class PrestamosController {
     );
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Patch(':id/recalcular')
+  async recalcularCuotas(@Param('id') id: number) {
+    return this.prestamosService.recalcularCuotas(id);
+  }
+
   @Post('findWithFilters')
   async findWithFilters(
     @Body() filter: { userId?: number; creditId?: number },

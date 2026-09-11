@@ -6,6 +6,7 @@ import {
   IsDate,
   IsNumberString,
   IsString,
+  IsBoolean,
 } from 'class-validator';
 
 export class PrestamoDto {
@@ -56,4 +57,11 @@ export class PrestamoDto {
   @IsDate()
   @Type(() => Date)
   fechaActualizacion?: Date | null;
+
+  @IsOptional()
+  @IsBoolean()
+  aplicaProteccionCartera?: boolean | null;
+
+  @IsOptional()
+  idTasa?: any;
 }

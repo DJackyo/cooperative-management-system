@@ -30,6 +30,8 @@ import {
   ReceiptLong,
   Percent,
   ArrowBack,
+  Shield,
+  EventAvailable,
 } from "@mui/icons-material";
 import Swal from "sweetalert2";
 import dynamic from "next/dynamic";
@@ -37,6 +39,8 @@ import {
   defaultLoggedUser,
   formatCurrencyFixed,
   formatNameDate,
+  roleAdmin,
+  validateRoles,
 } from "@/app/(DashboardLayout)/utilities/utils";
 import { authService } from "@/app/authentication/services/authService";
 import { Asociado, LoggedUser } from "@/interfaces/User";
@@ -44,7 +48,7 @@ import { Cuota, Prestamo } from "@/interfaces/Prestamo";
 import { creditsService } from "@/services/creditRequestService";
 import { useRouter } from "next/navigation";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
-import { IconRefresh } from "@tabler/icons-react";
+import { IconRefresh, IconCalculator } from "@tabler/icons-react";
 
 const PaymentHistoryTable = dynamic(
   () => import("../components/PaymentHistoryTable"),
@@ -110,12 +114,30 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const getResumenPagos = useCallback((cuotas: Cuota[]) => {
-    const totalMonto = cuotas.reduce((sum, cuota) => sum + cuota.monto, 0);
-    const montoPendiente = calcularSaldoYPendientes(cuotas).saldoPendiente;
-    const montoPagado = totalMonto - montoPendiente;
-    setValorPagado(montoPagado);
-    return { totalMonto, montoPagado, montoPendiente };
+  const calcularSaldoYPendientes = useCallback((cuotas: Cuota[]) => {
+    const saldoPendiente = cuotas
+      .filter((cuota) => cuota.estado === "PENDIENTE")
+      .reduce((total, cuota) => total + (Number(cuota.monto) || 0), 0);
+
+    const cuotasPendientes = cuotas.filter(
+      (cuota) => cuota.estado === "PENDIENTE"
+    ).length;
+
+    const totalPagadoReal = cuotas
+      .filter((cuota) => cuota.estado === "PAGADO")
+      .reduce((total, cuota) => {
+        if (cuota.presPagos && cuota.presPagos.length > 0) {
+          const pagoSuma = cuota.presPagos.reduce((pSum: number, p: any) => {
+            const val = Number(p.totalPagado) || Number(p.montoPagado) || 
+              ((Number(p.abonoCapital) || 0) + (Number(p.intereses) || 0) + (Number(p.proteccionCartera) || 0) + (Number(p.mora) || 0) + (Number(p.abonoExtra) || 0));
+            return pSum + val;
+          }, 0);
+          return total + (pagoSuma > 0 ? pagoSuma : (Number(cuota.monto) || 0) + (Number(cuota.abonoExtra) || 0));
+        }
+        return total + (Number(cuota.monto) || 0) + (Number(cuota.abonoExtra) || 0);
+      }, 0);
+
+    return { saldoPendiente, cuotasPendientes, totalPagadoReal };
   }, []);
 
   const loadCreditData = useCallback(async () => {
@@ -131,12 +153,12 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
           setCredit(response[0]);
           setUserInfo(response[0].idAsociado);
 
-          const { saldoPendiente, cuotasPendientes } = calcularSaldoYPendientes(
-            response[0].presCuotas
+          const { saldoPendiente, cuotasPendientes, totalPagadoReal } = calcularSaldoYPendientes(
+            response[0].presCuotas || []
           );
           setSaldoPendiente(saldoPendiente);
           setCuotasPendiente(cuotasPendientes);
-          getResumenPagos(response[0].presCuotas);
+          setValorPagado(totalPagadoReal);
         } else {
           setError("No se encontró información del crédito");
         }
@@ -153,17 +175,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
         setLoading(false);
       }
     }
-  }, [userId, creditId, getResumenPagos]);
-
-  const calcularSaldoYPendientes = (cuotas: Cuota[]) => {
-    const saldoPendiente = cuotas
-      .filter((cuota) => cuota.estado === "PENDIENTE")
-      .reduce((total, cuota) => total + cuota.monto, 0);
-    const cuotasPendientes = cuotas.filter(
-      (cuota) => cuota.estado === "PENDIENTE"
-    ).length;
-    return { saldoPendiente, cuotasPendientes };
-  };
+  }, [userId, creditId, calcularSaldoYPendientes]);
 
   const fetchData = useCallback(async () => {
     const hasSession = authService.isAuthenticated();
@@ -179,10 +191,76 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
     fetchData();
   }, [fetchData, router]);
 
+  const userRoles = authService.getUserRoles();
+  const isUserAdmin = validateRoles(roleAdmin, userRoles);
+
+  const tienePagosRegistrados = credit?.presCuotas?.some(
+    (cuota) =>
+      cuota.estado === "PAGADO" ||
+      (cuota.presPagos && cuota.presPagos.length > 0)
+  );
+
+  const handleRecalculateCuotas = async () => {
+    if (!credit) return;
+    const result = await Swal.fire({
+      title: "¿Recalcular Cuotas?",
+      text: `Se volverán a generar las cuotas del préstamo #${credit.id} con los valores actuales (monto, plazo, tasa y protección de cartera). Esta opción solo aplica si no hay pagos registrados.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#f59e0b",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Sí, Recalcular",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        Swal.fire({
+          title: "Procesando...",
+          text: "Recalculando cuotas del crédito",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        await creditsService.recalcularCuotas(credit.id);
+
+        await Swal.fire({
+          title: "¡Cuotas Recalculadas!",
+          text: `Las cuotas del préstamo #${credit.id} han sido recalculadas exitosamente.`,
+          icon: "success",
+          confirmButtonText: "Entendido",
+          confirmButtonColor: "#4caf50",
+        });
+
+        await loadCreditData();
+      } catch (error: any) {
+        console.error("Error al recalcular cuotas:", error);
+        Swal.fire({
+          title: "Error",
+          text: error.message || "No se pudieron recalcular las cuotas.",
+          icon: "error",
+          confirmButtonText: "Entendido",
+        });
+      }
+    }
+  };
+
   const progressPercent =
     credit && Number(credit.monto) > 0
-      ? ((valorPagado / Number(credit.monto)) * 100).toFixed(1)
+      ? (
+          valorCuotasPendiente === 0 && valorSaldoPendiente === 0 && tienePagosRegistrados
+            ? "100.0"
+            : Math.min(100, Math.max(0, (valorPagado / (valorPagado + valorSaldoPendiente || Number(credit.monto))) * 100)).toFixed(1)
+        )
       : "0";
+
+  const porcentajeProteccion = credit?.porcentajeProteccionCartera
+    ? (credit.porcentajeProteccionCartera < 1
+        ? Number((credit.porcentajeProteccionCartera * 100).toFixed(2))
+        : credit.porcentajeProteccionCartera)
+    : 0.1;
 
   if (loading) {
     return (
@@ -248,9 +326,30 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
               <Chip
                 size="small"
                 label={credit.estado || "En proceso"}
-                color={credit.estado === "APROBADO" ? "success" : "default"}
+                color={
+                  credit.estado === "APROBADO"
+                    ? "success"
+                    : credit.estado === "FINALIZADO"
+                    ? "info"
+                    : "default"
+                }
                 sx={{ fontWeight: 700 }}
               />
+              {isUserAdmin &&
+                credit.presCuotas &&
+                credit.presCuotas.length > 0 &&
+                !tienePagosRegistrados && (
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="warning"
+                    startIcon={<IconCalculator size={16} />}
+                    onClick={handleRecalculateCuotas}
+                    sx={{ textTransform: "none" }}
+                  >
+                    Recalcular cuotas
+                  </Button>
+                )}
               <Button
                 size="small"
                 variant="outlined"
@@ -293,29 +392,76 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
       {/* Grid con 2 columnas: Info + Estado */}
       <Grid container spacing={1}>
         {/* Columna izquierda: Usuario + Crédito */}
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.5, border: "1px solid", borderColor: "divider" }}>
+        <Grid size={{ xs: 12, md: 7 }}>
+          <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.5, border: "1px solid", borderColor: "divider", height: "100%" }}>
             <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1 }}>
               <Stack direction="row" alignItems="center" spacing={0.5}>
                 <CalendarToday sx={{ fontSize: 16, color: "primary.main" }} />
                 <Typography variant="caption" fontWeight={600}>Datos del crédito</Typography>
               </Stack>
             </Stack>
-            <Divider sx={{ mb: 1 }} />
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              divider={<Divider orientation="vertical" flexItem />}
-              spacing={{ xs: 0.75, sm: 2 }}
-            >
-              <Box flex={1}>
+            <Divider sx={{ mb: 1.5 }} />
+            <Grid container spacing={1.5}>
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Typography variant="caption" color="text.secondary" display="block">
                   Cuota mensual
                 </Typography>
                 <Typography variant="body2" fontWeight={700} noWrap>
                   ${formatCurrencyFixed(credit?.cuotaMensual || 0)}
                 </Typography>
-              </Box>
-              <Box flex={1}>
+              </Grid>
+
+              <Grid size={{ xs: 6, sm: 4 }}>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <Percent sx={{ fontSize: 14, color: "text.secondary" }} />
+                  <Typography variant="caption" color="text.secondary">Tasa de interés</Typography>
+                </Stack>
+                <Typography variant="body2" fontWeight={700} noWrap>
+                  {credit
+                    ? `${(
+                        parseFloat(
+                          (credit as any).tasa || credit.idTasa?.tasa || "0"
+                        ) * 100
+                      ).toFixed(2)}%${
+                        credit.idTasa?.anio ? ` [${credit.idTasa.anio}]` : ""
+                      }`
+                    : "-"}
+                </Typography>
+              </Grid>
+
+              <Grid size={{ xs: 6, sm: 4 }}>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <Shield sx={{ fontSize: 14, color: "text.secondary" }} />
+                  <Typography variant="caption" color="text.secondary">Protección de cartera</Typography>
+                </Stack>
+                <Typography variant="body2" fontWeight={700} noWrap>
+                  {credit?.aplicaProteccionCartera !== false
+                    ? `Aplica (${porcentajeProteccion}%)`
+                    : "No aplica"}
+                </Typography>
+              </Grid>
+
+              <Grid size={{ xs: 6, sm: 4 }}>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <CalendarToday sx={{ fontSize: 14, color: "text.secondary" }} />
+                  <Typography variant="caption" color="text.secondary">Fecha de solicitud</Typography>
+                </Stack>
+                <Typography variant="body2" fontWeight={700} noWrap>
+                  {credit?.fechaSolicitud ? formatNameDate(credit.fechaSolicitud) : "Sin fecha"}
+                </Typography>
+              </Grid>
+
+              <Grid size={{ xs: 6, sm: 4 }}>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <EventAvailable sx={{ fontSize: 14, color: "text.secondary" }} />
+                  <Typography variant="caption" color="text.secondary">Fecha de desembolso</Typography>
+                </Stack>
+                <Typography variant="body2" fontWeight={700} noWrap>
+                  {credit?.fechaDesembolso ? formatNameDate(credit.fechaDesembolso) : "No desembolsado"}
+                </Typography>
+              </Grid>
+
+              <Grid size={{ xs: 6, sm: 4 }}>
                 <Stack direction="row" alignItems="center" spacing={0.5}>
                   <BadgeOutlined sx={{ fontSize: 14, color: "text.secondary" }} />
                   <Typography variant="caption" color="text.secondary">Identificación</Typography>
@@ -323,22 +469,13 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
                 <Typography variant="body2" fontWeight={700} noWrap>
                   {userInfo.numeroDeIdentificacion || "Sin identificación"}
                 </Typography>
-              </Box>
-              <Box flex={1}>
-                <Stack direction="row" alignItems="center" spacing={0.5}>
-                  <CalendarToday sx={{ fontSize: 14, color: "text.secondary" }} />
-                  <Typography variant="caption" color="text.secondary">Fecha de solicitud</Typography>
-                </Stack>
-                <Typography variant="body2" fontWeight={700} noWrap>
-                  {credit ? formatNameDate(credit.fechaSolicitud) : "Sin fecha"}
-                </Typography>
-              </Box>
-            </Stack>
+              </Grid>
+            </Grid>
           </Paper>
         </Grid>
 
         {/* Columna derecha: resumen financiero */}
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 5 }}>
           <Paper
             elevation={0}
             sx={{
@@ -458,6 +595,8 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
                   plazoMeses={credit.plazoMeses || 10}
                   creditId={creditId}
                   idAsociado={userInfo.id}
+                  creditData={credit}
+                  userInfo={userInfo}
                   onPaymentSuccess={loadCreditData}
                 />
               ) : (

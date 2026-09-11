@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrestamoDto } from './dto/prestamo.dto';
 import { UpdatePrestamoDto } from './dto/update-prestamo.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -64,6 +64,9 @@ export class PrestamosService {
 
   // Crear un nuevo prestamo
   async create(prestamoDto: PrestamoDto): Promise<Prestamos> {
+    if (prestamoDto.idTasa && typeof prestamoDto.idTasa === 'number') {
+      prestamoDto.idTasa = { id: prestamoDto.idTasa } as any;
+    }
     const prestamo = this.prestamosRepository.create(prestamoDto); // Creamos el nuevo objeto prestamo con el DTO
     return this.prestamosRepository.save(prestamo); // Guardamos el objeto en la base de datos
   }
@@ -73,12 +76,83 @@ export class PrestamosService {
     id: number,
     updatePrestamoDto: UpdatePrestamoDto,
   ): Promise<Prestamos> {
-    const prestamo = await this.prestamosRepository.findOne({ where: { id } });
+    const prestamo = await this.prestamosRepository.findOne({
+      where: { id },
+      relations: ['idTasa', 'presCuotas', 'presCuotas.presPagos'],
+    });
     if (!prestamo) {
       throw new NotFoundException('Prestamo no encontrado');
     }
+    if (updatePrestamoDto.idTasa && typeof updatePrestamoDto.idTasa === 'number') {
+      updatePrestamoDto.idTasa = { id: updatePrestamoDto.idTasa } as any;
+    }
     Object.assign(prestamo, updatePrestamoDto); // Asignamos los nuevos valores al objeto existente
-    return this.prestamosRepository.save(prestamo); // Guardamos el prestamo actualizado
+    const prestamoGuardado = await this.prestamosRepository.save(prestamo);
+
+    // Si ya tenía cuotas generadas y NO tiene pagos registrados, recalcular las cuotas
+    const cuotas = prestamo.presCuotas || [];
+    if (cuotas.length > 0) {
+      const tienePagos = cuotas.some(
+        (cuota) =>
+          (cuota.presPagos && cuota.presPagos.length > 0) ||
+          cuota.estado === 'PAGADO',
+      );
+      if (!tienePagos) {
+        for (const cuota of cuotas) {
+          await this.pagosRepository.delete({ idCuota: { id: cuota.id } });
+        }
+        await this.cuotasRepository.delete({ idPrestamo: { id: prestamo.id } });
+        
+        // Cargar entidad completa con idTasa para generar el plan de pagos
+        const prestamoCompleto = await this.prestamosRepository.findOne({
+          where: { id },
+          relations: ['idTasa'],
+        });
+        if (prestamoCompleto) {
+          await this.generatePaymentPlan(prestamoCompleto);
+        }
+      }
+    }
+
+    return prestamoGuardado; // Retornar el prestamo actualizado
+  }
+
+  // Recalcular las cuotas del préstamo si no tiene pagos registrados
+  async recalcularCuotas(id: number): Promise<Prestamos> {
+    const prestamo = await this.prestamosRepository.findOne({
+      where: { id },
+      relations: ['idTasa', 'idAsociado', 'presCuotas', 'presCuotas.presPagos'],
+    });
+
+    if (!prestamo) {
+      throw new NotFoundException('Préstamo no encontrado');
+    }
+
+    const cuotas = prestamo.presCuotas || [];
+    const tienePagos = cuotas.some(
+      (cuota) =>
+        (cuota.presPagos && cuota.presPagos.length > 0) ||
+        cuota.estado === 'PAGADO',
+    );
+
+    if (tienePagos) {
+      throw new BadRequestException(
+        'No se pueden recalcular las cuotas porque el préstamo ya tiene pagos registrados',
+      );
+    }
+
+    // Eliminar cuotas anteriores
+    if (cuotas.length > 0) {
+      for (const cuota of cuotas) {
+        await this.pagosRepository.delete({ idCuota: { id: cuota.id } });
+      }
+      await this.cuotasRepository.delete({ idPrestamo: { id: prestamo.id } });
+    }
+
+    // Generar el plan de pagos
+    await this.generatePaymentPlan(prestamo);
+
+    return this.getOne(id);
   }
 
   // Eliminar un prestamo por id y todas sus relaciones
@@ -187,6 +261,9 @@ export class PrestamosService {
       if (updatePrestamoDto.observaciones) {
         prestamo.observaciones = updatePrestamoDto.observaciones;
       }
+      if (updatePrestamoDto.aplicaProteccionCartera !== undefined) {
+        prestamo.aplicaProteccionCartera = updatePrestamoDto.aplicaProteccionCartera;
+      }
       const prestamoDto: Omit<Prestamos, 'PresAprobacionPrestamos'> = prestamo;
       await this.prestamosRepository.save(prestamoDto);
 
@@ -220,6 +297,7 @@ export class PrestamosService {
     let saldoCapitalTmp = monto;
     const tasa = parseFloat(prestamo.idTasa.tasa);
     const plazoMeses = prestamo.plazoMeses;
+    const aplicaProteccion = prestamo.aplicaProteccionCartera !== false;
     const porcentajeProteccionCartera = prestamo.porcentajeProteccionCartera
       ? prestamo.porcentajeProteccionCartera
       : 0.001;
@@ -232,7 +310,9 @@ export class PrestamosService {
       cuota.monto = cuotaMensual;
       cuota.intereses = saldoCapital * tasa;
       cuota.abonoCapital = cuotaMensual - cuota.intereses;
-      cuota.proteccionCartera = saldoCapitalTmp * porcentajeProteccionCartera;
+      cuota.proteccionCartera = aplicaProteccion
+        ? saldoCapitalTmp * porcentajeProteccionCartera
+        : 0;
       cuota.fechaVencimiento = this.calculateVencimientoDate(
         prestamo.fechaCredito,
         i,
@@ -275,16 +355,29 @@ export class PrestamosService {
     const queryBuilder =
       this.prestamosRepository.createQueryBuilder('prestamos');
 
+    queryBuilder
+      .leftJoinAndSelect('prestamos.idAsociado', 'asociados')
+      .leftJoinAndSelect('prestamos.idTasa', 'idTasa')
+      .leftJoinAndSelect('prestamos.presCuotas', 'cuotas') // 🔹 Relación con PresCuotas
+      .leftJoinAndSelect('cuotas.presPagos', 'pagos') // 🔹 Relación entre cuotas y pagos
+      .leftJoinAndSelect('pagos.metodoPago', 'metodoPago'); // 🔹 Relación con método de pago
+
     if (filter.userId && filter.creditId) {
-      queryBuilder
-        .leftJoinAndSelect('prestamos.idAsociado', 'asociados')
-        .leftJoinAndSelect('prestamos.presCuotas', 'cuotas') // 🔹 Relación con PresCuotas
-        .leftJoinAndSelect('cuotas.presPagos', 'pagos') // 🔹 Relación entre cuotas y pagos
-        .leftJoinAndSelect('pagos.metodoPago', 'metodoPago') // 🔹 Relación con método de pago
-        .where('asociados.id = :userId AND prestamos.id = :creditId', {
+      queryBuilder.where(
+        'asociados.id = :userId AND prestamos.id = :creditId',
+        {
           userId: filter.userId,
           creditId: filter.creditId,
-        });
+        },
+      );
+    } else if (filter.userId) {
+      queryBuilder.where('asociados.id = :userId', {
+        userId: filter.userId,
+      });
+    } else if (filter.creditId) {
+      queryBuilder.where('prestamos.id = :creditId', {
+        creditId: filter.creditId,
+      });
     }
 
     // Obtener los datos de la base de datos
@@ -293,6 +386,7 @@ export class PrestamosService {
     // Personalizar la respuesta antes de enviarla
     return prestamos.map((data) => ({
       ...data,
+      tasa: data.idTasa?.tasa,
       idAsociado: {
         id: data.idAsociado.id,
         nombres: [

@@ -43,13 +43,16 @@ import UserCard from "../../utilities/UserCard";
 import { Asociado, LoggedUser } from "@/interfaces/User";
 import { Prestamo } from "@/interfaces/Prestamo";
 import { authService } from "@/app/authentication/services/authService";
+import { logoBase64 } from "@/app/(DashboardLayout)/utilities/logoBase64";
 import {
   defaultLoggedUser,
   formatCurrency,
   formatDateTime,
   formatDateWithoutTime,
+  formatNameDate,
   getComparator,
   getEstadoChip,
+  redondearHaciaArriba,
   roleAdmin,
   validateRoles,
 } from "../../utilities/utils";
@@ -72,6 +75,8 @@ import {
   IconPlus,
   IconUserCircle,
   IconListDetails,
+  IconCalculator,
+  IconCircleCheckFilled,
 } from "@tabler/icons-react";
 import { creditsService } from "@/services/creditRequestService";
 import { userService } from "@/services/userService";
@@ -231,6 +236,109 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     if (row) {
       const idUser = row.idAsociado.id;
       router.push(`/modules/credit/user?userId=${idUser}&creditId=${row.id}`);
+    }
+  };
+
+  const handleRecalculateCuotas = async (row: Prestamo) => {
+    const result = await Swal.fire({
+      title: "¿Recalcular Cuotas?",
+      text: `Se volverán a generar las cuotas del préstamo #${row.id} con los valores actuales (monto, plazo, tasa y protección de cartera). Esta opción solo aplica si no hay pagos registrados.`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#f59e0b",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Sí, Recalcular",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        Swal.fire({
+          title: "Procesando...",
+          text: "Recalculando cuotas del crédito",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        await creditsService.recalcularCuotas(row.id);
+
+        await Swal.fire({
+          title: "¡Cuotas Recalculadas!",
+          text: `Las cuotas del préstamo #${row.id} han sido recalculadas exitosamente.`,
+          icon: "success",
+          confirmButtonText: "Entendido",
+          confirmButtonColor: "#4caf50",
+        });
+
+        await loadCredits();
+      } catch (error: any) {
+        console.error("Error al recalcular cuotas:", error);
+        Swal.fire({
+          title: "Error",
+          text: error.message || "No se pudieron recalcular las cuotas.",
+          icon: "error",
+          confirmButtonText: "Entendido",
+        });
+      }
+    }
+  };
+
+  const handleFinalizarCredito = async (prestamo: any) => {
+    const result = await Swal.fire({
+      title: "¿Finalizar Crédito?",
+      text: `Todas las cuotas de este préstamo #${prestamo.id} ya se encuentran pagadas/canceladas. ¿Desea cambiar el estado del crédito a FINALIZADO?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonColor: "#10b981",
+      cancelButtonColor: "#d33",
+      confirmButtonText: "Sí, Finalizar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (result.isConfirmed) {
+      try {
+        Swal.fire({
+          title: "Procesando...",
+          text: "Actualizando estado del crédito",
+          allowOutsideClick: false,
+          didOpen: () => {
+            Swal.showLoading();
+          },
+        });
+
+        const updated = await creditsService.update(prestamo.id, {
+          ...prestamo,
+          estado: "FINALIZADO",
+        });
+
+        if (updated) {
+          await Swal.fire({
+            title: "¡Crédito Finalizado!",
+            text: `El estado del crédito #${prestamo.id} ha sido actualizado a FINALIZADO.`,
+            icon: "success",
+            confirmButtonText: "Entendido",
+            confirmButtonColor: "#4caf50",
+          });
+          await loadCredits();
+        } else {
+          Swal.fire({
+            title: "Error",
+            text: "No se pudo actualizar el estado del crédito.",
+            icon: "error",
+            confirmButtonText: "Entendido",
+          });
+        }
+      } catch (error: any) {
+        console.error("Error al finalizar crédito:", error);
+        Swal.fire({
+          title: "Error",
+          text: error.message || "Error al actualizar el estado.",
+          icon: "error",
+          confirmButtonText: "Entendido",
+        });
+      }
     }
   };
 
@@ -434,92 +542,349 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   };
 
   const handlePrintCredit = (prestamo: Prestamo) => {
-    const printWindow = window.open("", "_blank", "width=1200,height=800");
-    if (!printWindow) {
+    try {
+      const printWindow = window.open("", "_blank", "width=1000,height=1100");
+      if (!printWindow) {
+        Swal.fire({
+          icon: "warning",
+          title: "No se pudo abrir la impresión",
+          text: "Permite las ventanas emergentes para generar el PDF.",
+          confirmButtonText: "Entendido",
+        });
+        return;
+      }
+
+      const cleanLogoUrl = logoBase64.replace(/^url\(["']?|["']?\)$/g, "");
+
+      const escapeHtml = (value: unknown) => String(value ?? "-")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+      const money = (value: unknown) => `$${new Intl.NumberFormat("es-CO", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 2,
+      }).format(Number(value) || 0)}`;
+      const date = (value: unknown) => value
+        ? formatNameDate(value as any) || "-"
+        : "-";
+
+      const creditId = prestamo.id;
+      const asociado = prestamo.idAsociado;
+      const nombreSocio = typeof asociado === "object" && asociado !== null
+        ? [asociado.apellido1, asociado.apellido2, asociado.nombre1, asociado.nombre2].filter(Boolean).join(" ") || asociado.nombres || "Socio Registrado"
+        : "Socio Registrado";
+      const numIdentificacion = typeof asociado === "object" && asociado !== null
+        ? asociado.numeroDeIdentificacion || "Sin datos"
+        : "Sin datos";
+
+      const tasaRaw = parseFloat(String((prestamo as any).tasa || prestamo.idTasa?.tasa || "0"));
+      const tasaCredito = (tasaRaw * 100).toFixed(2);
+      const fechaSolicitudFmt = (prestamo as any).fechaSolicitud ? formatNameDate((prestamo as any).fechaSolicitud) : (prestamo.fechaCredito ? formatNameDate(prestamo.fechaCredito) : "Sin fecha");
+      const fechaDesembolsoFmt = prestamo.fechaDesembolso ? formatNameDate(prestamo.fechaDesembolso) : (prestamo.fechaCredito ? formatNameDate(prestamo.fechaCredito) : "No desembolsado");
+      const aplicaProteccion = prestamo.aplicaProteccionCartera !== false;
+      const aplicaProteccionTexto = aplicaProteccion ? "Aplica (0.1%)" : "No aplica";
+      const plazoMeses = prestamo.plazoMeses || 0;
+
+      let presCuotas = (prestamo.presCuotas || []).slice().sort(
+        (a: any, b: any) => Number(a.numeroCuota) - Number(b.numeroCuota)
+      );
+
+      if (presCuotas.length === 0 && prestamo.monto && prestamo.plazoMeses) {
+        const monto = Number(prestamo.monto) || 0;
+        const plazo = Number(prestamo.plazoMeses) || 0;
+        const tasaMensual = Number(prestamo.idTasa?.tasa ?? (prestamo as any).tasa) || 0;
+        const cuotaMensual = tasaMensual > 0
+          ? (monto * tasaMensual * Math.pow(1 + tasaMensual, plazo)) / (Math.pow(1 + tasaMensual, plazo) - 1)
+          : plazo > 0 ? monto / plazo : 0;
+        let saldoCapital = monto;
+        let saldoCapitalTmp = monto;
+        let fechaInicial = new Date(prestamo.fechaCredito || prestamo.fechaDesembolso || new Date());
+        if (isNaN(fechaInicial.getTime())) fechaInicial = new Date();
+        const porcentajeProteccion = prestamo.porcentajeProteccionCartera ?? 0.001;
+
+        presCuotas = Array.from({ length: plazo }, (_, index) => {
+          const cuotaNum = index + 1;
+          const intereses = saldoCapital * tasaMensual;
+          const capital = cuotaMensual - intereses;
+          const proteccion = aplicaProteccion ? saldoCapitalTmp * porcentajeProteccion : 0;
+          saldoCapital -= capital;
+          saldoCapitalTmp -= capital;
+          const vencimiento = new Date(fechaInicial);
+          vencimiento.setMonth(vencimiento.getMonth() + cuotaNum);
+          return {
+            id: cuotaNum,
+            numeroCuota: cuotaNum,
+            fechaVencimiento: vencimiento.toISOString(),
+            monto: cuotaMensual,
+            proteccionCartera: proteccion,
+            abonoExtra: 0,
+            estado: "PENDIENTE",
+            abonoCapital: capital,
+            intereses: intereses,
+            mora: 0,
+            presPagos: [],
+          };
+        });
+      }
+
+      const sortedCuotas = presCuotas.map((cuota: any) => {
+        const extraCalculado =
+          cuota.presPagos?.reduce(
+            (sum: number, p: any) => sum + (Number(p.abonoExtra) || 0),
+            0
+          ) || Number(cuota?.abonoExtra) || 0;
+
+        const pagoRegistrado = cuota.presPagos?.[0];
+        const proteccionReal =
+          pagoRegistrado && typeof pagoRegistrado.proteccionCartera === "number"
+            ? pagoRegistrado.proteccionCartera
+            : cuota.proteccionCartera;
+
+        return {
+          ...cuota,
+          proteccionCartera: proteccionReal,
+          abonoExtra: extraCalculado,
+        };
+      });
+
+      const cuotasPagadas = sortedCuotas.filter(c => c.estado === "PAGADO").length;
+      const cuotasPendientes = sortedCuotas.filter(c => c.estado === "PENDIENTE").length;
+      const cuotasCanceladas = sortedCuotas.filter(c => c.estado === "CANCELADO").length;
+      const cuotasAtrasadas = sortedCuotas.filter(c => {
+        if (c.estado === "PENDIENTE") {
+          const today = new Date();
+          const dueDate = new Date(c.fechaVencimiento);
+          return dueDate < today;
+        }
+        return false;
+      }).length;
+
+      const totalCuotasMonto = sortedCuotas.reduce((sum, c: any) => sum + (Number(c.monto) || 0), 0);
+      const totalProteccionMonto = sortedCuotas.reduce((sum, c: any) => sum + (Number(c.proteccionCartera) || 0), 0);
+      const totalExtraMonto = sortedCuotas.reduce((sum, c: any) => sum + (Number(c.abonoExtra) || 0), 0);
+      const totalCapitalMonto = sortedCuotas.reduce((sum, c: any) => sum + (Number(c.abonoCapital) || 0), 0);
+      const totalInteresesMonto = sortedCuotas.reduce((sum, c: any) => sum + (Number(c.intereses) || 0), 0);
+      const totalMoraMonto = sortedCuotas.reduce((sum, c: any) => sum + (Number(c.mora) || 0), 0);
+
+      const paymentRows = sortedCuotas.map((cuota: any) => {
+        const payments = cuota.presPagos || [];
+        const paymentDetails = payments.length
+          ? payments.map((pago: any) => `
+              <div class="pay-item">
+                <div class="pay-line-top">
+                  <span class="pay-date">${date(pago.diaDePago || pago.fechaPago)}</span>
+                  <span class="pay-val">${money(pago.totalPagado || pago.montoPagado)}</span>
+                </div>
+                <div class="pay-meth">${escapeHtml(pago.metodoPago?.nombre || "EFECTIVO")}</div>
+              </div>
+            `).join("")
+          : '<span class="text-muted center-text">-</span>';
+
+        const extra = Number(cuota.abonoExtra) || 0;
+        const prot = Number(cuota.proteccionCartera) || 0;
+        const estadoClass = cuota.estado === "PAGADO" ? "badge-success" : cuota.estado === "PENDIENTE" ? "badge-warning" : "badge-secondary";
+
+        return `<tr>
+          <td class="center font-bold">#${escapeHtml(cuota.numeroCuota)}</td>
+          <td class="center">${date(cuota.fechaVencimiento)}</td>
+          <td class="right font-semibold">${money(cuota.monto)}</td>
+          ${aplicaProteccion ? `<td class="right">${prot > 0 ? money(prot) : "-"}</td>` : ""}
+          <td class="right ${extra > 0 ? "text-purple font-semibold" : "text-muted"}">${extra > 0 ? money(extra) : "-"}</td>
+          <td class="center"><span class="badge ${estadoClass}">${escapeHtml(cuota.estado)}</span></td>
+          <td class="right">${money(cuota.abonoCapital)}</td>
+          <td class="right">${money(cuota.intereses)}</td>
+          <td class="right ${Number(cuota.mora) > 0 ? "text-danger font-semibold" : ""}">${Number(cuota.mora) > 0 ? money(cuota.mora) : "-"}</td>
+          <td>${paymentDetails}</td>
+        </tr>`;
+      }).join("");
+
+      printWindow.document.write(`<!doctype html>
+      <html lang="es">
+      <head>
+        <meta charset="utf-8">
+        <title>Historial de Pagos - Crédito #${escapeHtml(creditId)}</title>
+        <style>
+          @page { size: letter portrait; margin: 8mm 10mm; }
+          * { box-sizing: border-box; }
+          body { font-family: 'Roboto', 'Segoe UI', Helvetica, Arial, sans-serif; color: #1e293b; margin: 0; font-size: 9px; line-height: 1.25; background: #fff; }
+          
+          .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f766e; padding-bottom: 8px; margin-bottom: 10px; }
+          .brand { display: flex; align-items: center; gap: 10px; }
+          .brand img { width: 50px; height: 50px; object-fit: contain; }
+          .brand-title { color: #0f766e; font-weight: 800; font-size: 8.5px; line-height: 1.15; }
+          .brand-subtitle { color: #0f766e; font-weight: 800; font-size: 9.5px; letter-spacing: 0.3px; }
+          .brand-nit { color: #64748b; font-size: 7.5px; }
+
+          .doc-info { text-align: right; }
+          .doc-info .doc-label { font-size: 7.5px; color: #64748b; font-weight: 700; text-transform: uppercase; }
+          .doc-info .credit-num { font-size: 13px; font-weight: 900; color: #0f766e; }
+
+          .user-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; background: #f8fafc; margin-bottom: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 10px; }
+          .user-info-item { font-size: 8px; color: #475569; }
+          .user-info-item strong { color: #0f172a; font-size: 8.5px; font-weight: 700; }
+
+          .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 10px; }
+          .stat-card { border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 10px; background: #f8fafc; }
+          .stat-card.success { border-color: #bbf7d0; background: #f0fdf4; }
+          .stat-card.warning { border-color: #fef08a; background: #fefce8; }
+          .stat-card.danger { border-color: #fecdd3; background: #fef2f2; }
+          .stat-label { font-size: 7.5px; text-transform: uppercase; color: #64748b; font-weight: 700; letter-spacing: 0.3px; }
+          .stat-value { font-size: 13px; font-weight: 800; color: #0f172a; margin-top: 1px; }
+
+          .section-title { font-size: 10px; font-weight: 800; color: #0f766e; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.5px; }
+
+          table { border-collapse: collapse; width: 100%; table-layout: fixed; margin-bottom: 10px; font-size: 8.5px; }
+          th { background: #0f766e; color: #ffffff; text-align: left; font-weight: 700; text-transform: uppercase; font-size: 7.5px; letter-spacing: 0.3px; padding: 5px 4px; border: 1px solid #0f766e; }
+          td { border: 1px solid #cbd5e1; padding: 4px 4px; vertical-align: middle; overflow-wrap: anywhere; }
+          tr:nth-child(even) { background: #f8fafc; }
+          
+          .totals-row td { background: #f1f5f9; font-weight: 800; border-top: 2px solid #0f766e; color: #0f172a; }
+
+          .center { text-align: center; }
+          .right { text-align: right; }
+          .font-bold { font-weight: 700; }
+          .font-semibold { font-weight: 600; }
+          .text-muted { color: #94a3b8; }
+          .text-purple { color: #7e22ce; }
+          .text-danger { color: #dc2626; }
+
+          .badge { display: inline-block; padding: 2px 5px; border-radius: 4px; font-size: 7px; font-weight: 700; text-transform: uppercase; }
+          .badge-success { background: #dcfce7; color: #15803d; }
+          .badge-warning { background: #fef9c3; color: #a16207; }
+          .badge-secondary { background: #f1f5f9; color: #475569; }
+
+          .pay-item { font-size: 7.5px; line-height: 1.15; padding: 2px 0; border-bottom: 1px dashed #e2e8f0; }
+          .pay-item:last-child { border-bottom: none; }
+          .pay-line-top { display: flex; justify-content: space-between; align-items: center; gap: 4px; }
+          .pay-date { font-weight: 600; color: #334155; font-size: 7.5px; }
+          .pay-val { font-weight: 800; color: #15803d; font-size: 8px; }
+          .pay-meth { color: #64748b; font-size: 6.5px; font-weight: 600; text-transform: uppercase; margin-top: 1px; }
+          .center-text { display: block; text-align: center; }
+
+          .footer { margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 6px; display: flex; justify-content: space-between; font-size: 8px; color: #64748b; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="brand">
+            <img src="${cleanLogoUrl}" alt="Logo Cooperativa" />
+            <div>
+              <div class="brand-title">COOPERATIVA MULTIACTIVA DE PRODUCCIÓN Y PRESTACIÓN DE SERVICIOS</div>
+              <div class="brand-subtitle">INTEGRACIÓN SIGLO XXI</div>
+              <div class="brand-nit">NIT. 08301055337</div>
+            </div>
+          </div>
+          <div class="doc-info">
+            <div class="doc-label">HISTORIAL DE PAGOS</div>
+            <div class="credit-num">CRÉDITO #${escapeHtml(creditId)}</div>
+            <div style="font-size: 8.5px; color: #475569;">Plazo: <strong>${escapeHtml(plazoMeses)} meses</strong></div>
+          </div>
+        </div>
+
+        <div class="user-card">
+          <div class="user-info-item">
+            Afiliado / Socio: <strong>${escapeHtml(nombreSocio)}</strong>
+          </div>
+          <div class="user-info-item">
+            No. Identificación: <strong>${escapeHtml(numIdentificacion)}</strong>
+          </div>
+          <div class="user-info-item">
+            Monto Crédito: <strong>$${formatCurrency(redondearHaciaArriba(Number(prestamo.monto) || 0))}</strong>
+          </div>
+          <div class="user-info-item">
+            Tasa Aplicada: <strong>${tasaCredito}% mensual</strong>
+          </div>
+          <div class="user-info-item">
+            Protección Cartera: <strong>${aplicaProteccionTexto}</strong>
+          </div>
+          <div class="user-info-item">
+            Fecha Solicitud: <strong>${fechaSolicitudFmt}</strong>
+          </div>
+          <div class="user-info-item">
+            Fecha Desembolso: <strong>${fechaDesembolsoFmt}</strong>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card success">
+            <div class="stat-label">Cuotas Pagadas</div>
+            <div class="stat-value" style="color:#15803d;">${cuotasPagadas}</div>
+          </div>
+          <div class="stat-card warning">
+            <div class="stat-label">Cuotas Pendientes</div>
+            <div class="stat-value" style="color:#a16207;">${cuotasPendientes}</div>
+          </div>
+          <div class="stat-card danger">
+            <div class="stat-label">Cuotas Atrasadas</div>
+            <div class="stat-value" style="color:#dc2626;">${cuotasAtrasadas}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Cuotas Canceladas</div>
+            <div class="stat-value">${cuotasCanceladas}</div>
+          </div>
+        </div>
+
+        <div class="section-title">Detalle de Amortización y Pagos Registrados</div>
+        
+        <table>
+          <thead>
+            <tr>
+              <th class="center" style="width: 5%;">Cuota</th>
+              <th class="center" style="width: 10%;">Vencimiento</th>
+              <th class="right" style="width: 10%;">Monto</th>
+              ${aplicaProteccion ? `<th class="right" style="width: 9%;">Protección</th>` : ""}
+              <th class="right" style="width: 10%;">Abono Extra</th>
+              <th class="center" style="width: 9%;">Estado</th>
+              <th class="right" style="width: 10%;">Capital</th>
+              <th class="right" style="width: 10%;">Intereses</th>
+              <th class="right" style="width: 8%;">Mora</th>
+              <th style="width: ${aplicaProteccion ? "19%" : "28%"};">Pagos Registrados</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${paymentRows}
+            <tr class="totals-row">
+              <td colspan="2" class="center">TOTALES</td>
+              <td class="right">${money(totalCuotasMonto)}</td>
+              ${aplicaProteccion ? `<td class="right">${money(totalProteccionMonto)}</td>` : ""}
+              <td class="right">${money(totalExtraMonto)}</td>
+              <td class="center">-</td>
+              <td class="right">${money(totalCapitalMonto)}</td>
+              <td class="right">${money(totalInteresesMonto)}</td>
+              <td class="right">${money(totalMoraMonto)}</td>
+              <td>-</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="footer">
+          <div>COOPERATIVA MULTIACTIVA INTEGRACIÓN SIGLO XXI - Sistema de Gestión de Créditos</div>
+          <div>Generado el: ${escapeHtml(new Date().toLocaleString("es-CO", { timeZone: "America/Bogota" }))}</div>
+        </div>
+      </body>
+      </html>`);
+
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => {
+        try {
+          printWindow.print();
+          printWindow.close();
+        } catch (e) {
+          console.error("Error al ejecutar impresion:", e);
+        }
+      }, 250);
+    } catch (error: any) {
+      console.error("Error al imprimir crédito:", error);
       Swal.fire({
-        icon: "warning",
-        title: "No se pudo abrir la impresión",
-        text: "Permite las ventanas emergentes para generar el PDF.",
+        icon: "error",
+        title: "Error de impresión",
+        text: "Ocurrió un error al preparar el documento de impresión.",
         confirmButtonText: "Entendido",
       });
-      return;
     }
-
-    const escapeHtml = (value: unknown) => String(value ?? "-")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-    const money = (value: number) => `$ ${new Intl.NumberFormat("es-CO", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(Number(value) || 0)}`;
-    const date = (value: Date | string | null | undefined) => value
-      ? new Intl.DateTimeFormat("es-CO", { day: "2-digit", month: "2-digit", year: "2-digit" }).format(new Date(value))
-      : "-";
-    const asociado = prestamo.idAsociado;
-    const nombre = [asociado?.apellido1, asociado?.apellido2, asociado?.nombre1, asociado?.nombre2]
-      .filter(Boolean).join(" ") || asociado?.nombres || "N/A";
-    const monto = Number(prestamo.monto) || 0;
-    const plazo = Number(prestamo.plazoMeses) || 0;
-    const tasaMensual = Number(prestamo.idTasa?.tasa ?? (prestamo as any).tasa) || 0;
-    const cuotaMensual = tasaMensual > 0
-      ? (monto * tasaMensual * Math.pow(1 + tasaMensual, plazo)) / (Math.pow(1 + tasaMensual, plazo) - 1)
-      : plazo > 0 ? monto / plazo : 0;
-    let saldoCapital = monto;
-    let saldoCapitalTmp = monto;
-    const fechaInicial = new Date(prestamo.fechaCredito || prestamo.fechaDesembolso || new Date());
-    const amortizacion = Array.from({ length: plazo + 1 }, (_, index) => {
-      if (index === 0) {
-        return { cuota: 0, vencimiento: fechaInicial, saldo: monto, proteccion: 0, capital: 0, intereses: 0, total: cuotaMensual };
-      }
-      const intereses = saldoCapital * tasaMensual;
-      const capital = cuotaMensual - intereses;
-      const proteccion = saldoCapitalTmp * 0.001;
-      saldoCapital -= capital;
-      saldoCapitalTmp -= capital;
-      const vencimiento = new Date(fechaInicial);
-      vencimiento.setMonth(vencimiento.getMonth() + index);
-      return { cuota: index, vencimiento, saldo: saldoCapital, proteccion, capital, intereses, total: cuotaMensual };
-    });
-    const cuotasReales = prestamo.presCuotas || [];
-    const filas = amortizacion.map((fila) => {
-      const cuotaReal = cuotasReales.find((cuota: any) => Number(cuota.numeroCuota) === fila.cuota);
-      const estado = fila.cuota === 0 ? "Saldo inicial" : cuotaReal?.estado || "Pendiente";
-      return `<tr><td>${fila.cuota}</td><td>${date(fila.vencimiento)}</td><td class="right">${money(fila.saldo)}</td><td class="right">${money(fila.proteccion)}</td><td class="right">${money(fila.capital)}</td><td class="right">${money(fila.intereses)}</td><td class="right">${money(fila.total)}</td><td>${escapeHtml(estado)}</td></tr>`;
-    }).join("");
-
-    printWindow.document.write(`<!doctype html><html><head><title>Crédito #${escapeHtml(prestamo.id)}</title><style>
-      @page { size: letter portrait; margin: 10mm 8mm; }
-      * { box-sizing: border-box; } body { font-family: Arial, sans-serif; color: #1f2937; margin: 0; font-size: 10px; }
-      h1 { color: #0f766e; margin: 0 0 3px; font-size: 19px; } h2 { color: #0f766e; border-bottom: 2px solid #13deb9; padding-bottom: 4px; margin: 14px 0 8px; }
-      .subtitle { color: #6b7280; margin-bottom: 12px; } .details { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px; }
-      .detail { border: 1px solid #cbd5e1; border-radius: 3px; padding: 5px; } .label { color: #6b7280; font-size: 8px; text-transform: uppercase; } .value { font-weight: bold; margin-top: 2px; }
-      table { border-collapse: collapse; width: 100%; table-layout: fixed; font-size: 7px; } th { background: #0f766e; color: white; text-align: left; } th, td { border: 1px solid #cbd5e1; padding: 3px 2px; overflow: hidden; white-space: nowrap; } thead { display: table-header-group; } tr { page-break-inside: avoid; } tr:nth-child(even) { background: #f0fdfa; } .right { text-align: right; }
-      .footer { color: #6b7280; margin-top: 8px; font-size: 8px; } @media print { .footer { position: fixed; bottom: 0; } }
-    </style></head><body>
-      <h1>Detalle de crédito #${escapeHtml(prestamo.id)}</h1><div class="subtitle">Cooperativa de Ahorro y Crédito</div>
-      <div class="details">
-        <div class="detail"><div class="label">Asociado</div><div class="value">${escapeHtml(nombre)}</div></div>
-        <div class="detail"><div class="label">Identificación</div><div class="value">${escapeHtml(asociado?.numeroDeIdentificacion)}</div></div>
-        <div class="detail"><div class="label">Monto</div><div class="value">${money(monto)}</div></div>
-        <div class="detail"><div class="label">Estado</div><div class="value">${escapeHtml(prestamo.estado)}</div></div>
-        <div class="detail"><div class="label">Fecha del crédito</div><div class="value">${date(prestamo.fechaCredito)}</div></div>
-        <div class="detail"><div class="label">Plazo</div><div class="value">${plazo} meses</div></div>
-        <div class="detail"><div class="label">Tasa mensual</div><div class="value">${(tasaMensual * 100).toFixed(2)}%</div></div>
-        <div class="detail"><div class="label">Cuota mensual</div><div class="value">${money(Number(prestamo.cuotaMensual) || cuotaMensual)}</div></div>
-      </div>
-      <h2>Tabla de amortización</h2>
-      <table><colgroup><col style="width: 7%"><col style="width: 13%"><col style="width: 14%"><col style="width: 14%"><col style="width: 14%"><col style="width: 13%"><col style="width: 14%"><col style="width: 11%"></colgroup><thead><tr><th>Cuota</th><th>Vencimiento</th><th>Saldo capital</th><th>Protección cartera</th><th>Abono capital</th><th>Intereses</th><th>Total cuota</th><th>Estado</th></tr></thead><tbody>${filas}</tbody></table>
-      <div class="footer">Documento generado el ${escapeHtml(new Date().toLocaleString("es-CO"))}</div>
-    </body></html>`);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.onload = () => {
-      printWindow.print();
-      printWindow.close();
-    };
   };
 
   const handleExportToExcel = () => {
@@ -831,6 +1196,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   };
 
   const approvedCredits = credits.filter((credit) => credit.estado === "APROBADO").length;
+  const completedCredits = credits.filter((credit) => credit.estado === "FINALIZADO").length;
   const requestedCredits = credits.filter((credit) => credit.estado === "SOLICITADO").length;
   const overdueCredits = credits.filter((credit) => getPaymentStatus(credit).status === "overdue").length;
 
@@ -858,7 +1224,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
           </Stack>
 
           <Grid container spacing={2}>
-            <Grid size={{ xs: 12, sm: 4 }}>
+            <Grid size={{ xs: 12, sm: 3 }}>
               <ModuleStatCard
                 label="Solicitudes pendientes"
                 value={requestedCredits}
@@ -868,7 +1234,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                 highlight={requestedCredits > 0}
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
+            <Grid size={{ xs: 12, sm: 3 }}>
               <ModuleStatCard
                 label="Créditos aprobados"
                 value={approvedCredits}
@@ -877,7 +1243,16 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                 subtitle="En seguimiento"
               />
             </Grid>
-            <Grid size={{ xs: 12, sm: 4 }}>
+            <Grid size={{ xs: 12, sm: 3 }}>
+              <ModuleStatCard
+                label="Créditos finalizados"
+                value={completedCredits}
+                icon={<IconCircleCheckFilled size={20} />}
+                color="#3b82f6"
+                subtitle="Pagados totalmente"
+              />
+            </Grid>
+            <Grid size={{ xs: 12, sm: 3 }}>
               <ModuleStatCard
                 label="Con cuotas vencidas"
                 value={overdueCredits}
@@ -1026,6 +1401,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                 <MenuItem value="SOLICITADO">Solicitados</MenuItem>
                 <MenuItem value="APROBADO">Aprobados</MenuItem>
                 <MenuItem value="RECHAZADO">Rechazados</MenuItem>
+                <MenuItem value="FINALIZADO">Finalizados</MenuItem>
               </Select>
             </FormControl>
           </Grid>
@@ -1137,6 +1513,55 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                     </IconButton>
                   </Tooltip>
                 )}
+                {isUserAdmin &&
+                  row["estado"] !== "SOLICITADO" &&
+                  row.presCuotas &&
+                  row.presCuotas.length > 0 &&
+                  !row.presCuotas.some(
+                    (c: any) =>
+                      c.estado === "PAGADO" ||
+                      (c.presPagos && c.presPagos.length > 0),
+                  ) && (
+                    <Tooltip title="Recalcular cuotas" arrow>
+                      <IconButton
+                        onClick={() => handleRecalculateCuotas(row)}
+                        color="secondary"
+                        size="small"
+                        sx={{
+                          "&:hover": {
+                            backgroundColor: "#f3e5f5",
+                            transform: "scale(1.1)",
+                          },
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <IconCalculator size={18} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                {isUserAdmin &&
+                  row["estado"] !== "SOLICITADO" &&
+                  row["estado"] !== "FINALIZADO" &&
+                  row.presCuotas &&
+                  row.presCuotas.length > 0 &&
+                  !row.presCuotas.some((c: any) => c.estado === "PENDIENTE") && (
+                    <Tooltip title="Finalizar crédito" arrow>
+                      <IconButton
+                        onClick={() => handleFinalizarCredito(row)}
+                        color="success"
+                        size="small"
+                        sx={{
+                          "&:hover": {
+                            backgroundColor: "#e8f5e9",
+                            transform: "scale(1.1)",
+                          },
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <IconCircleCheckFilled size={18} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
                 <Tooltip title="Imprimir crédito" arrow>
                   <IconButton
                     onClick={() => handlePrintCredit(row)}
