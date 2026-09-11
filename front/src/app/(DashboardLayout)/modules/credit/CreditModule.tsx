@@ -92,6 +92,78 @@ const CreditForm = dynamic(() => import("./components/CreditForm"), {
   ssr: false,
 });
 
+export const getCreditReportMetrics = (credit: Prestamo) => {
+  const cuotas = credit.presCuotas || [];
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const cuotasPagadas = cuotas.filter((c) => c.estado === "PAGADO").length;
+  const mesesFaltantes = Math.max(0, (credit.plazoMeses || 0) - cuotasPagadas);
+  const cuotasAtrasadas = cuotas.filter((c) => {
+    if (c.estado === "PENDIENTE" && c.fechaVencimiento) {
+      const dueDate = new Date(c.fechaVencimiento);
+      dueDate.setHours(0, 0, 0, 0);
+      return dueDate < today;
+    }
+    return false;
+  }).length;
+
+  const mesesConPagoSet = new Set<string>();
+  let abonoCapital = 0;
+  let intereses = 0;
+
+  cuotas.forEach((c: any) => {
+    const payments = c.presPagos && Array.isArray(c.presPagos) && c.presPagos.length > 0 ? c.presPagos : null;
+
+    if (payments) {
+      payments.forEach((p: any) => {
+        const cap = typeof p.abonoCapital === "number" ? p.abonoCapital : (c.estado === "PAGADO" ? Number(c.abonoCapital) || 0 : Number(p.abonoCapital) || 0);
+        const extra = typeof p.abonoExtra === "number" ? p.abonoExtra : Number(p.abonoExtra) || 0;
+        const int = typeof p.intereses === "number" ? p.intereses : (c.estado === "PAGADO" ? Number(c.intereses) || 0 : Number(p.intereses) || 0);
+
+        abonoCapital += cap + extra;
+        intereses += int;
+
+        const dateRef = p.diaDePago || c.fechaVencimiento;
+        if (dateRef) {
+          const d = new Date(dateRef);
+          if (!isNaN(d.getTime())) {
+            mesesConPagoSet.add(`${d.getFullYear()}-${d.getMonth()}`);
+          }
+        }
+      });
+    } else if (c.estado === "PAGADO") {
+      const cap = Number(c.abonoCapital) || 0;
+      const extra = Number(c.abonoExtra) || 0;
+      const int = Number(c.intereses) || 0;
+
+      abonoCapital += cap + extra;
+      intereses += int;
+
+      if (c.fechaVencimiento) {
+        const d = new Date(c.fechaVencimiento);
+        if (!isNaN(d.getTime())) {
+          mesesConPagoSet.add(`${d.getFullYear()}-${d.getMonth()}`);
+        }
+      }
+    } else {
+      const extra = Number(c.abonoExtra) || 0;
+      if (extra > 0) {
+        abonoCapital += extra;
+      }
+    }
+  });
+
+  return {
+    cuotasPagadas,
+    mesesFaltantes,
+    cuotasAtrasadas,
+    mesesConPago: mesesConPagoSet.size,
+    abonoCapital,
+    intereses,
+  };
+};
+
 interface CreditModuleProps {
   userId: number;
 }
@@ -905,13 +977,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       excelData.push(["COD", "IDENTIFICACIÓN", "NOMBRES COMPLETOS", "VALOR CRÉDITO", "PLAZO MESES", "CUOTAS PAGADAS", "MESES FALTANTES", "CUOTAS ATRASADAS", "MESES CON PAGO", "ABONO CAPITAL", "INTERESES"]);
 
       creditosAprobados.forEach((credit) => {
-        const cuotasPagadas = credit.presCuotas?.filter((c) => c.estado === "PAGADO").length || 0;
-        const mesesFaltantes = credit.plazoMeses - cuotasPagadas;
-        const today = new Date();
-        const cuotasAtrasadas = credit.presCuotas?.filter((c) => c.estado === "PENDIENTE" && new Date(c.fechaVencimiento) < today).length || 0;
-        const mesesConPago = new Set(credit.presCuotas?.filter((c) => c.presPagos && c.presPagos.length > 0).map((c) => new Date(c.fechaVencimiento).getMonth())).size || 0;
-        const abonoCapital = credit.presCuotas?.filter((c) => c.estado === "PAGADO").reduce((sum, c) => sum + (Number(c.abonoCapital) || 0), 0) || 0;
-        const intereses = credit.presCuotas?.filter((c) => c.estado === "PAGADO").reduce((sum, c) => sum + (Number(c.intereses) || 0), 0) || 0;
+        const { cuotasPagadas, mesesFaltantes, cuotasAtrasadas, mesesConPago, abonoCapital, intereses } = getCreditReportMetrics(credit);
 
         const asociado = credit.idAsociado;
         const apellido1 = asociado?.apellido1 || "";
@@ -936,19 +1002,10 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       });
 
       const totalCredito = creditosAprobados.reduce((sum, c) => sum + Number(c.monto), 0);
-      const totalAbonoCapital = creditosAprobados.reduce((sum, c) => {
-        return sum + (c.presCuotas?.filter((cu) => cu.estado === "PAGADO").reduce((s, cu) => s + (Number(cu.abonoCapital) || 0), 0) || 0);
-      }, 0);
-      const totalIntereses = creditosAprobados.reduce((sum, c) => {
-        return sum + (c.presCuotas?.filter((cu) => cu.estado === "PAGADO").reduce((s, cu) => s + (Number(cu.intereses) || 0), 0) || 0);
-      }, 0);
-      const totalCuotasPagadas = creditosAprobados.reduce((sum, c) => {
-        return sum + (c.presCuotas?.filter((cu) => cu.estado === "PAGADO").length || 0);
-      }, 0);
-      const totalCuotasAtrasadas = creditosAprobados.reduce((sum, c) => {
-        const today = new Date();
-        return sum + (c.presCuotas?.filter((cu) => cu.estado === "PENDIENTE" && new Date(cu.fechaVencimiento) < today).length || 0);
-      }, 0);
+      const totalAbonoCapital = creditosAprobados.reduce((sum, c) => sum + getCreditReportMetrics(c).abonoCapital, 0);
+      const totalIntereses = creditosAprobados.reduce((sum, c) => sum + getCreditReportMetrics(c).intereses, 0);
+      const totalCuotasPagadas = creditosAprobados.reduce((sum, c) => sum + getCreditReportMetrics(c).cuotasPagadas, 0);
+      const totalCuotasAtrasadas = creditosAprobados.reduce((sum, c) => sum + getCreditReportMetrics(c).cuotasAtrasadas, 0);
 
       excelData.push(["TOTALES", "", "", totalCredito, creditosAprobados.length, totalCuotasPagadas, "", totalCuotasAtrasadas, "", totalAbonoCapital, totalIntereses]);
 
@@ -1765,13 +1822,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                   {credits
                     .filter((credit) => credit.estado === "APROBADO")
                     .map((credit) => {
-                      const cuotasPagadas = credit.presCuotas?.filter((c) => c.estado === "PAGADO").length || 0;
-                      const mesesFaltantes = credit.plazoMeses - cuotasPagadas;
-                      const today = new Date();
-                      const cuotasAtrasadas = credit.presCuotas?.filter((c) => c.estado === "PENDIENTE" && new Date(c.fechaVencimiento) < today).length || 0;
-                      const mesesConPago = new Set(credit.presCuotas?.filter((c) => c.presPagos && c.presPagos.length > 0).map((c) => new Date(c.fechaVencimiento).getMonth())).size || 0;
-                      const abonoCapital = credit.presCuotas?.filter((c) => c.estado === "PAGADO").reduce((sum, c) => sum + (Number(c.abonoCapital) || 0), 0) || 0;
-                      const intereses = credit.presCuotas?.filter((c) => c.estado === "PAGADO").reduce((sum, c) => sum + (Number(c.intereses) || 0), 0) || 0;
+                      const { cuotasPagadas, mesesFaltantes, cuotasAtrasadas, mesesConPago, abonoCapital, intereses } = getCreditReportMetrics(credit);
 
                       const asociado = credit.idAsociado;
                       const nombreCompleto = [asociado?.apellido1, asociado?.apellido2, asociado?.nombre1, asociado?.nombre2].filter((n) => n).join(" ") || asociado?.nombres || "N/A";
@@ -1810,19 +1861,10 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                   {(() => {
                     const creditosAprobados = credits.filter((c) => c.estado === "APROBADO");
                     const totalCredito = creditosAprobados.reduce((sum, c) => sum + Number(c.monto), 0);
-                    const totalAbonoCapital = creditosAprobados.reduce((sum, c) => {
-                      return sum + (c.presCuotas?.filter((cu) => cu.estado === "PAGADO").reduce((s, cu) => s + (Number(cu.abonoCapital) || 0), 0) || 0);
-                    }, 0);
-                    const totalIntereses = creditosAprobados.reduce((sum, c) => {
-                      return sum + (c.presCuotas?.filter((cu) => cu.estado === "PAGADO").reduce((s, cu) => s + (Number(cu.intereses) || 0), 0) || 0);
-                    }, 0);
-                    const totalCuotasPagadas = creditosAprobados.reduce((sum, c) => {
-                      return sum + (c.presCuotas?.filter((cu) => cu.estado === "PAGADO").length || 0);
-                    }, 0);
-                    const totalCuotasAtrasadas = creditosAprobados.reduce((sum, c) => {
-                      const today = new Date();
-                      return sum + (c.presCuotas?.filter((cu) => cu.estado === "PENDIENTE" && new Date(cu.fechaVencimiento) < today).length || 0);
-                    }, 0);
+                    const totalAbonoCapital = creditosAprobados.reduce((sum, c) => sum + getCreditReportMetrics(c).abonoCapital, 0);
+                    const totalIntereses = creditosAprobados.reduce((sum, c) => sum + getCreditReportMetrics(c).intereses, 0);
+                    const totalCuotasPagadas = creditosAprobados.reduce((sum, c) => sum + getCreditReportMetrics(c).cuotasPagadas, 0);
+                    const totalCuotasAtrasadas = creditosAprobados.reduce((sum, c) => sum + getCreditReportMetrics(c).cuotasAtrasadas, 0);
 
                     return (
                       <TableRow sx={{ bgcolor: "#e3f2fd", borderTop: "2px solid #1976d2" }}>
