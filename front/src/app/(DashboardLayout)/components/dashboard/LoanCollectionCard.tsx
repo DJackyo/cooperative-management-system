@@ -90,7 +90,7 @@ const LoanCollectionCard: React.FC<LoanCollectionCardProps> = ({
             label={`${totalPaymentsCount} pagos registrados`}
             size="small"
             color="success"
-            variant="light"
+            variant="outlined"
             sx={{ fontWeight: 700 }}
           />
         </Box>

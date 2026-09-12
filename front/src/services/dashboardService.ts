@@ -14,6 +14,7 @@ export interface DashboardData {
   pendingCredits: number;
   totalCreditAmount?: number;
   overdueCredits?: number;
+  completedCredits?: number;
   savingsTransactions: number[];
   savingsLabels?: string[];
   pendingPaymentSupports: number;
