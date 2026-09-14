@@ -114,6 +114,7 @@ export class PagosController {
         intereses: req.body.intereses ? Number(req.body.intereses) : 0,
         proteccionCartera: req.body.proteccionCartera ? Number(req.body.proteccionCartera) : 0,
         metodoPagoId: req.body.metodoPagoId ? Number(req.body.metodoPagoId) : undefined,
+        observaciones: req.body.observaciones,
       };
 
       if (file && file.path && file.originalname) {
@@ -220,6 +221,7 @@ export class PagosController {
         monto: req.body.monto,
         numCuota: req.body.numCuota,
         fechaVencimiento: req.body.fechaVencimiento,
+        observaciones: req.body.observaciones,
         idPago: undefined,
         idPrestamo: id,
       };
@@ -265,6 +267,7 @@ export class PagosController {
         idCuota: createPagoDto.idCuota ? Number(createPagoDto.idCuota) : 0,
         metodoPagoId: createPagoDto.metodoPagoId ? Number(createPagoDto.metodoPagoId) : 0,
         comprobante: comprobanteValue,
+        observaciones: createPagoDto.observaciones,
       };
 
       console.log('✅ Datos procesados:', pagoData);

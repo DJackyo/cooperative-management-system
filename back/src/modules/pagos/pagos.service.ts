@@ -87,6 +87,7 @@ export class PagosService implements OnModuleInit {
       if (updateData.proteccionCartera !== undefined) pagoExistente.proteccionCartera = updateData.proteccionCartera;
       if (updateData.totalPagado !== undefined) pagoExistente.totalPagado = updateData.totalPagado;
       if (updateData.comprobante !== undefined) pagoExistente.comprobante = updateData.comprobante;
+      if (updateData.observaciones !== undefined) pagoExistente.observaciones = updateData.observaciones;
 
       const pagoGuardado = await manager.save(PresPagos, pagoExistente);
 
@@ -169,6 +170,7 @@ export class PagosService implements OnModuleInit {
         comprobante: createPagoDto.comprobante,
         numCuota: createPagoDto.numCuota,
         fechaVencimiento: createPagoDto.fechaVencimiento,
+        observaciones: createPagoDto.observaciones,
       });
 
       console.log('🔍 Entidad creada:', nuevoPago);
