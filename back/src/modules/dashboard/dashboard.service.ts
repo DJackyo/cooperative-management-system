@@ -32,7 +32,7 @@ export class DashboardService {
         totalUsers,
         creditCounts,
         totalCreditAmount,
-        overdueCredits,
+        overdueCreditsResult,
         usersByStatus,
         savingsData,
         loanCollectionData,
@@ -47,13 +47,16 @@ export class DashboardService {
         this.prestamosRepository
           .createQueryBuilder('prestamo')
           .select('SUM(prestamo.monto)', 'total')
-          .where('prestamo.estado IN (:...estados)', { estados: ['APROBADO', 'FINALIZADO'] })
+          .where('prestamo.estado IN (:...estados)', { estados: ['APROBADO', 'ACTIVO'] })
           .getRawOne(),
         this.prestamosRepository
           .createQueryBuilder('prestamo')
-          .where('prestamo.fechaVencimiento < :today', { today: new Date() })
-          .andWhere('prestamo.estado = :estado', { estado: 'APROBADO' })
-          .getCount(),
+          .innerJoin('prestamo.presCuotas', 'cuota')
+          .where('prestamo.estado IN (:...estados)', { estados: ['APROBADO', 'ACTIVO', 'VENCIDO'] })
+          .andWhere('cuota.estado = :cuotaEstado', { cuotaEstado: 'PENDIENTE' })
+          .andWhere('cuota.fechaVencimiento < :today', { today: new Date() })
+          .select('COUNT(DISTINCT prestamo.id)', 'count')
+          .getRawOne(),
         this.asociadosRepository
           .createQueryBuilder('asociado')
           .innerJoin('asociado.idEstado', 'estado')
@@ -86,12 +89,14 @@ export class DashboardService {
       const counts = new Map(
         creditCounts.map((row) => [String(row.status || '').toUpperCase(), Number(row.count) || 0]),
       );
-      const approvedCredits = counts.get('APROBADO') || 0;
-      const completedCredits = counts.get('FINALIZADO') || 0;
+      const approvedCredits = (counts.get('APROBADO') || 0) + (counts.get('ACTIVO') || 0);
+      const completedCredits = (counts.get('FINALIZADO') || 0) + (counts.get('CANCELADO') || 0);
       const pendingCredits = ['SOLICITADO', 'EN_REVISION', 'EN REVISIÓN'].reduce(
         (total, status) => total + (counts.get(status) || 0),
         0,
       );
+      const overdueCreditsCount = Number(overdueCreditsResult?.count) || 0;
+      const overdueCredits = Math.min(overdueCreditsCount, approvedCredits);
       const activeCredits = Math.max(approvedCredits - overdueCredits, 0);
       const chronologicalSavings = [...savingsData].reverse();
 

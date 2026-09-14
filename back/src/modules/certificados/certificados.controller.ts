@@ -49,35 +49,41 @@ export class CertificadosController {
     @Query('hasta') hasta: string | undefined,
     @Res() res: Response,
   ) {
-    const id = parseInt(idAsociado, 10);
-    if (isNaN(id) || id <= 0) {
-      return res.status(HttpStatus.BAD_REQUEST).json({
-        message: 'El id del asociado es inválido.',
+    try {
+      const id = parseInt(idAsociado, 10);
+      if (isNaN(id) || id <= 0) {
+        return res.status(HttpStatus.BAD_REQUEST).json({
+          message: 'El id del asociado es inválido.',
+        });
+      }
+
+      const tipoNorm = CertificadosService.normalizarTipo(tipo);
+      CertificadosService.validarRangos(desde, hasta);
+
+      const consulta: ConsultaEstadoCuenta = {
+        idAsociado: id,
+        tipo: tipoNorm,
+        desde,
+        hasta,
+      };
+
+      const data = await this.certificadosService.obtenerEstadoCuenta(consulta);
+
+      const pdfBuffer = await generarCertificadoPDF(data);
+
+      const fecha = new Date().toISOString().slice(0, 10);
+      const filename = `certificado-estado-cuenta-${tipoNorm}-${id}-${fecha}.pdf`;
+
+      res.set({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="${filename}"`,
+        'Content-Length': pdfBuffer.length.toString(),
       });
+      res.end(pdfBuffer);
+    } catch (error: any) {
+      const status = error?.status || HttpStatus.INTERNAL_SERVER_ERROR;
+      const message = error?.message || 'Error al generar el certificado PDF.';
+      res.status(status).json({ message });
     }
-
-    const tipoNorm = CertificadosService.normalizarTipo(tipo);
-    CertificadosService.validarRangos(desde, hasta);
-
-    const consulta: ConsultaEstadoCuenta = {
-      idAsociado: id,
-      tipo: tipoNorm,
-      desde,
-      hasta,
-    };
-
-    const data = await this.certificadosService.obtenerEstadoCuenta(consulta);
-
-    const pdfBuffer = await generarCertificadoPDF(data);
-
-    const fecha = new Date().toISOString().slice(0, 10);
-    const filename = `certificado-estado-cuenta-${tipoNorm}-${id}-${fecha}.pdf`;
-
-    res.set({
-      'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="${filename}"`,
-      'Content-Length': pdfBuffer.length,
-    });
-    res.end(pdfBuffer);
   }
 }

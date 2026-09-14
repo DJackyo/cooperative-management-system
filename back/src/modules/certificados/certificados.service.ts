@@ -117,18 +117,20 @@ export class CertificadosService {
   ): Promise<EstadoCuentaAhorro> {
     const query = this.aportesRepository
       .createQueryBuilder('aporte')
-      .where('aporte.id_asociado = :idAsociado', {
+      .where('aporte.idAsociado = :idAsociado', {
         idAsociado: consulta.idAsociado,
       });
 
     if (consulta.desde) {
-      query.andWhere('aporte.fecha_aporte >= :desde', { desde: consulta.desde });
+      query.andWhere('aporte.fechaAporte >= :desde', { desde: consulta.desde });
     }
     if (consulta.hasta) {
-      query.andWhere('aporte.fecha_aporte <= :hasta', { hasta: consulta.hasta });
+      query.andWhere('aporte.fechaAporte <= :hasta', { hasta: consulta.hasta });
     }
 
-    const movimientos = (await query.orderBy('aporte.fecha_aporte', 'DESC').getMany()) as MovimientoAhorro[];
+    const movimientos = (await query
+      .orderBy('aporte.fechaAporte', 'DESC')
+      .getMany()) as unknown as MovimientoAhorro[];
 
     const totalAportado = movimientos.reduce((acc, m) => acc + Number(m.monto || 0), 0);
 
@@ -156,18 +158,29 @@ export class CertificadosService {
   private async obtenerEstadoCuentaCredito(
     consulta: ConsultaEstadoCuenta,
   ): Promise<EstadoCuentaCredito> {
-    const prestamos = await this.prestamosRepository.find({
-      where: { idAsociado: { id: consulta.idAsociado } } as any,
-      relations: ['idTasa', 'presCuotas', 'presCuotas.presPagos'],
-      order: { fechaCredito: 'DESC' },
-    });
+    const query = this.prestamosRepository
+      .createQueryBuilder('prestamo')
+      .leftJoinAndSelect('prestamo.idTasa', 'idTasa')
+      .leftJoinAndSelect('prestamo.presCuotas', 'presCuotas')
+      .leftJoinAndSelect('presCuotas.presPagos', 'presPagos')
+      .where('prestamo.idAsociado = :idAsociado', {
+        idAsociado: consulta.idAsociado,
+      });
+
+    if (consulta.desde) {
+      query.andWhere('prestamo.fechaCredito >= :desde', { desde: consulta.desde });
+    }
+    if (consulta.hasta) {
+      query.andWhere('prestamo.fechaCredito <= :hasta', { hasta: consulta.hasta });
+    }
+
+    const prestamos = await query
+      .orderBy('prestamo.fechaCredito', 'DESC')
+      .getMany();
 
     const creditos: DetalleCredito[] = prestamos.map((p) => {
-      const cuotas = Array.isArray(p.presCuotas) ? p.presCuotas : [];
-      const pagos = cuotas.reduce(
-        (acc, c) => acc.concat(Array.isArray(c.presPagos) ? c.presPagos : []),
-        [] as any[],
-      );
+      const cuotas = p.presCuotas || [];
+      const pagos = cuotas.flatMap((c) => c.presPagos || []);
 
       const numCuotas = cuotas.length;
       const numCuotasPagadas = cuotas.filter((c) => c.estado === 'PAGADO').length;

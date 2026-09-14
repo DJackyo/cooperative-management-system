@@ -1,4 +1,5 @@
-import PDFDocument from 'pdfkit';
+import * as PDFDocumentModule from 'pdfkit';
+const PDFDocument = (PDFDocumentModule as any).default || PDFDocumentModule;
 import { EstadoCuentaAsociado, EstadoCuentaAhorro, EstadoCuentaCredito, DetalleCredito, MovimientoAhorro } from './certificados.service';
 
 const MARGEN = 50;
@@ -375,8 +376,15 @@ const dibujarCredito = (
     doc.moveDown(0.4);
 
     doc.font('Helvetica').fontSize(9).fillColor(COLOR_TEXTO);
+    const numTasa = Number(c.tasa);
+    const tasaFormatted = !c.tasa || isNaN(numTasa)
+      ? 'N/D'
+      : numTasa < 1
+      ? `${(numTasa * 100).toFixed(2)}%`
+      : `${numTasa.toFixed(2)}%`;
+
     doc.text(
-      `Estado: ${c.estado ? c.estado.toUpperCase() : 'N/D'}     Inicio: ${formatearFecha(c.fechaCredito)}     Vencimiento: ${formatearFecha(c.fechaVencimiento)}     Tasa mensual: ${c.tasa ? `${(Number(c.tasa) * 100).toFixed(2)}%` : 'N/D'}     Plazo: ${c.plazoMeses} meses`,
+      `Estado: ${c.estado ? c.estado.toUpperCase() : 'N/D'}     Inicio: ${formatearFecha(c.fechaCredito)}     Vencimiento: ${formatearFecha(c.fechaVencimiento)}     Tasa mensual: ${tasaFormatted}     Plazo: ${c.plazoMeses} meses`,
       MARGEN,
       doc.y,
       { width: doc.page.width - MARGEN * 2 },
@@ -401,48 +409,53 @@ export const generarCertificadoPDF = (
       : 'Estado de cuenta integral (Ahorro y Crédito)';
 
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({
-      size: 'LETTER',
-      margins: { top: MARGEN, bottom: MARGEN, left: MARGEN, right: MARGEN },
-      info: {
-        Title: `${tipoTexto} - ${data.asociado.nombres}`,
-        Author: cooperativa,
-        Subject: 'Certificado de estado de cuenta',
-        Producer: 'Cooperative Management System',
-        Creator: 'Cooperative Management System',
-      },
-    });
+    try {
+      const doc = new PDFDocument({
+        size: 'LETTER',
+        margins: { top: MARGEN, bottom: MARGEN, left: MARGEN, right: MARGEN },
+        info: {
+          Title: `${tipoTexto} - ${data.asociado.nombres}`,
+          Author: cooperativa,
+          Subject: 'Certificado de estado de cuenta',
+          Producer: 'Cooperative Management System',
+          Creator: 'Cooperative Management System',
+        },
+      });
 
-    const chunks: Buffer[] = [];
-    doc.on('data', (chunk: Buffer) => chunks.push(chunk));
-    doc.on('end', () => resolve(Buffer.concat(chunks)));
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', (err) => reject(err));
 
-    // Generar número de certificado simple a partir del id y fecha
-    const numero = `${String(data.asociado.id).padStart(4, '0')}-${new Date(data.generadoEl).getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;
+      // Generar número de certificado simple a partir del id y fecha
+      const numero = `${String(data.asociado.id).padStart(4, '0')}-${new Date(data.generadoEl).getFullYear()}-${String(Math.floor(Math.random() * 9999)).padStart(4, '0')}`;
 
-    dibujarEncabezado(doc, data, tipoTexto);
+      dibujarEncabezado(doc, data, tipoTexto);
 
-    const rangoTexto = data.consulta.desde || data.consulta.hasta
-      ? `Período: ${formatearFecha(data.consulta.desde)} al ${formatearFecha(data.consulta.hasta)}`
-      : 'Período: Histórico completo';
+      const rangoTexto = data.consulta.desde || data.consulta.hasta
+        ? `Período: ${formatearFecha(data.consulta.desde)} al ${formatearFecha(data.consulta.hasta)}`
+        : 'Período: Histórico completo';
 
-    if (data.ahorro) dibujarAhorro(doc, data.ahorro, simbolo);
-    if (data.credito) dibujarCredito(doc, data.credito, simbolo);
+      if (data.ahorro) dibujarAhorro(doc, data.ahorro, simbolo);
+      if (data.credito) dibujarCredito(doc, data.credito, simbolo);
 
-    doc
-      .font('Helvetica-Oblique')
-      .fontSize(9)
-      .fillColor(COLOR_GRIS)
-      .text(
-        `${rangoTexto}. Documento generado por el sistema de gestión cooperativa.`,
-        MARGEN,
-        doc.y + 10,
-        { width: doc.page.width - MARGEN * 2 },
-      );
+      doc
+        .font('Helvetica-Oblique')
+        .fontSize(9)
+        .fillColor(COLOR_GRIS)
+        .text(
+          `${rangoTexto}. Documento generado por el sistema de gestión cooperativa.`,
+          MARGEN,
+          doc.y + 10,
+          { width: doc.page.width - MARGEN * 2 },
+        );
 
-    dibujarFirma(doc, data, numero);
+      dibujarFirma(doc, data, numero);
 
-    doc.font('Helvetica').fontSize(8).fillColor(COLOR_GRIS);
-    doc.end();
+      doc.font('Helvetica').fontSize(8).fillColor(COLOR_GRIS);
+      doc.end();
+    } catch (err) {
+      reject(err);
+    }
   });
 };
