@@ -68,3 +68,6 @@ _db
 .package.json
 /front/pnpm-lock.yaml
 /back/pnpm-lock.yaml
+/back/uploads
+/back/ - copia.env
+/back/backups
