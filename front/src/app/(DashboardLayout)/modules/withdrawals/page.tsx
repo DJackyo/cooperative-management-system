@@ -642,23 +642,28 @@ const WithdrawalsPage = () => {
                   {item.estadoSolicitud === "PENDIENTE" && (
                     <>
                       <Tooltip title="Aprobar">
-                        <IconButton
-                          size="small"
-                          color="success"
-                          onClick={() => approveWithdrawal(item)}
-                          disabled={saving}
-                        >
-                          <IconCheck size={16} />
-                        </IconButton>
+                        <span>
+                          <IconButton
+                            size="small"
+                            color="success"
+                            onClick={() => approveWithdrawal(item)}
+                            disabled={saving}
+                          >
+                            <IconCheck size={16} />
+                          </IconButton>
+                        </span>
                       </Tooltip>
                       <Tooltip title="Rechazar">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => { setRejection(item); setMotivoRechazo(""); }}
-                        >
-                          <IconBan size={16} />
-                        </IconButton>
+                        <span>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => { setRejection(item); setMotivoRechazo(""); }}
+                            disabled={saving}
+                          >
+                            <IconBan size={16} />
+                          </IconButton>
+                        </span>
                       </Tooltip>
                     </>
                   )}
@@ -689,7 +694,7 @@ const WithdrawalsPage = () => {
         maxWidth="sm"
         PaperProps={{ sx: { borderRadius: 2 } }}
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, pb: 1 }}>
+        <DialogTitle component="div" sx={{ display: "flex", alignItems: "center", gap: 1, pb: 1 }}>
           {calculation ? <IconCalculator size={20} /> : <IconCash size={20} />}
           <Typography variant="h6" fontWeight={600}>
             {calculation ? "Calcular cruce del retiro" : "Solicitar retiro"}
@@ -869,7 +874,7 @@ const WithdrawalsPage = () => {
         maxWidth="sm"
         PaperProps={{ sx: { borderRadius: 2 } }}
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1, color: "error.main" }}>
+        <DialogTitle component="div" sx={{ display: "flex", alignItems: "center", gap: 1, color: "error.main" }}>
           <IconBan size={20} />
           <Typography variant="h6" fontWeight={600}>
             Rechazar retiro
@@ -915,7 +920,7 @@ const WithdrawalsPage = () => {
         maxWidth="sm"
         PaperProps={{ sx: { borderRadius: 2 } }}
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+        <DialogTitle component="div" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <IconEye size={20} />
           <Typography variant="h6" fontWeight={600}>
             Detalle de solicitud

@@ -275,6 +275,7 @@ export default function BulkPresPagosModal({
   return (
     <Dialog open={open} onClose={loading ? undefined : onClose} maxWidth="md" fullWidth>
       <DialogTitle
+        component="div"
         sx={{
           background: "linear-gradient(135deg, #0f766e 0%, #115e59 100%)",
           color: "white",

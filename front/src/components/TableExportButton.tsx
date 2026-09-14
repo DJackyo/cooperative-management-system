@@ -77,15 +77,17 @@ const TableExportButton: React.FC<TableExportButtonProps> = ({
 
   return (
     <Tooltip title="Descargar información" arrow>
-      <IconButton
-        onClick={exportTable}
-        disabled={rows.length === 0}
-        color="primary"
-        size="small"
-        aria-label="Descargar información de la tabla"
-      >
-        <IconFileDownload />
-      </IconButton>
+      <span>
+        <IconButton
+          onClick={exportTable}
+          disabled={rows.length === 0}
+          color="primary"
+          size="small"
+          aria-label="Descargar información de la tabla"
+        >
+          <IconFileDownload />
+        </IconButton>
+      </span>
     </Tooltip>
   );
 };

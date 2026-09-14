@@ -75,7 +75,7 @@ const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
         },
       }}
     >
-      <DialogTitle sx={{ pb: 1 }}>
+      <DialogTitle component="div" sx={{ pb: 1 }}>
         <Box display="flex" justifyContent="space-between" alignItems="center">
           <Typography variant="h6" component="div">
             {title}

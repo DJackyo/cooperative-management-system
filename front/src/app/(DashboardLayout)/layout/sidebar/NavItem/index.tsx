@@ -74,31 +74,33 @@ const NavItem = ({ item, level, pathDirect, onClick, collapsed = false }: ItemTy
     <List component="div" disablePadding key={item.id}>
       <ListItemStyled>
         <Tooltip title={collapsed ? item.title : ""} placement="right">
-          <ListItemButton
-          component={Link}
-          href={item.href}
-          disabled={item.disabled}
-            selected={isSelected}
-          target={item.external ? "_blank" : ""}
-          onClick={onClick}
-          aria-label={item.title}
-          sx={{
-            justifyContent: collapsed ? "center" : "initial",
-            minWidth: 0,
-            px: collapsed ? 1 : 1.25,
-          }}
-        >
-          <ListItemIcon
-            sx={{
-              minWidth: collapsed ? 0 : "36px",
-              p: collapsed ? 0 : "3px 0",
-              color: "inherit",
-            }}
-          >
-            {itemIcon}
-          </ListItemIcon>
-          {!collapsed && <ListItemText>{item.title}</ListItemText>}
-          </ListItemButton>
+          <span>
+            <ListItemButton
+              component={Link}
+              href={item.href}
+              disabled={item.disabled}
+              selected={isSelected}
+              target={item.external ? "_blank" : ""}
+              onClick={onClick}
+              aria-label={item.title}
+              sx={{
+                justifyContent: collapsed ? "center" : "initial",
+                minWidth: 0,
+                px: collapsed ? 1 : 1.25,
+              }}
+            >
+              <ListItemIcon
+                sx={{
+                  minWidth: collapsed ? 0 : "36px",
+                  p: collapsed ? 0 : "3px 0",
+                  color: "inherit",
+                }}
+              >
+                {itemIcon}
+              </ListItemIcon>
+              {!collapsed && <ListItemText>{item.title}</ListItemText>}
+            </ListItemButton>
+          </span>
         </Tooltip>
       </ListItemStyled>
     </List>

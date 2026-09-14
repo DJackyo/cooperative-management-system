@@ -202,35 +202,41 @@ const Credits = () => {
                     </TableCell>
                     <TableCell>
                       <Tooltip title="Aprobar">
-                        <Button
-                          variant="contained"
-                          color="success"
-                          onClick={() => handleApprove(request.id)}
-                          disabled={request.status !== "pendiente"}
-                        >
-                          <CheckIcon />
-                        </Button>
+                        <span>
+                          <Button
+                            variant="contained"
+                            color="success"
+                            onClick={() => handleApprove(request.id)}
+                            disabled={request.status !== "pendiente"}
+                          >
+                            <CheckIcon />
+                          </Button>
+                        </span>
                       </Tooltip>
                       <Tooltip title="Rechazar">
-                        <Button
-                          variant="contained"
-                          color="error"
-                          onClick={() => handleReject(request.id)}
-                          disabled={request.status !== "pendiente"}
-                          sx={{ marginLeft: 1 }}
-                        >
-                          <CloseIcon />
-                        </Button>
+                        <span>
+                          <Button
+                            variant="contained"
+                            color="error"
+                            onClick={() => handleReject(request.id)}
+                            disabled={request.status !== "pendiente"}
+                            sx={{ marginLeft: 1 }}
+                          >
+                            <CloseIcon />
+                          </Button>
+                        </span>
                       </Tooltip>
                       <Tooltip title="Ver plan de pagos">
-                        <Button
-                          variant="contained"
-                          onClick={() => handleViewPaymentPlan(request)}
-                          disabled={request.status !== "aprobado"}
-                          sx={{ marginLeft: 1 }}
-                        >
-                          <VisibilityIcon />
-                        </Button>
+                        <span>
+                          <Button
+                            variant="contained"
+                            onClick={() => handleViewPaymentPlan(request)}
+                            disabled={request.status !== "aprobado"}
+                            sx={{ marginLeft: 1 }}
+                          >
+                            <VisibilityIcon />
+                          </Button>
+                        </span>
                       </Tooltip>
                     </TableCell>
                   </TableRow>

@@ -153,6 +153,7 @@ const ReceiptModal: React.FC<ReceiptModalProps> = ({ open, onClose, data }) => {
       }}
     >
       <DialogTitle
+        component="div"
         sx={{
           background: "linear-gradient(135deg, #0f766e 0%, #115e59 100%)",
           color: "white",

@@ -1821,7 +1821,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         maxWidth="xl"
         PaperProps={{ sx: { borderRadius: 2 } }}
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}>
+        <DialogTitle component="div" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}>
           <Stack direction="row" alignItems="center" spacing={1}>
             <Avatar sx={{ bgcolor: "success.main", width: 32, height: 32 }}>
               <IconFileReport size={18} color="white" />
@@ -1957,7 +1957,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
         fullWidth
         PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
       >
-        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}>
+        <DialogTitle component="div" sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}>
           <Stack direction="row" alignItems="center" spacing={1.5}>
             <Avatar sx={{ bgcolor: "primary.main", width: 38, height: 38 }}>
               <IconTimeline size={22} color="white" />
