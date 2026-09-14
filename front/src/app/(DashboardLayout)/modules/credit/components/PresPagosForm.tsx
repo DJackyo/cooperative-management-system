@@ -91,6 +91,7 @@ const presPagosSchema = z.object({
   abonoCapital: z.number().min(0, messages.min),
   intereses: z.number().min(0, messages.min),
   abonoExtra: z.number().min(0, messages.min),
+  observaciones: z.string().optional(),
 });
 
 type PresPagosFormData = z.infer<typeof presPagosSchema>;
@@ -291,6 +292,7 @@ export default function PresPagosForm({
       formData.append("monto", String(pago?.monto || 0));
       formData.append("numCuota", String(pago?.numeroCuota || 0));
       formData.append("fechaVencimiento", String(pago?.fechaVencimiento || ""));
+      formData.append("observaciones", pendingData.observaciones || "");
 
       let pagoRequest;
       if (isEditMode && pagoIdToEdit) {
@@ -919,6 +921,25 @@ export default function PresPagosForm({
                 </Typography>
               </Box>
             </Collapse>
+
+            {/* Observaciones */}
+            <Box sx={{ mt: 2 }}>
+              <TextField
+                fullWidth
+                size="small"
+                multiline
+                rows={2}
+                label="Observaciones / Comentarios (opcional)"
+                placeholder="Ingrese cualquier nota u observación sobre este pago..."
+                {...register("observaciones")}
+                error={!!errors.observaciones}
+                helperText={errors.observaciones?.message}
+                sx={{
+                  bgcolor: "white",
+                  "& .MuiOutlinedInput-root": { bgcolor: "white" },
+                }}
+              />
+            </Box>
           </Paper>
         </Grid>
 

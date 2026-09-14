@@ -13,6 +13,7 @@ export interface Cuota {
   intereses?: number;
   abonoExtra?: number;
   pagado?: boolean;
+  observaciones?: string;
   presPagos?: any[];
 }
 
