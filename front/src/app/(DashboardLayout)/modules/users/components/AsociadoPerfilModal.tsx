@@ -101,8 +101,26 @@ const AsociadoPerfilModal: React.FC<AsociadoPerfilModalProps> = ({
         }}
         InputLabelProps={type === "date" ? { shrink: true } : undefined}
       >
-        {select && name === "empleado" && <><MenuItem value="true">Sí</MenuItem><MenuItem value="false">No</MenuItem></>}
-        {select && name === "asistio" && <><MenuItem value="SI">Sí</MenuItem><MenuItem value="NO">No</MenuItem></>}
+        {select && name === "empleado"
+          ? [
+              <MenuItem key="true" value="true">
+                Sí
+              </MenuItem>,
+              <MenuItem key="false" value="false">
+                No
+              </MenuItem>,
+            ]
+          : null}
+        {select && name === "asistio"
+          ? [
+              <MenuItem key="SI" value="SI">
+                Sí
+              </MenuItem>,
+              <MenuItem key="NO" value="NO">
+                No
+              </MenuItem>,
+            ]
+          : null}
       </TextField>
     );
   };
