@@ -39,7 +39,7 @@ export class RetirosAsociadosController {
     fileFilter: (_req, file, callback) => callback(null, /\.(pdf|jpg|jpeg|png)$/i.test(file.originalname)),
     limits: { fileSize: 5 * 1024 * 1024 },
   }))
-  request(@Param('idAsociado') idAsociado: number, @Body() payload: any, @UploadedFile() file?: Express.Multer.File) {
+  request(@Param('idAsociado') idAsociado: number, @Body() payload: any, @UploadedFile() file?: any) {
     return this.retirosService.request(+idAsociado, { ...payload, adjunto: file ? `retiros/${file.filename}` : undefined });
   }
 

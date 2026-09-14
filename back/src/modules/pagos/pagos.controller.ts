@@ -66,7 +66,7 @@ export class PagosController {
   @UseInterceptors(
     FileInterceptor('comprobante', {
       storage: diskStorage({
-        destination: (req: any, file: Express.Multer.File, callback) => {
+        destination: (req: any, file: any, callback) => {
           try {
             const loanId = String(req.body?.idPrestamo || 'unknown');
             const uploadPath = join(PATH_PAGOS, loanId, 'incoming');
@@ -163,7 +163,7 @@ export class PagosController {
   @UseInterceptors(
     FileInterceptor('comprobante', {
       storage: diskStorage({
-        destination: (req: any, file: Express.Multer.File, callback) => {
+        destination: (req: any, file: any, callback) => {
           try {
             const loanId = String(req.params?.id || req.body?.idPrestamo || 'unknown');
             // Save to a stable temporary folder; we'll move after upload.
