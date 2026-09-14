@@ -494,6 +494,25 @@ const PaymentReceiptModal: React.FC<PaymentReceiptModalProps> = ({
               {numeroALetras(totalPagado, true)}
             </Typography>
           </Box>
+
+          {pago.observaciones && (
+            <Box
+              sx={{
+                mt: 1,
+                p: 1.25,
+                bgcolor: "#fffde7",
+                borderRadius: 1.5,
+                border: "1px dashed #ffe082",
+              }}
+            >
+              <Typography variant="caption" display="block" color="text.secondary" fontWeight={800} sx={{ letterSpacing: 0.5, mb: 0.25, fontSize: "0.68rem" }}>
+                OBSERVACIONES:
+              </Typography>
+              <Typography variant="body2" sx={{ color: "#0f172a", fontSize: "0.75rem" }}>
+                {pago.observaciones}
+              </Typography>
+            </Box>
+          )}
         </Paper>
       </DialogContent>
 

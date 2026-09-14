@@ -58,6 +58,7 @@ import { authService } from "@/app/authentication/services/authService";
 import { logoBase64 } from "@/app/(DashboardLayout)/utilities/logoBase64";
 import PresPagosForm from "./PresPagosForm";
 import PaymentReceiptModal from "./PaymentReceiptModal";
+import BulkPresPagosModal from "./BulkPresPagosModal";
 import TableExportButton from "@/components/TableExportButton";
 
 interface PaymentHistoryProps {
@@ -125,6 +126,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
   const [comprobanteDialogOpen, setComprobanteDialogOpen] = useState(false);
   const [selectedComprobante, setSelectedComprobante] = useState<string | null>(null);
   const [receiptModalOpen, setReceiptModalOpen] = useState(false);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [selectedReceiptData, setSelectedReceiptData] = useState<any>(null);
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const theme = useTheme();
@@ -159,6 +161,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       proteccionCartera: pagoExistente?.proteccionCartera ?? row.proteccionCartera,
       monto: pagoExistente?.monto ?? row.monto,
       metodoPagoId: pagoExistente?.metodoPago?.id || pagoExistente?.metodoPagoId,
+      observaciones: pagoExistente?.observaciones ?? row.observaciones,
     };
     setSelectedRow(rowConDatosDePago);
     setIsEditMode(true);
@@ -326,6 +329,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
                 <span class="pay-val">${money(pago.totalPagado || pago.montoPagado)}</span>
               </div>
               <div class="pay-meth">${escapeHtml(pago.metodoPago?.nombre || "EFECTIVO")}</div>
+              ${pago.observaciones ? `<div class="pay-obs" style="font-style:italic;color:#475569;font-size:6.5px;">Obs: ${escapeHtml(pago.observaciones)}</div>` : ""}
             </div>
           `).join("")
         : '<span class="text-muted center-text">-</span>';
@@ -761,6 +765,18 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
             startAdornment: <InputAdornment position="start"><Search /></InputAdornment>,
           }}
         />
+        {cuotasPendientes > 0 && (
+          <Button
+            variant="contained"
+            color="primary"
+            size="small"
+            startIcon={<Payment />}
+            onClick={() => setBulkModalOpen(true)}
+            sx={{ textTransform: "none", fontWeight: 600 }}
+          >
+            Pagos en masa ({cuotasPendientes})
+          </Button>
+        )}
         <Button
           variant="outlined"
           size="small"
@@ -876,6 +892,16 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
                               </Typography>
                             </Paper>
                           </Grid>
+                          {(row?.presPagos?.[0]?.observaciones || row?.observaciones) && (
+                            <Grid size={{ xs: 12 }}>
+                              <Paper variant="outlined" sx={{ p: 1.5, bgcolor: '#fffde7', borderColor: '#ffe082' }}>
+                                <Typography variant="caption" color="text.secondary" fontWeight={700}>Observaciones del Pago:</Typography>
+                                <Typography variant="body2" color="text.primary">
+                                  {row?.presPagos?.[0]?.observaciones || row?.observaciones}
+                                </Typography>
+                              </Paper>
+                            </Grid>
+                          )}
                         </Grid>
                       </TableCell>
                     </TableRow>
@@ -924,6 +950,19 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
         open={receiptModalOpen}
         onClose={handleCloseReceiptModal}
         data={selectedReceiptData}
+      />
+
+      {/* Modal Pagos en Masa */}
+      <BulkPresPagosModal
+        open={bulkModalOpen}
+        onClose={() => setBulkModalOpen(false)}
+        creditId={creditId}
+        idAsociado={idAsociado}
+        presCuotas={sortedCuotas}
+        userInfo={userInfo}
+        onSuccess={() => {
+          onPaymentSuccess?.();
+        }}
       />
 
       {/* Modal Comprobante */}
