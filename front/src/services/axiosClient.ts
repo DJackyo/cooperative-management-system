@@ -54,17 +54,36 @@ export const setupAxiosInterceptors = (router: any) => {
             let msg = 'Ocurrió un error en la petición';
             if (data) {
               if (typeof data === 'string') msg = data;
-              else if (data.message) msg = data.message;
+              else if (data.message) msg = Array.isArray(data.message) ? data.message.join(', ') : data.message;
               else if (data.error?.message) msg = data.error.message;
               else if (data.detail) msg = data.detail;
             }
-            Swal.fire({
-              title: 'Error',
-              text: msg,
-              icon: 'error',
-              confirmButtonText: 'OK',
-              zIndex: 10000,
-            } as any);
+
+            const showSwalError = (text: string) => {
+              Swal.fire({
+                title: 'Error',
+                text,
+                icon: 'error',
+                confirmButtonText: 'OK',
+                didOpen: (popup) => {
+                  if (popup.parentElement) popup.parentElement.style.zIndex = '10000';
+                },
+              });
+            };
+
+            if (data instanceof Blob) {
+              data.text().then((text) => {
+                try {
+                  const parsed = JSON.parse(text);
+                  const parsedMsg = parsed.message || parsed.error || msg;
+                  showSwalError(Array.isArray(parsedMsg) ? parsedMsg.join(', ') : parsedMsg);
+                } catch {
+                  showSwalError(msg);
+                }
+              }).catch(() => showSwalError(msg));
+            } else {
+              showSwalError(msg);
+            }
           }
         }
         return Promise.reject(error);

@@ -123,8 +123,10 @@ const handleOpenCreate = () => {
             : "Registro creado correctamente",
         icon: "success",
         confirmButtonText: "OK",
-        zIndex: 10001,
-      } as any);
+        didOpen: (popup) => {
+          if (popup.parentElement) popup.parentElement.style.zIndex = "10001";
+        },
+      });
     } catch (err) {
       console.error("Error saving:", err);
     }
@@ -139,8 +141,10 @@ const handleOpenCreate = () => {
       showCancelButton: true,
       confirmButtonText: "Eliminar",
       cancelButtonText: "Cancelar",
-      zIndex: 10001,
-    } as any);
+      didOpen: (popup) => {
+        if (popup.parentElement) popup.parentElement.style.zIndex = "10001";
+      },
+    });
 
     if (confirm.isConfirmed) {
       try {
@@ -151,8 +155,10 @@ const handleOpenCreate = () => {
           text: "Registro eliminado correctamente",
           icon: "success",
           confirmButtonText: "OK",
-          zIndex: 10001,
-        } as any);
+          didOpen: (popup) => {
+            if (popup.parentElement) popup.parentElement.style.zIndex = "10001";
+          },
+        });
       } catch (err) {
         console.error("Error deleting:", err);
       }

@@ -456,8 +456,10 @@ const UserManagementModule = () => {
             text: `Su solicitud de crédito ha sido enviada exitosamente.`,
             icon: 'success',
             confirmButtonText: 'OK',
-            zIndex: 10000,
-          } as any);
+            didOpen: (popup) => {
+              if (popup.parentElement) popup.parentElement.style.zIndex = '10000';
+            },
+          });
           refreshUsersWithLoans();
         } else {
           await Swal.fire({
@@ -465,8 +467,10 @@ const UserManagementModule = () => {
             text: 'No se pudo crear la solicitud. Intente nuevamente.',
             icon: 'error',
             confirmButtonText: 'OK',
-            zIndex: 10000,
-          } as any);
+            didOpen: (popup) => {
+              if (popup.parentElement) popup.parentElement.style.zIndex = '10000';
+            },
+          });
         }
       } else {
         setOpenCreditModal(false);
@@ -480,8 +484,10 @@ const UserManagementModule = () => {
         text: 'Ocurrió un error al enviar la solicitud. Revise su conexión.',
         icon: 'error',
         confirmButtonText: 'OK',
-        zIndex: 10000,
-      } as any);
+        didOpen: (popup) => {
+          if (popup.parentElement) popup.parentElement.style.zIndex = '10000';
+        },
+      });
     }
   };
 
