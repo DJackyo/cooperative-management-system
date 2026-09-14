@@ -11,6 +11,7 @@ import {
 } from "@mui/material";
 // components
 import Profile from "./Profile";
+import GuideTourButton from "@/components/GuideTourButton";
 import { IconMenu } from "@tabler/icons-react";
 import { usePathname, useRouter } from "next/navigation";
 import { authService } from "@/app/authentication/services/authService";
@@ -88,7 +89,7 @@ const Header = ({ isSidebarOpen, toggleSidebar, toggleMobileSidebar }: ItemType)
             <IconMenu width="20" height="20" />
           </IconButton>
 
-          <Box sx={{ ml: { xs: 1, lg: 0 }, minWidth: 0 }}>
+          <Box data-tour="header-title" sx={{ ml: { xs: 1, lg: 0 }, minWidth: 0 }}>
             <Typography variant="h6" sx={{ fontWeight: 700, lineHeight: 1.2 }}>
               {sectionTitle}
             </Typography>
@@ -119,8 +120,11 @@ const Header = ({ isSidebarOpen, toggleSidebar, toggleMobileSidebar }: ItemType)
               </Typography>
             )}
           </Stack>
-          <Stack spacing={1} direction="row" alignItems="center">
-            <Profile />
+          <Stack spacing={1.5} direction="row" alignItems="center">
+            <GuideTourButton />
+            <Box data-tour="header-user">
+              <Profile />
+            </Box>
           </Stack>
         </Suspense>
       </ToolbarStyled>

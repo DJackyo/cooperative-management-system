@@ -90,7 +90,7 @@ export default function BackupManager() {
                     label="Incluir archivos (uploads)"
                   />
                 </Grid>
-                <Grid>
+                <Grid data-tour="create-backup-btn">
                   <Button
                     variant="contained"
                     color="primary"
@@ -110,7 +110,7 @@ export default function BackupManager() {
             </Grid>
           </Grid>
 
-          <Table sx={{ mt: 2 }}>
+          <Table sx={{ mt: 2 }} data-tour="backups-table">
             <TableHead>
               <TableRow>
                 <TableCell>Archivo</TableCell>

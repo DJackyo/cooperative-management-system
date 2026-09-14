@@ -31,6 +31,7 @@ const MSidebar = ({
   if (lgUp) {
     return (
       <Box
+        data-tour="sidebar"
         sx={{
           width: { xs: 0, lg: sidebarWidth },
           flexShrink: 0,

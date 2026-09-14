@@ -35,6 +35,7 @@ const Dashboard = () => {
       <Box>
         {/* Encabezado de bienvenida */}
         <Box
+          data-tour="dashboard-welcome"
           sx={{
             background:
               "linear-gradient(120deg, #2447a8 0%, #3567d6 58%, #2b9fc2 100%)",
@@ -75,7 +76,7 @@ const Dashboard = () => {
         </Box>
 
         <Grid container spacing={2}>
-          <Grid container size={{ xs: 12, md: 8 }}>
+          <Grid container size={{ xs: 12, md: 8 }} data-tour="dashboard-stats">
             <AdminDashboard />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }} sx={{ display: "flex" }}>
@@ -87,11 +88,14 @@ const Dashboard = () => {
               {/* <PaymentSupportsCard
                 sx={{ flexShrink: 0, alignSelf: "stretch" }}
               /> */}
-              <SavingsProjectionCard sx={{ flexShrink: 0 }} />
-              <TransactionsHistory
-                sx={{ flexGrow: 1, minHeight: 200 }}
-                fullHeight
-              />
+              <Box data-tour="savings-projection" sx={{ flexShrink: 0, width: "100%" }}>
+                <SavingsProjectionCard />
+              </Box>
+              <Box data-tour="recent-transactions" sx={{ flexGrow: 1, minHeight: 200, width: "100%" }}>
+                <TransactionsHistory
+                  fullHeight
+                />
+              </Box>
             </Stack>
           </Grid>
         </Grid>

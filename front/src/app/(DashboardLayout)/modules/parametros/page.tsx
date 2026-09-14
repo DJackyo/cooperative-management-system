@@ -129,28 +129,30 @@ const ParametrosPage = () => {
         icon={<IconSettings size={22} />}
         gradient="linear-gradient(135deg, #0E7A0E 0%, #49BEFF 120%)"
       />
-      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
-        <Tabs
-          value={tab}
-          onChange={handleChange}
-          variant="scrollable"
-          scrollButtons="auto"
-          aria-label="parámetros"
-        >
-          <Tab label="Roles" />
-          <Tab label="Tipos de identificación" />
-          <Tab label="Estados de asociado" />
-          <Tab label="Estados de aprobación" />
-          <Tab label="Tipos de familiares" />
-          <Tab label="Métodos de pago" />
-          <Tab label="Tasas de préstamo" />
-        </Tabs>
+      <Box data-tour="parametros-content">
+        <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 3 }}>
+          <Tabs
+            value={tab}
+            onChange={handleChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            aria-label="parámetros"
+          >
+            <Tab label="Roles" />
+            <Tab label="Tipos de identificación" />
+            <Tab label="Estados de asociado" />
+            <Tab label="Estados de aprobación" />
+            <Tab label="Tipos de familiares" />
+            <Tab label="Métodos de pago" />
+            <Tab label="Tasas de préstamo" />
+          </Tabs>
+        </Box>
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          Configuración de catálogos según el esquema de la cooperativa. Los
+          cambios se reflejan en el resto de la aplicación.
+        </Typography>
+        {renderTab()}
       </Box>
-      <Typography variant="body2" color="text.secondary" mb={2}>
-        Configuración de catálogos según el esquema de la cooperativa. Los
-        cambios se reflejan en el resto de la aplicación.
-      </Typography>
-      {renderTab()}
     </Box>
   );
 };

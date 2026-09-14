@@ -200,7 +200,7 @@ return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <Grid container spacing={3}>
         {/* Formulario de generación */}
-        <Grid size={{ xs: 12 }}>
+        <Grid size={{ xs: 12 }} data-tour="certificados-form">
           <Card variant="outlined" sx={{ boxShadow: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom sx={{ color: "#0f766e", fontWeight: 600 }}>
@@ -263,7 +263,7 @@ return (
                 </Grid>
               </Grid>
 
-              <Box mt={2} display="flex" gap={2} flexWrap="wrap">
+              <Box mt={2} display="flex" gap={2} flexWrap="wrap" data-tour="download-cert-btn">
                 <Button
                   variant="contained"
                   color="primary"

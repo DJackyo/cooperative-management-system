@@ -559,6 +559,7 @@ const WithdrawalsPage = () => {
                 }}
                 actions={(associate) => (
                   <Button
+                    data-tour="new-withdrawal-btn"
                     size="small"
                     variant="outlined"
                     startIcon={<IconCash size={14} />}
@@ -577,6 +578,7 @@ const WithdrawalsPage = () => {
         {/* Solicitudes */}
         {activeTab === 0 && <Grid size={{ xs: 12 }}>
           <Paper
+            data-tour="withdrawals-table"
             elevation={0}
             sx={{ p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider" }}
           >
@@ -631,7 +633,7 @@ const WithdrawalsPage = () => {
                 return item[column.field] || "";
               }}
               actions={(item) => (
-                <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                <Stack data-tour="withdrawals-table-actions" direction="row" spacing={0.5} flexWrap="wrap">
                   <Tooltip title="Ver detalle">
                     <IconButton size="small" onClick={() => setDetailWithdrawal(item)}>
                       <IconEye size={16} />

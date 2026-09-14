@@ -7,6 +7,7 @@ interface PageHeaderProps {
   subtitle?: string;
   icon?: React.ReactNode;
   gradient?: string;
+  dataTour?: string;
 }
 
 // Encabezado de página reutilizable con degradado y breadcrumb
@@ -15,12 +16,18 @@ const PageHeader = ({
   subtitle,
   icon,
   gradient,
+  dataTour,
 }: PageHeaderProps) => {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
 
+  // Determinar la clave de data-tour automáticamente según la ruta
+  const autoTourKey = segments.length > 0 ? `${segments.slice(-2).join("-")}-header` : "page-header";
+  const tourAttribute = dataTour || autoTourKey;
+
   return (
     <Box
+      data-tour={tourAttribute}
       sx={{
         background: gradient || "primary.main",
         borderRadius: 3,

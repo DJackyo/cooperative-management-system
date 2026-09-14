@@ -198,7 +198,7 @@ return (
           pageSizeOptions={[5, 10, 25, 50]}
           emptyMessage="No hay registros para mostrar"
           actions={(row: any) => (
-            <>
+            <Box data-tour="parametros-table-actions" sx={{ display: "inline-flex", gap: 0.5 }}>
               <Tooltip title="Editar">
                 <IconButton size="small" color="primary" onClick={() => handleOpenEdit(row)}>
                   <IconEdit size={16} />
@@ -209,7 +209,7 @@ return (
                   <IconTrash size={16} />
                 </IconButton>
               </Tooltip>
-            </>
+            </Box>
           )}
         />
       </DashboardCard>

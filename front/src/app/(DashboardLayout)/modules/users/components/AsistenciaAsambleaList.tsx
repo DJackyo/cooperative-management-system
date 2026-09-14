@@ -119,7 +119,7 @@ const AsistenciaAsambleaList = () => {
       {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
       <Grid container spacing={3} sx={{ mt: 0 }}>
-        <Grid size={{ xs: 12 }}>
+        <Grid size={{ xs: 12 }} data-tour="assembly-search">
           <DashboardCard title="Filtros" subtitle="Consulta las asistencias por asociado, estado y fecha.">
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, md: 4 }}>
@@ -145,8 +145,9 @@ const AsistenciaAsambleaList = () => {
           </DashboardCard>
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <DashboardCard title="Registro de asistencia a asamblea" subtitle={`${filteredRecords.length} resultado${filteredRecords.length === 1 ? "" : "s"} con los filtros actuales`}>
-            <StyledTable
+          <Box data-tour="assembly-table">
+            <DashboardCard title="Registro de asistencia a asamblea" subtitle={`${filteredRecords.length} resultado${filteredRecords.length === 1 ? "" : "s"} con los filtros actuales`}>
+              <StyledTable
               columns={[
                 { field: "idAsociado", headerName: "ID asociado", width: 110 },
                 { field: "nombre", headerName: "Asociado", width: 220 },
@@ -175,7 +176,8 @@ const AsistenciaAsambleaList = () => {
                 return record[column.field as keyof AttendanceRecord] || "";
               }}
             />
-          </DashboardCard>
+            </DashboardCard>
+          </Box>
         </Grid>
       </Grid>
     </Box>

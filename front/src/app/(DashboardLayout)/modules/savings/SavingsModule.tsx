@@ -399,32 +399,34 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
 
     return (
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <ModuleStatCard
-            label="Total ahorrado"
-            value={`$ ${formatCurrency(totalUsersSavings)}`}
-            subtitle="Acumulado de todos los asociados"
-            icon={<IconCoins size={20} />}
-            color="#10b981"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <ModuleStatCard
-            label="Asociados activos"
-            value={activeUsers}
-            subtitle={`De ${allUsers.length} registrados`}
-            icon={<IconUser size={20} />}
-            color="#3b82f6"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 4 }}>
-          <ModuleStatCard
-            label="Resultados visibles"
-            value={filteredUsers.length}
-            subtitle="Según los filtros actuales"
-            icon={<IconSearch size={20} />}
-            color="#8b5cf6"
-          />
+        <Grid container size={{ xs: 12 }} spacing={3} data-tour="savings-stats">
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <ModuleStatCard
+              label="Total ahorrado"
+              value={`$ ${formatCurrency(totalUsersSavings)}`}
+              subtitle="Acumulado de todos los asociados"
+              icon={<IconCoins size={20} />}
+              color="#10b981"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <ModuleStatCard
+              label="Asociados activos"
+              value={activeUsers}
+              subtitle={`De ${allUsers.length} registrados`}
+              icon={<IconUser size={20} />}
+              color="#3b82f6"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 4 }}>
+            <ModuleStatCard
+              label="Resultados visibles"
+              value={filteredUsers.length}
+              subtitle="Según los filtros actuales"
+              icon={<IconSearch size={20} />}
+              color="#8b5cf6"
+            />
+          </Grid>
         </Grid>
         <Grid size={{ xs: 12 }}>
           <DashboardCard
@@ -442,6 +444,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   {loading ? "Actualizando..." : "Actualizar"}
                 </Button>
                 <Button
+                  data-tour="new-aporte-btn"
                   variant="contained"
                   color="primary"
                   size="small"
@@ -453,7 +456,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
               </Box>
             }
           >
-            <Grid container spacing={1.5} alignItems="center">
+            <Grid container spacing={1.5} alignItems="center" data-tour="savings-search">
               <Grid size={{ xs: 12, md: 5 }}>
                 <TextField
                   fullWidth
@@ -497,6 +500,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
         </Grid>
         <Grid size={{ xs: 12 }}>
           <DashboardCard title="Ahorros de asociados" subtitle={`${filteredUsers.length} resultado${filteredUsers.length === 1 ? '' : 's'} encontrados`}>
+            <Box data-tour="savings-table">
               <StyledTable
                 columns={[
                   { field: "id", headerName: "ID", width: 70 },
@@ -546,15 +550,18 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   }
                 }}
                 actions={(user) => (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => window.location.href = `/modules/savings?id=${user.id}`}
-                  >
-                    Ver Detalles
-                  </Button>
+                  <Box data-tour="savings-table-actions">
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => window.location.href = `/modules/savings?id=${user.id}`}
+                    >
+                      Ver Detalles
+                    </Button>
+                  </Box>
                 )}
               />
+            </Box>
           </DashboardCard>
         </Grid>
         {/* Modal de Creación en Masa */}
@@ -573,38 +580,40 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Grid container spacing={3}>
-        <Grid  size={{ xs: 12, sm: 6, md: 3 }}>
-          <UserCard id={id} userInfo={userInfo} />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <ModuleStatCard
-            label="Total ahorrado"
-            value={formattedTotalAhorrado}
-            subtitle="Acumulado con los filtros actuales"
-            icon={<IconCoins size={20} />}
-            color="#10b981"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <ModuleStatCard
-            label="Aportes visibles"
-            value={filteredTransactions.length}
-            subtitle="Con los filtros actuales"
-            icon={<IconReceipt size={20} />}
-            color="#3b82f6"
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <ModuleStatCard
-            label="Último aporte"
-            value={lastAporte ? formatDateWithoutTime(lastAporte) : "Sin registros"}
-            subtitle="Registro más reciente"
-            icon={<IconRefresh size={20} />}
-            color="#8b5cf6"
-          />
+        <Grid container size={{ xs: 12 }} spacing={3} data-tour="savings-stats">
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <UserCard id={id} userInfo={userInfo} />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <ModuleStatCard
+              label="Total ahorrado"
+              value={formattedTotalAhorrado}
+              subtitle="Acumulado con los filtros actuales"
+              icon={<IconCoins size={20} />}
+              color="#10b981"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <ModuleStatCard
+              label="Aportes visibles"
+              value={filteredTransactions.length}
+              subtitle="Con los filtros actuales"
+              icon={<IconReceipt size={20} />}
+              color="#3b82f6"
+            />
+          </Grid>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+            <ModuleStatCard
+              label="Último aporte"
+              value={lastAporte ? formatDateWithoutTime(lastAporte) : "Sin registros"}
+              subtitle="Registro más reciente"
+              icon={<IconRefresh size={20} />}
+              color="#8b5cf6"
+            />
+          </Grid>
         </Grid>
 
-        <Grid  size={{ xs: 12, md: 12 }}>
+        <Grid size={{ xs: 12, md: 12 }} data-tour="savings-search">
           <DashboardCard
             title="Filtros"
             subtitle="Consulta los aportes por fecha, estado, método o identificador."
@@ -655,13 +664,23 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
           </DashboardCard>
         </Grid>
 
-        <Grid  size={{xs: 12, md: 12 }}>
+        <Grid size={{ xs: 12, md: 12 }}>
           <DashboardCard
             title="Historial de aportes"
             subtitle={`${filteredTransactions.length} resultado${filteredTransactions.length === 1 ? '' : 's'} de ${savings.length}`}
-            action={<Button variant="outlined" color="secondary" onClick={handleCreateAporteClick} startIcon={<IconUserDollar />}>Registrar Aporte</Button>}
+            action={
+              <Button
+                data-tour="new-aporte-btn"
+                variant="outlined"
+                color="secondary"
+                onClick={handleCreateAporteClick}
+                startIcon={<IconUserDollar />}
+              >
+                Registrar Aporte
+              </Button>
+            }
           >
-
+            <Box data-tour="savings-table">
               {/* Tabla */}
               <StyledTable
                 columns={columns}
@@ -701,7 +720,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   }
                 }}
                 actions={(row: any) => (
-                  <Box sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
+                  <Box data-tour="savings-table-actions" sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
                     {validateRoles(roleAdmin, currentUser?.role?.map((r: any) => r.nombre) || []) && (
                       <Tooltip title="Editar" arrow>
                         <IconButton
@@ -762,6 +781,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                 onPageChange={handlePageChange}
                 onRowsPerPageChange={handlePageSizeChange}
               />
+            </Box>
           </DashboardCard>
         </Grid>
       </Grid>

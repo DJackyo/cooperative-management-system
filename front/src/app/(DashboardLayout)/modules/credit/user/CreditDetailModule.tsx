@@ -295,6 +295,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
       {/* Resumen principal del crédito */}
       {credit && (
         <Paper
+          data-tour="credit-user-summary"
           elevation={0}
           sx={{
             p: { xs: 1.5, sm: 2.25 },
@@ -393,7 +394,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
       <Grid container spacing={1}>
         {/* Columna izquierda: Usuario + Crédito */}
         <Grid size={{ xs: 12, md: 7 }}>
-          <Paper elevation={0} sx={{ p: 1.5, borderRadius: 1.5, border: "1px solid", borderColor: "divider", height: "100%" }}>
+          <Paper data-tour="credit-user-details" elevation={0} sx={{ p: 1.5, borderRadius: 1.5, border: "1px solid", borderColor: "divider", height: "100%" }}>
             <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1 }}>
               <Stack direction="row" alignItems="center" spacing={0.5}>
                 <CalendarToday sx={{ fontSize: 16, color: "primary.main" }} />
@@ -477,6 +478,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
         {/* Columna derecha: resumen financiero */}
         <Grid size={{ xs: 12, md: 5 }}>
           <Paper
+            data-tour="credit-user-financial"
             elevation={0}
             sx={{
               p: { xs: 1.5, sm: 2 },
@@ -551,6 +553,7 @@ const CreditDetailModule: React.FC<CreditDetailModuleProps> = ({
         {/* Historial - Ocupa todo el ancho */}
         <Grid size={{ xs: 12 }}>
           <Paper
+            data-tour="credit-user-table"
             elevation={0}
             sx={{
               p: 1.5,

@@ -542,32 +542,34 @@ const UserManagementModule = () => {
 
   return (
     <Grid container spacing={3}>
-      <Grid size={{ xs: 12, md: 4 }}>
-        <ModuleStatCard
-          label="Usuarios activos"
-          value={activeUsersCount}
-          subtitle="Asociados con estado activo"
-          icon={<IconUsersGroup size={20} />}
-          color="#3b82f6"
-        />
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-        <ModuleStatCard
-          label="Usuarios registrados"
-          value={users.length}
-          subtitle="Total en el sistema"
-          icon={<IconUserPlus size={20} />}
-          color="#10b981"
-        />
-      </Grid>
-      <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-        <ModuleStatCard
-          label="Resultados visibles"
-          value={filteredUsers.length}
-          subtitle="Según los filtros actuales"
-          icon={<IconSearch size={20} />}
-          color="#8b5cf6"
-        />
+      <Grid container size={{ xs: 12 }} spacing={3} data-tour="users-stats">
+        <Grid size={{ xs: 12, md: 4 }}>
+          <ModuleStatCard
+            label="Usuarios activos"
+            value={activeUsersCount}
+            subtitle="Asociados con estado activo"
+            icon={<IconUsersGroup size={20} />}
+            color="#3b82f6"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <ModuleStatCard
+            label="Usuarios registrados"
+            value={users.length}
+            subtitle="Total en el sistema"
+            icon={<IconUserPlus size={20} />}
+            color="#10b981"
+          />
+        </Grid>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+          <ModuleStatCard
+            label="Resultados visibles"
+            value={filteredUsers.length}
+            subtitle="Según los filtros actuales"
+            icon={<IconSearch size={20} />}
+            color="#8b5cf6"
+          />
+        </Grid>
       </Grid>
 
       <Grid  size={{ xs: 12 }}>
@@ -598,7 +600,7 @@ const UserManagementModule = () => {
                 </Button>
               </Box>
             </Grid>
-            <Grid  size={{ xs: 12, md: 6 }}>
+            <Grid size={{ xs: 12, md: 6 }} data-tour="users-search">
               {/* Filtro por nombre */}
               <TextField
                 label="Buscar por nombres o ID"
@@ -613,7 +615,7 @@ const UserManagementModule = () => {
               />
             </Grid>
 
-            <Grid  size={{ xs: 12, md: 6 }}>
+            <Grid size={{ xs: 12, md: 6 }} data-tour="users-status-filter">
               {/* Filtro por estado */}
               <FormControl fullWidth>
                 <InputLabel id="estado-label">Filtrar por estado</InputLabel>
@@ -665,19 +667,20 @@ const UserManagementModule = () => {
                 >
                   {loadingLoans ? 'Actualizando...' : 'Actualizar Préstamos'}
                 </Button>
-                <Button variant="contained" onClick={() => handleOpenModal()} startIcon={<IconUserPlus size={18} />}>
+                <Button data-tour="create-user-btn" variant="contained" onClick={() => handleOpenModal()} startIcon={<IconUserPlus size={18} />}>
                   Nuevo usuario
                 </Button>
               </Box>
             </Box>
 
-            <StyledTable
-              columns={[
-                { field: "id", headerName: "ID", width: 70 },
-                { field: "idAsociado.nombres", headerName: "Nombres", width: 150 },
-                { field: "correoElectronico", headerName: "Correo", width: 180 },
-                { field: "roles", headerName: "Rol", width: 150 },
-                { field: "estado", headerName: "Estado", width: 120 },
+            <Box data-tour="users-table">
+              <StyledTable
+                columns={[
+                  { field: "id", headerName: "ID", width: 70 },
+                  { field: "idAsociado.nombres", headerName: "Nombres", width: 150 },
+                  { field: "correoElectronico", headerName: "Correo", width: 180 },
+                  { field: "roles", headerName: "Rol", width: 150 },
+                  { field: "estado", headerName: "Estado", width: 120 },
                 { field: "prestamos", headerName: "Préstamos", width: 130 },
                 { field: "acciones", headerName: "Acciones", width: 200 },
               ]}
@@ -728,7 +731,7 @@ const UserManagementModule = () => {
                     );
                   case "acciones":
                     return (
-                      <Box sx={{ display: "flex", justifyContent: "center", minWidth: 88 }}>
+                      <Box data-tour="users-table-actions" sx={{ display: "flex", justifyContent: "center", minWidth: 88 }}>
                         <Tooltip title="Abrir acciones del usuario">
                           <IconButton
                           onClick={(event) => handleOpenActions(event, user)}
@@ -753,6 +756,7 @@ const UserManagementModule = () => {
                 }
               }}
             />
+            </Box>
 
             <Menu
               anchorEl={actionsAnchor}

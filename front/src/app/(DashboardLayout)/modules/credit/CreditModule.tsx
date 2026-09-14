@@ -77,7 +77,10 @@ import {
   IconListDetails,
   IconCalculator,
   IconCircleCheckFilled,
+  IconTimeline,
 } from "@tabler/icons-react";
+import { driver } from "driver.js";
+import { CREDIT_WORKFLOW_TOUR } from "@/config/tours";
 import { creditsService } from "@/services/creditRequestService";
 import { userService } from "@/services/userService";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
@@ -176,6 +179,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const [openModifyModal, setOpenModifyModal] = useState(false);
   const [openApproveModal, setOpenApproveModal] = useState(false);
   const [openReportModal, setOpenReportModal] = useState(false);
+  const [openWorkflowModal, setOpenWorkflowModal] = useState(false);
   const [userInfo, setUserInfo] = useState<Asociado>({
     id: 0,
     nombres: "",
@@ -199,6 +203,25 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
     const fechaB = b.fechaCredito ? new Date(b.fechaCredito).getTime() : 0;
     return fechaB - fechaA;
   });
+
+  const handleStartWorkflowTour = () => {
+    setOpenWorkflowModal(false);
+    const driverObj = driver({
+      showProgress: true,
+      animate: true,
+      allowClose: true,
+      overlayColor: "rgba(15, 23, 42, 0.65)",
+      nextBtnText: "Siguiente →",
+      prevBtnText: "← Anterior",
+      doneBtnText: "¡Entendido!",
+      progressText: "Paso {{current}} de {{total}}",
+      popoverClass: "driverjs-theme-coopinsi",
+      steps: CREDIT_WORKFLOW_TOUR.steps,
+    });
+    setTimeout(() => {
+      driverObj.drive();
+    }, 150);
+  };
 
   const loadCredits = useCallback(async () => {
     setRefreshing(true);
@@ -1266,21 +1289,33 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
       {/* Header para admin */}
       {userId === 0 && (
         <Box sx={{ mb: 3 }}>
-          <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
-            <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>
-              <IconCash size={22} color="white" />
-            </Avatar>
-            <Box>
-              <Typography variant="h5" fontWeight={700}>
-                Gestión de Créditos
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Administra las solicitudes y créditos aprobados del sistema
-              </Typography>
-            </Box>
+          <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }} flexWrap="wrap" gap={1}>
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Avatar sx={{ bgcolor: "primary.main", width: 40, height: 40 }}>
+                <IconCash size={22} color="white" />
+              </Avatar>
+              <Box>
+                <Typography variant="h5" fontWeight={700}>
+                  Gestión de Créditos
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Administra las solicitudes y créditos aprobados del sistema
+                </Typography>
+              </Box>
+            </Stack>
+            <Button
+              variant="outlined"
+              color="primary"
+              size="small"
+              startIcon={<IconTimeline size={18} />}
+              onClick={() => setOpenWorkflowModal(true)}
+              sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600, background: "#fff" }}
+            >
+              Explicación del Proceso
+            </Button>
           </Stack>
 
-          <Grid container spacing={2}>
+          <Grid container spacing={2} data-tour="credit-stats">
             <Grid size={{ xs: 12, sm: 3 }}>
               <ModuleStatCard
                 label="Solicitudes pendientes"
@@ -1325,7 +1360,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
       {/* Header para usuario específico */}
       {userId > 0 && (
-        <Grid container spacing={2} alignItems="flex-start" sx={{ mb: 2 }}>
+        <Grid container spacing={2} alignItems="flex-start" sx={{ mb: 2 }} data-tour="credit-stats">
           <Grid size={{ xs: 12, md: 8 }}>
             <UserCard id={userId} userInfo={userInfo} />
           </Grid>
@@ -1363,6 +1398,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
               </Box>
               <Suspense fallback={<Skeleton variant="rectangular" width="100%" height={40} />}>
                 <Button
+                  data-tour="new-credit-btn"
                   variant="contained"
                   color="primary"
                   size="medium"
@@ -1380,6 +1416,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
       {/* Filtros */}
       <Paper
+        data-tour="credit-search"
         elevation={0}
         sx={{
           p: 2,
@@ -1413,6 +1450,15 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
               disabled={refreshing}
             >
               {refreshing ? "Actualizando..." : "Actualizar"}
+            </Button>
+            <Button
+              size="small"
+              variant="outlined"
+              color="info"
+              startIcon={<IconTimeline size={16} />}
+              onClick={() => setOpenWorkflowModal(true)}
+            >
+              Proceso del crédito
             </Button>
             {userId === 0 && isUserAdmin && (
               <Button
@@ -1491,6 +1537,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
 
       {/* Tabla */}
       <Paper
+        data-tour="credit-table"
         elevation={0}
         sx={{
           p: 2,
@@ -1524,7 +1571,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
             }}
             rowSx={(row) => getRowStyle(row)}
             actions={(row: any) => (
-              <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
+              <Box data-tour="credit-table-actions" sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
                 {isUserAdmin && (
                   <Tooltip title="Editar" arrow>
                     <IconButton
@@ -1898,6 +1945,141 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
           </Button>
           <Button variant="contained" color="primary" startIcon={<IconFileDownload size={16} />} onClick={handleExportToExcel}>
             Exportar a Excel
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de Flujo / Ciclo de Vida del Crédito */}
+      <Dialog
+        open={openWorkflowModal}
+        onClose={() => setOpenWorkflowModal(false)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", pb: 1 }}>
+          <Stack direction="row" alignItems="center" spacing={1.5}>
+            <Avatar sx={{ bgcolor: "primary.main", width: 38, height: 38 }}>
+              <IconTimeline size={22} color="white" />
+            </Avatar>
+            <Box>
+              <Typography variant="h6" fontWeight={700}>
+                Ciclo de Vida de un Préstamo
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Conoce las 4 etapas del proceso de créditos en la cooperativa
+              </Typography>
+            </Box>
+          </Stack>
+          <IconButton onClick={() => setOpenWorkflowModal(false)} size="small">
+            <IconX size={20} />
+          </IconButton>
+        </DialogTitle>
+        <Divider />
+        <DialogContent sx={{ py: 3 }}>
+          <Grid container spacing={2}>
+            {/* Etapa 1 */}
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: 2.5,
+                  border: "1px solid #f59e0b",
+                  bgcolor: "#fffbe6",
+                  height: "100%",
+                }}
+              >
+                <Chip label="Paso 1" size="small" color="warning" sx={{ fontWeight: 700, mb: 1 }} />
+                <Typography variant="subtitle2" fontWeight={800} color="#b45309" gutterBottom>
+                  📝 Solicitud (SOLICITADO)
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ lineHeight: 1.4 }}>
+                  El asociado o administrador radica la solicitud ingresando el <strong>monto deseado</strong>, <strong>plazo en meses</strong>, la <strong>tasa de interés vigente</strong> y el <strong>seguro de protección de cartera</strong>.
+                </Typography>
+              </Paper>
+            </Grid>
+
+            {/* Etapa 2 */}
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: 2.5,
+                  border: "1px solid #10b981",
+                  bgcolor: "#f0fdf4",
+                  height: "100%",
+                }}
+              >
+                <Chip label="Paso 2" size="small" color="success" sx={{ fontWeight: 700, mb: 1 }} />
+                <Typography variant="subtitle2" fontWeight={800} color="#047857" gutterBottom>
+                  🔍 Aprobación (APROBADO)
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ lineHeight: 1.4 }}>
+                  La administración evalúa el cupo y la capacidad de pago. Al aprobar, el estado pasa a <strong>APROBADO</strong>, se registra la fecha de desembolso y se genera automáticamente la <strong>tabla de cuotas</strong>.
+                </Typography>
+              </Paper>
+            </Grid>
+
+            {/* Etapa 3 */}
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: 2.5,
+                  border: "1px solid #3b82f6",
+                  bgcolor: "#eff6ff",
+                  height: "100%",
+                }}
+              >
+                <Chip label="Paso 3" size="small" color="info" sx={{ fontWeight: 700, mb: 1 }} />
+                <Typography variant="subtitle2" fontWeight={800} color="#1d4ed8" gutterBottom>
+                  💳 Amortización y Pagos
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ lineHeight: 1.4 }}>
+                  Cada mes se realizan abonos a las cuotas. Cada pago desglosa: <strong>Capital</strong>, <strong>Interés Corriente</strong>, <strong>Protección de Cartera</strong> e <strong>Interés de Mora</strong> si hay retrasos.
+                </Typography>
+              </Paper>
+            </Grid>
+
+            {/* Etapa 4 */}
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  borderRadius: 2.5,
+                  border: "1px solid #8b5cf6",
+                  bgcolor: "#f5f3ff",
+                  height: "100%",
+                }}
+              >
+                <Chip label="Paso 4" size="small" color="secondary" sx={{ fontWeight: 700, mb: 1 }} />
+                <Typography variant="subtitle2" fontWeight={800} color="#6d28d9" gutterBottom>
+                  🏁 Cierre (FINALIZADO)
+                </Typography>
+                <Typography variant="caption" color="text.secondary" display="block" sx={{ lineHeight: 1.4 }}>
+                  Una vez pagado el 100% de la obligación o ejecutado el cierre, el estado pasa a <strong>FINALIZADO</strong>. El crédito se archiva en el historial y se puede expedir certificado Paz y Salvo.
+                </Typography>
+              </Paper>
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ p: 2, justifyContent: "space-between" }}>
+          <Button onClick={() => setOpenWorkflowModal(false)} color="inherit">
+            Cerrar
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<IconTimeline size={18} />}
+            onClick={handleStartWorkflowTour}
+            sx={{ borderRadius: 2, textTransform: "none", fontWeight: 600 }}
+          >
+            Iniciar Tour Interactivo del Proceso
           </Button>
         </DialogActions>
       </Dialog>

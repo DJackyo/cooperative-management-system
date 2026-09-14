@@ -50,6 +50,7 @@ const UserCreditPage = () => {
   return (
     <Box>
       <PageHeader
+        dataTour="credit-user-header"
         title="Mis Créditos"
         subtitle="Consulta el detalle y estado de tus créditos"
         icon={<IconListDetails size={22} />}
