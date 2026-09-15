@@ -1,4 +1,4 @@
-import { Column, Entity, Index, JoinColumn, ManyToOne } from "typeorm";
+import { Column, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Asociados } from "./Asociados";
 import { AsocTiposFamiliares } from "./AsocTiposFamiliares";
 

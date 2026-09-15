@@ -1,10 +1,10 @@
-import { Column, Entity, Index, JoinColumn, OneToOne } from "typeorm";
+import { Column, Entity, Index, JoinColumn, OneToOne, PrimaryColumn } from "typeorm";
 import { Asociados } from "./Asociados";
 
 @Index("asistencia_asamblea_pkey", ["idAsociado"], { unique: true })
 @Entity("asoc_asistencia_asamblea", { schema: "public" })
 export class AsocAsistenciaAsamblea {
-  @Column("integer", { primary: true, name: "id_asociado" })
+  @PrimaryColumn("integer", { name: "id_asociado" })
   idAsociado: number;
 
   @Column("timestamp without time zone", { name: "fecha", nullable: true })

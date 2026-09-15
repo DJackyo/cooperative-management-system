@@ -1,10 +1,10 @@
-import { Column, Entity, Index, JoinColumn, OneToOne } from "typeorm";
+import { Column, Entity, Index, JoinColumn, OneToOne, PrimaryColumn } from "typeorm";
 import { Asociados } from "./Asociados";
 
 @Index("contactos_pkey", ["idAsociado"], { unique: true })
 @Entity("asoc_contactos", { schema: "public" })
 export class AsocContactos {
-  @Column("integer", { primary: true, name: "id_asociado" })
+  @PrimaryColumn("integer", { name: "id_asociado" })
   idAsociado: number;
 
   @Column("character varying", {

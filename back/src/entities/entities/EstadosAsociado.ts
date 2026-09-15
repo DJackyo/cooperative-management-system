@@ -1,10 +1,10 @@
-import { Column, Entity, Index, OneToMany } from "typeorm";
+import { Column, Entity, Index, OneToMany, PrimaryColumn } from "typeorm";
 import { Asociados } from "./Asociados";
 
 @Index("estados_asociado_pk", ["id"], { unique: true })
 @Entity("estados_asociado", { schema: "public" })
 export class EstadosAsociado {
-  @Column("integer", { primary: true, name: "id" })
+  @PrimaryColumn("integer", { name: "id" })
   id: number;
 
   @Column("character varying", { name: "estado", nullable: true })

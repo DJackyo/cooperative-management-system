@@ -118,8 +118,18 @@ export class AsociadosService {
     const relation = { idAsociado: id };
     const saveRelation = async (repository: Repository<any>, data: any) => {
       if (!data) return;
+      const cleanData = { ...data };
+      delete cleanData.id;
+      delete cleanData.idAsociado;
+      delete cleanData.idAsociado2;
       const current = await repository.findOne({ where: relation });
-      await repository.save(repository.create({ ...current, ...data, ...relation }));
+      if (current) {
+        if (Object.keys(cleanData).length > 0) {
+          await repository.update(relation, cleanData);
+        }
+      } else {
+        await repository.save(repository.create({ ...cleanData, ...relation }));
+      }
     };
 
     await saveRelation(this.contactosRepository, profile.contactos);
@@ -146,6 +156,21 @@ export class AsociadosService {
     await saveRelation(this.asistenciaRepository, asistencia);
 
     if (Array.isArray(profile.familiares)) {
+      const existing = await this.familiarRepository.find({
+        where: { idAsociado: { id } },
+      });
+      const keptIds = profile.familiares.map((f: any) => f.id).filter(Boolean);
+      const toRemove = existing.filter((f: any) => !keptIds.includes(f.id));
+      if (toRemove.length > 0) {
+        await this.familiarRepository.remove(toRemove);
+      }
+
+      const maxRes = await this.familiarRepository
+        .createQueryBuilder('f')
+        .select('MAX(f.id)', 'max')
+        .getRawOne();
+      let nextId = (Number(maxRes?.max) || 0) + 1;
+
       for (const familiar of profile.familiares) {
         const familiarData = { ...familiar };
         delete familiarData.tipoFamiliar;
@@ -153,11 +178,15 @@ export class AsociadosService {
         if (familiar.tipoFamiliarId) {
           familiarData.tipoFamiliar = { id: familiar.tipoFamiliarId };
         }
+        if (familiarData.numeroDeIdentificacion !== undefined) {
+          const cleanNum = String(familiarData.numeroDeIdentificacion || '').replace(/\D/g, '');
+          familiarData.numeroDeIdentificacion = cleanNum || null;
+        }
         if (familiar.id) {
           await this.familiarRepository.save({ ...familiarData, idAsociado: asociado });
         } else {
           await this.familiarRepository.save(
-            this.familiarRepository.create({ ...familiarData, idAsociado: asociado }),
+            this.familiarRepository.create({ ...familiarData, id: nextId++, idAsociado: asociado }),
           );
         }
       }
