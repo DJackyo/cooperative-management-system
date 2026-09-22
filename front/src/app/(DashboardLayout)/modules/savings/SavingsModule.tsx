@@ -176,7 +176,29 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     return stabilizedThis.map((el) => el[0]);
   };
 
-  const sortedTransactions = stableSort(savings, getComparator(order, orderBy));
+  // Ordena el historial de aportes por fecha de aporte real (por defecto: más reciente primero)
+  const sortedTransactions = React.useMemo(() => {
+    const comparator =
+      orderBy === "fechaAporte"
+        ? (a: Aporte, b: Aporte) => {
+            const timeA = a.fechaAporte ? new Date(a.fechaAporte).getTime() : 0;
+            const timeB = b.fechaAporte ? new Date(b.fechaAporte).getTime() : 0;
+            const safeTimeA = Number.isNaN(timeA) ? 0 : timeA;
+            const safeTimeB = Number.isNaN(timeB) ? 0 : timeB;
+
+            if (safeTimeA === safeTimeB) {
+              // Desempate por id para respetar el registro más reciente
+              const idA = Number(a.id) || 0;
+              const idB = Number(b.id) || 0;
+              return order === "desc" ? idB - idA : idA - idB;
+            }
+
+            return order === "desc" ? safeTimeB - safeTimeA : safeTimeA - safeTimeB;
+          }
+        : getComparator(order, orderBy);
+
+    return stableSort(savings, comparator);
+  }, [savings, order, orderBy]);
 
   // Filtrar transacciones por fechas
   const filteredTransactions = sortedTransactions.filter((transaction) => {
@@ -238,6 +260,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     const isAsc = orderBy === property && order === "asc";
     setOrder(isAsc ? "desc" : "asc");
     setOrderBy(property);
+    setPage(0); // Volver a la primera página al cambiar el orden
   };
 
   const clearAporteFilters = () => {
@@ -688,6 +711,9 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                 exportRows={filteredTransactions}
                 exportFilename="historial_aportes"
                 exportSheetName="Aportes"
+                sortField={orderBy}
+                sortDirection={order}
+                onRequestSort={handleRequestSort}
                 renderCell={(column, row, index) => {
                   if (column.field === "fechaAporte") {
                     return (
