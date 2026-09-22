@@ -29,6 +29,10 @@ interface StyledTableProps {
   exportRows?: any[];
   exportFilename?: string;
   exportSheetName?: string;
+  // Ordenamiento controlado por el componente padre (opcional)
+  sortField?: string | null;
+  sortDirection?: SortOrder;
+  onRequestSort?: (field: string) => void;
 }
 
 type SortOrder = 'asc' | 'desc';
@@ -49,13 +53,25 @@ const StyledTable: React.FC<StyledTableProps> = ({
   exportRows,
   exportFilename = 'tabla',
   exportSheetName = 'Datos',
+  sortField = null,
+  sortDirection = 'asc',
+  onRequestSort,
 }) => {
   const [orderBy, setOrderBy] = useState<string | null>(null);
   const [order, setOrder] = useState<SortOrder>('asc');
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(initialPageSize);
 
+  // Cuando el padre controla el orden, la tabla no ordena internamente
+  const isSortControlled = !!onRequestSort;
+  const activeSortField = isSortControlled ? sortField : orderBy;
+  const activeSortDirection = isSortControlled ? sortDirection : order;
+
   const handleRequestSort = (field: string) => {
+    if (onRequestSort) {
+      onRequestSort(field);
+      return;
+    }
     const isAsc = orderBy === field && order === 'asc';
     const newOrder: SortOrder = isAsc ? 'desc' : 'asc';
     setOrder(newOrder);
@@ -77,7 +93,8 @@ const StyledTable: React.FC<StyledTableProps> = ({
   };
 
   const sortedAllRows = React.useMemo(() => {
-    if (!orderBy) return rows;
+    // Si el orden es controlado por el padre, las filas ya vienen ordenadas
+    if (isSortControlled || !orderBy) return rows;
 
     const sorted = [...rows].sort((a, b) => {
       const aValue = getNestedValue(a, orderBy);
@@ -112,7 +129,7 @@ const StyledTable: React.FC<StyledTableProps> = ({
     });
 
     return sorted;
-  }, [rows, orderBy, order]);
+  }, [rows, orderBy, order, isSortControlled]);
 
   // Aplicar paginación si está habilitada
   const rowsToDisplay = React.useMemo(() => {
@@ -186,8 +203,8 @@ const StyledTable: React.FC<StyledTableProps> = ({
               >
                 {column.sortable !== false ? (
                   <TableSortLabel
-                    active={orderBy === column.field}
-                    direction={orderBy === column.field ? order : 'asc'}
+                    active={activeSortField === column.field}
+                    direction={activeSortField === column.field ? activeSortDirection : 'asc'}
                     onClick={() => handleRequestSort(column.field)}
                   >
                     {column.headerName}
