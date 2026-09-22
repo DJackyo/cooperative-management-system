@@ -44,10 +44,11 @@ export class AsocAportesAsociadosService {
     return this.AsocAportesAsociadosRepository.save(aporte);
   }
 
-  // Obtener todos los aportes
+  // Obtener todos los aportes (ordenados por fecha de aporte más reciente)
   async findAll(): Promise<AsocAportesAsociados[]> {
     return this.AsocAportesAsociadosRepository.find({
       relations: ['idAsociado'],
+      order: { fechaAporte: 'DESC', id: 'DESC' },
     });
   }
 
@@ -114,8 +115,11 @@ export class AsocAportesAsociadosService {
         });
     }
 
-    // Obtener los datos de la base de datos
-    const aportes = await queryBuilder.getMany();
+    // Obtener los datos de la base de datos ordenados por fecha de aporte más reciente
+    const aportes = await queryBuilder
+      .orderBy('aporte.fechaAporte', 'DESC')
+      .addOrderBy('aporte.id', 'DESC')
+      .getMany();
 
     // Personalización de los datos antes de enviarlos
     const response = aportes.map((aporte) => ({
