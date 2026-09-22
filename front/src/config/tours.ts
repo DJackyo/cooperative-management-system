@@ -175,6 +175,15 @@ export const PAGE_TOURS: Record<string, TourConfig> = {
         },
       },
       {
+        element: '[data-tour="new-bulk-savings-btn"]',
+        popover: {
+          title: "Ahorros por año o rango de fechas",
+          description: "Registra el ahorro de uno o varios asociados por año completo o por rango de fechas, asignando un valor independiente a cada mes (siempre el día 1).",
+          side: "bottom",
+          align: "end",
+        },
+      },
+      {
         element: '[data-tour="new-aporte-btn"]',
         popover: {
           title: "Registrar Aporte",

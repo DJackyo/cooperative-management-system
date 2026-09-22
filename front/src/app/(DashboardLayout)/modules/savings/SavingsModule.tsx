@@ -48,9 +48,11 @@ import {
   IconSearch,
   IconRefresh,
   IconX,
+  IconCalendarMonth,
 } from "@tabler/icons-react";
 import AporteModal from "./components/AporteModal";
 import BulkAporteModal from "./components/BulkAporteModal";
+import BulkSavingsModal from "./components/BulkSavingsModal";
 import StatusChip from "@/components/StatusChip";
 import {
   defaultLoggedUser,
@@ -116,6 +118,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const [selectedRow, setSelectedRow] = useState<any>(defaultAporteValue);
   const [receiptModalOpen, setModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkSavingsModalOpen, setBulkSavingsModalOpen] = useState(false);
 
   // Reference to the loadSavings function so it can be called from callbacks
   const loadSavingsRef = useRef<() => Promise<void>>(async () => Promise.resolve());
@@ -467,6 +470,16 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   {loading ? "Actualizando..." : "Actualizar"}
                 </Button>
                 <Button
+                  data-tour="new-bulk-savings-btn"
+                  variant="outlined"
+                  color="primary"
+                  size="small"
+                  onClick={() => setBulkSavingsModalOpen(true)}
+                  startIcon={<IconCalendarMonth size={17} />}
+                >
+                  Ahorros por año
+                </Button>
+                <Button
                   data-tour="new-aporte-btn"
                   variant="contained"
                   color="primary"
@@ -596,6 +609,16 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
           }}
           allUsers={allUsers}
         />
+        {/* Modal de Ahorros por Año o Rango de Fechas */}
+        <BulkSavingsModal
+          open={bulkSavingsModalOpen}
+          onClose={() => setBulkSavingsModalOpen(false)}
+          onSuccess={() => {
+            loadSavings();
+          }}
+          allUsers={allUsers}
+          currentUserId={currentUser.userId}
+        />
       </Grid>
     );
   }
@@ -692,15 +715,25 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
             title="Historial de aportes"
             subtitle={`${filteredTransactions.length} resultado${filteredTransactions.length === 1 ? '' : 's'} de ${savings.length}`}
             action={
-              <Button
-                data-tour="new-aporte-btn"
-                variant="outlined"
-                color="secondary"
-                onClick={handleCreateAporteClick}
-                startIcon={<IconUserDollar />}
-              >
-                Registrar Aporte
-              </Button>
+              <Box display="flex" gap={1} flexWrap="wrap">
+                {/* <Button
+                  variant="outlined"
+                  color="primary"
+                  onClick={() => setBulkSavingsModalOpen(true)}
+                  startIcon={<IconCalendarMonth size={17} />}
+                >
+                  Ahorros por año
+                </Button> */}
+                <Button
+                  data-tour="new-aporte-btn"
+                  variant="outlined"
+                  color="secondary"
+                  onClick={handleCreateAporteClick}
+                  startIcon={<IconUserDollar />}
+                >
+                  Registrar Aporte
+                </Button>
+              </Box>
             }
           >
             <Box data-tour="savings-table">
@@ -857,6 +890,17 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
           loadSavings();
         }}
         allUsers={allUsers}
+      />
+      {/* Modal de Ahorros por Año o Rango de Fechas (asociado preseleccionado) */}
+      <BulkSavingsModal
+        open={bulkSavingsModalOpen}
+        onClose={() => setBulkSavingsModalOpen(false)}
+        onSuccess={() => {
+          loadSavings();
+        }}
+        allUsers={allUsers}
+        initialUserId={id}
+        currentUserId={currentUser.userId}
       />
     </LocalizationProvider>
   );
