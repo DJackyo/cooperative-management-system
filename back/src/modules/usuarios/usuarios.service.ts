@@ -6,6 +6,7 @@ import { Asociados } from '../../entities/entities/Asociados';
 import { CreateUsuarioDto } from './dto/create-usuario.dto';
 import { UpdateUsuarioDto } from './dto/update-usuario.dto';
 import { Prestamos } from '../../entities/entities/Prestamos';
+import { EstadosAsociado } from '../../entities/entities/EstadosAsociado';
 
 @Injectable()
 export class UsuariosService {
@@ -16,6 +17,8 @@ export class UsuariosService {
     private prestamosRepository: Repository<Prestamos>,
     @InjectRepository(Asociados)
     private asociadosRepository: Repository<Asociados>,
+    @InjectRepository(EstadosAsociado)
+    private estadosAsociadoRepository: Repository<EstadosAsociado>,
   ) { }
 
   async create(createUsuarioDto: CreateUsuarioDto): Promise<Usuarios> {
@@ -80,8 +83,14 @@ export class UsuariosService {
       throw new BadRequestException('El usuario no tiene un asociado relacionado');
     }
 
+    // Se resuelve el id del estado INACTIVO desde la tabla estados_asociado para
+    // no depender de ids hardcodeados (antes se asignaba el 2, que es RETIRADO).
+    const estadoInactivo = await this.estadosAsociadoRepository.findOne({
+      where: { estado: 'INACTIVO' },
+    });
+
     await this.asociadosRepository.update(usuario.idAsociado.id, {
-      idEstado: { id: 2 },
+      idEstado: { id: estadoInactivo?.id ?? 5 },
     });
 
     return this.findOne(id);

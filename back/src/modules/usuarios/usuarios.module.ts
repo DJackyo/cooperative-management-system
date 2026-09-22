@@ -5,9 +5,17 @@ import { UsuariosController } from './usuarios.controller';
 import { Usuarios } from '../../entities/entities/Usuarios';
 import { Prestamos } from '../../entities/entities/Prestamos';
 import { Asociados } from '../../entities/entities/Asociados';
+import { EstadosAsociado } from '../../entities/entities/EstadosAsociado';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Usuarios, Prestamos, Asociados])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Usuarios,
+      Prestamos,
+      Asociados,
+      EstadosAsociado,
+    ]),
+  ],
   providers: [UsuariosService],
   controllers: [UsuariosController],
   exports: [UsuariosService],
