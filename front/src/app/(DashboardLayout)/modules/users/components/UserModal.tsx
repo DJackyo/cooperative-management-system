@@ -1,6 +1,12 @@
 import React from "react";
 import { Alert, Box, Modal, Typography, TextField, Select, MenuItem, Button, Grid, Divider, CircularProgress } from "@mui/material";
-import { User } from "@/interfaces/User";
+import { Estado, User } from "@/interfaces/User";
+import {
+  defaultEstadosAsociado,
+  formatEstadoAsociadoLabel,
+  getEstadoAsociadoId,
+  sortEstadosAsociado,
+} from "../../../utilities/EstadosAsociadoUtils";
 
 type UserModalProps = {
   open: boolean;
@@ -11,9 +17,15 @@ type UserModalProps = {
   editingUser: boolean;
   formError?: string | null;
   submitting?: boolean;
+  estados?: Estado[];
 };
 
-const UserModal: React.FC<UserModalProps> = ({ open, onClose, formData, onChange, onSubmit, editingUser, formError, submitting = false }) => {
+const UserModal: React.FC<UserModalProps> = ({ open, onClose, formData, onChange, onSubmit, editingUser, formError, submitting = false, estados }) => {
+  // Estados reales cargados desde /estados-asociado (con respaldo local)
+  const estadoOptions = sortEstadosAsociado(
+    estados && estados.length > 0 ? estados : defaultEstadosAsociado
+  );
+
   return (
     <Modal open={open} onClose={onClose}>
       <Box
@@ -121,32 +133,28 @@ const UserModal: React.FC<UserModalProps> = ({ open, onClose, formData, onChange
                 select
                 label="Estado Asociado"
                 margin="normal"
-                value={formData.idAsociado.idEstado.estado}
+                value={(formData.idAsociado.idEstado?.estado || "ACTIVO").toUpperCase()}
                 onChange={(e) => {
-                  const estado = e.target.value as string;
-                  // map estado to id same as options
-                  const idMap: Record<string, number> = {
-                    ACTIVO: 1,
-                    INACTIVO: 2,
-                    EXASOCIADO: 3,
-                    RETIRADO: 4,
-                    RSD: 5,
-                    EXCLUIDO: 6,
-                  };
+                  const estado = (e.target.value as string).toUpperCase();
                   onChange({
                     target: {
                       name: "idAsociado.idEstado",
-                      value: { id: idMap[estado] || 0, estado },
+                      value: {
+                        id: getEstadoAsociadoId(estado, estadoOptions) ?? 1,
+                        estado,
+                      },
                     },
                   } as any);
                 }}
               >
-                <MenuItem value="ACTIVO">Activo</MenuItem>
-                <MenuItem value="INACTIVO">Inactivo</MenuItem>
-                <MenuItem value="EXASOCIADO">Exasociado</MenuItem>
-                <MenuItem value="RETIRADO">Retirado</MenuItem>
-                <MenuItem value="RSD">RSD</MenuItem>
-                <MenuItem value="EXCLUIDO">Excluido</MenuItem>
+                {estadoOptions.map((item) => {
+                  const value = (item.estado || "").toUpperCase();
+                  return (
+                    <MenuItem key={item.id} value={value}>
+                      {formatEstadoAsociadoLabel(value)}
+                    </MenuItem>
+                  );
+                })}
               </TextField>
             </Grid>
             <Grid size={{ xs: 12, md: 4 }}>

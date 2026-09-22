@@ -33,9 +33,10 @@ import {
 import Chip from "@mui/material/Chip";
 import StatusChip from "@/components/StatusChip";
 
-import { LoggedUser, User, Asociado } from "@/interfaces/User";
+import { LoggedUser, User, Asociado, Estado } from "@/interfaces/User";
 import { userService } from "@/services/userService";
 import { asociadosService } from "@/services/asociadosService";
+import { estadosAsociadoService } from "@/services/estadosAsociadoService";
 import UserModal from "./components/UserModal";
 import AsociadoPerfilModal from "./components/AsociadoPerfilModal";
 import AsistenciaAsambleaModal from "./components/AsistenciaAsambleaModal";
@@ -69,6 +70,11 @@ import {
 } from "@tabler/icons-react";
 import { authService } from "@/app/authentication/services/authService";
 import { defaultAporteValue } from "../../utilities/AportesUtils";
+import {
+  defaultEstadosAsociado,
+  getEstadoAsociadoId,
+  sortEstadosAsociado,
+} from "../../utilities/EstadosAsociadoUtils";
 import { defaultLoggedUser } from "../../utilities/utils";
 import { Aporte } from "@/interfaces/Aporte";
 import AporteModal from "../savings/components/AporteModal";
@@ -135,6 +141,8 @@ const UserManagementModule = () => {
   const [creditTasas, setCreditTasas] = useState<any[]>([]);
   const [creditUserInfo, setCreditUserInfo] = useState<Asociado | null>(null);
   const [submittingUser, setSubmittingUser] = useState(false);
+  // Estados del asociado (1 = ACTIVO ... 5 = INACTIVO) cargados desde la API
+  const [estadosList, setEstadosList] = useState<Estado[]>(defaultEstadosAsociado);
 
   const refreshUsersWithLoans = async () => {
     setLoadingLoans(true);
@@ -179,6 +187,26 @@ const UserManagementModule = () => {
 
     loadUsers();
   }, [router]);
+
+  // Cargar los estados del asociado reales para los selects de los modales
+  useEffect(() => {
+    let isMounted = true;
+
+    estadosAsociadoService
+      .fetchAll()
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setEstadosList(sortEstadosAsociado(data));
+        }
+      })
+      .catch((error) => {
+        console.error("Error al cargar los estados del asociado:", error);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredUsers = users?.filter((user: User) => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -255,6 +283,8 @@ const UserManagementModule = () => {
       setEditingUser(editableUser);
       setFormData({
         ...editableUser,
+        // Se conservan los campos derivados de la lista (por ej. `nombres`)
+        idAsociado: { ...user.idAsociado, ...editableUser.idAsociado },
       });
     } else {
       setEditingUser(null);
@@ -360,8 +390,14 @@ const UserManagementModule = () => {
 
         if (editingUser && editingUser.id) {
           if (formData.idAsociado && formData.idAsociado.id) {
-            const { id: asociadoId, idEstado: _idEstado, ...asociadoData } = formData.idAsociado;
-            await asociadosService.update(asociadoId, asociadoData as any);
+            // El estado se envía como id numérico; antes se descartaba y por eso
+            // el cambio de estado nunca se guardaba.
+            const { id: asociadoId, idEstado, ...asociadoData } = formData.idAsociado;
+            const idEstadoId = getEstadoAsociadoId(idEstado, estadosList);
+            await asociadosService.update(asociadoId, {
+              ...asociadoData,
+              ...(idEstadoId ? { idEstado: idEstadoId } : {}),
+            } as any);
           }
           const userData = {
             correoElectronico: formData.correoElectronico,
@@ -381,8 +417,13 @@ const UserManagementModule = () => {
           const userPayload = { ...formData, idAsociado: asociadoPayload, username: formData.correoElectronico };
           await userService.create(userPayload as any);
         }
-        const usersData: any = await userService.fetchAll();
+        const usersData = await userService.fetchAllWithLoans();
         setUsers(usersData);
+        setActiveUsersCount(
+          (usersData || []).filter(
+            (user: User) => user.idAsociado?.idEstado?.estado === "ACTIVO"
+          ).length
+        );
         handleCloseModal();
       } catch (error: any) {
         console.error("Error al guardar el usuario:", error);
@@ -844,12 +885,14 @@ const UserManagementModule = () => {
         editingUser={editingUser !== null}
         formError={formError}
         submitting={submittingUser}
+        estados={estadosList}
       />
       <AsociadoPerfilModal
         open={openAsociadoModal}
         profile={selectedAsociado}
         onClose={handleCloseAsociadoModal}
         onSubmit={handleSubmitAsociado}
+        estados={estadosList}
       />
       <AsistenciaAsambleaModal
         open={openAsistenciaModal}

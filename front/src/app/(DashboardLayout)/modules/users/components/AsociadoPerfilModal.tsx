@@ -21,12 +21,19 @@ import {
 import { IconChevronDown, IconPlus, IconTrash } from "@tabler/icons-react";
 import { tiposFamiliaresService } from "@/services/tiposFamiliaresService";
 import { tiposIdentificacionService } from "@/services/tiposIdentificacionService";
+import { Estado } from "@/interfaces/User";
+import {
+  defaultEstadosAsociado,
+  getEstadoAsociadoId,
+  sortEstadosAsociado,
+} from "../../../utilities/EstadosAsociadoUtils";
 
 interface AsociadoPerfilModalProps {
   open: boolean;
   profile: any | null;
   onClose: () => void;
   onSubmit: (profile: any) => Promise<void>;
+  estados?: Estado[];
 }
 
 const dateValue = (value: string | null | undefined) => {
@@ -157,7 +164,12 @@ const AsociadoPerfilModal: React.FC<AsociadoPerfilModalProps> = ({
   profile,
   onClose,
   onSubmit,
+  estados,
 }) => {
+  // Estados reales cargados desde /estados-asociado (con respaldo local)
+  const estadoOptions = sortEstadosAsociado(
+    estados && estados.length > 0 ? estados : defaultEstadosAsociado
+  );
   const [formData, setFormData] = useState<any>(emptyProfile);
   const [tiposFamiliaresList, setTiposFamiliaresList] = useState<any[]>(defaultTiposFamiliares);
   const [tiposIdentificacionList, setTiposIdentificacionList] = useState<any[]>(defaultTiposIdentificacion);
@@ -327,7 +339,7 @@ const AsociadoPerfilModal: React.FC<AsociadoPerfilModalProps> = ({
                     )}
                 </TextField>
               </Grid>
-              <Grid size={{ xs: 12, sm: 6, md: 4 }}><TextField fullWidth select label="Estado del asociado" value={formData.asociado.idEstado?.estado || "ACTIVO"} onChange={(event) => { const estado = event.target.value; const ids: any = { ACTIVO: 1, INACTIVO: 2, EXASOCIADO: 3, RETIRADO: 4, RSD: 5, EXCLUIDO: 6 }; updateAsociado("idEstado", { id: ids[estado], estado }); }} margin="normal">{["ACTIVO", "INACTIVO", "EXASOCIADO", "RETIRADO", "RSD", "EXCLUIDO"].map((estado) => <MenuItem key={estado} value={estado}>{estado}</MenuItem>)}</TextField></Grid>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }}><TextField fullWidth select label="Estado del asociado" value={(formData.asociado.idEstado?.estado || "ACTIVO").toUpperCase()} onChange={(event) => { const estado = String(event.target.value).toUpperCase(); updateAsociado("idEstado", { id: getEstadoAsociadoId(estado, estadoOptions) ?? 1, estado }); }} margin="normal">{estadoOptions.map((item) => { const value = (item.estado || "").toUpperCase(); return (<MenuItem key={item.id} value={value}>{value}</MenuItem>); })}{formData.asociado.idEstado?.estado && !estadoOptions.some((item) => (item.estado || "").toUpperCase() === String(formData.asociado.idEstado?.estado).toUpperCase()) && (<MenuItem value={formData.asociado.idEstado.estado}>{formData.asociado.idEstado.estado}</MenuItem>)}</TextField></Grid>
               <Grid size={{ xs: 12, sm: 6, md: 4 }}><TextField fullWidth select label="¿Es asociado?" value={String(formData.asociado.esAsociado ?? true)} onChange={(event) => updateAsociado("esAsociado", event.target.value === "true")} margin="normal"><MenuItem value="true">Sí</MenuItem><MenuItem value="false">No</MenuItem></TextField></Grid>
             </Grid>
           </AccordionDetails>
