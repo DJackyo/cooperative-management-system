@@ -39,8 +39,13 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
 
   const loadTasas = useCallback(async () => {
     if (tasas.length > 0) {
-      setTasaInteresMensual(parseFloat(tasas[0].tasa));
-      setIdTasa(tasas[0].tasa);
+      const firstTasa = tasas[0].tasa;
+      setTasaInteresMensual(parseFloat(firstTasa));
+      setFormData((prev: any) => ({
+        ...prev,
+        tasa: firstTasa,
+      }));
+      setIdTasa(firstTasa);
     }
   }, [tasas, setIdTasa]);
 
@@ -110,8 +115,10 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
       setHasChanges(changed);
     }
 
-    if (name === "tasaInteres") {
-      setTasaInteresMensual(parseFloat(value));
+    if (name === "tasa") {
+      const numericValue = parseFloat(value);
+      setTasaInteresMensual(numericValue);
+      setIdTasa(value);
     }
   };
 
@@ -228,7 +235,7 @@ const CreditForm: React.FC<CreditFormProps> = ({ onSubmit, tasas, existingData, 
             <Grid size={{ xs: 12, md: 3 }} sx={{ display: mode === "approve" ? "none" : "block" }}>
               <FormControl fullWidth size="small">
                 <InputLabel id="tasa-label">Tasa de Interés</InputLabel>
-                <Select labelId="tasa-label" value={formData.tasa} name="tasaInteres" onChange={handleChange} label="Tasa de Interés" required disabled={mode === "approve"}>
+                <Select labelId="tasa-label" value={formData.tasa} name="tasa" onChange={handleChange} label="Tasa de Interés" required disabled={mode === "approve"}>
                   {tasas.map((tasa: any) => (
                     <MenuItem key={tasa.id} value={tasa.tasa}>
                       [{tasa.anio}] - {formatCurrency(tasa.tasa * 100)}%
