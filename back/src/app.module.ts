@@ -45,6 +45,7 @@ import { TiposFamiliaresModule } from './modules/tipos-familiares/tipos-familiar
 import { MetodosPagoModule } from './modules/metodos-pago/metodos-pago.module';
 import { CertificadosModule } from './modules/certificados/certificados.module';
 import { RetirosAsociadosModule } from './modules/retiros-asociados/retiros-asociados.module';
+import { RecibosMensualesModule } from './modules/recibos-mensuales/recibos-mensuales.module';
 
 @Module({
   imports: [
@@ -112,6 +113,7 @@ import { RetirosAsociadosModule } from './modules/retiros-asociados/retiros-asoc
     MetodosPagoModule,
     RetirosAsociadosModule,
     CertificadosModule,
+    RecibosMensualesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
