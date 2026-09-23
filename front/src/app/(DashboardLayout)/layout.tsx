@@ -94,7 +94,8 @@ export default function RootLayout({
             bgcolor: "transparent",
             paddingTop: { xs: "16px", sm: "24px" },
             paddingBottom: { xs: "16px", sm: "32px" },
-            maxWidth: "1440px",
+            // Contenedor más ancho para aprovechar el espacio disponible
+            maxWidth: { xs: "100%", sm: "1440px", xl: "1680px" },
             px: { xs: 2, sm: 3, lg: 4 },
           }}
         >
