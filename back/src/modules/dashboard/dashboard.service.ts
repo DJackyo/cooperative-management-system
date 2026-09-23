@@ -255,9 +255,7 @@ export class DashboardService {
                   COALESCE(SUM(monto), 0) AS total,
                   COUNT(*)::int AS count
              FROM public.asoc_aportes_asociados
-            WHERE monto > 0
-              AND COALESCE(fecha_aporte, fecha_creacion) IS NOT NULL
-              AND ($1::int IS NULL
+            WHERE ($1::int IS NULL
                    OR EXTRACT(YEAR FROM COALESCE(fecha_aporte, fecha_creacion)) = $1)
             GROUP BY 1, 2
             ORDER BY 1 ASC, 2 ASC`,
