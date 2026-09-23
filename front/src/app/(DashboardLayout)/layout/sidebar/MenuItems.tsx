@@ -8,6 +8,7 @@ import {
   IconCalendarEvent,
   IconCash,
   IconCertificate,
+  IconReceipt,
 } from "@tabler/icons-react";
 import { uniqueId } from "lodash";
 import {
@@ -129,6 +130,13 @@ const Menuitems = [
     title: "Estado de cuenta",
     icon: IconCertificate,
     href: "/modules/certificados",
+    roles: roleAdmin,
+  },
+  {
+    id: uniqueId(),
+    title: "Recibos mensuales",
+    icon: IconReceipt,
+    href: "/modules/recibos-mensuales",
     roles: roleAdmin,
   },
 ];
