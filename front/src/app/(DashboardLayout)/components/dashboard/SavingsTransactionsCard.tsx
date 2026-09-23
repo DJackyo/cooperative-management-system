@@ -8,14 +8,36 @@ const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 interface SavingsTransactionsCardProps {
   savingsTransactions?: number[];
   savingsLabels?: string[];
+  /** Agrupamiento de los datos: por mes (año seleccionado) o por año (histórico). */
+  groupBy?: "month" | "year";
+  /** Ahorro total del período (para el encabezado). */
+  total?: number;
+  /** Etiqueta del período analizado (ej: "Año 2024" o "Histórico completo"). */
+  periodLabel?: string;
 }
 
-const SavingsTransactionsCard = ({ savingsTransactions = [], savingsLabels = [] }: SavingsTransactionsCardProps) => {
+const SavingsTransactionsCard = ({
+  savingsTransactions = [],
+  savingsLabels = [],
+  groupBy = "year",
+  total,
+  periodLabel,
+}: SavingsTransactionsCardProps) => {
   // select
   // chart color
   const theme = useTheme();
   const primary = theme.palette.primary.main;
   const secondary = theme.palette.secondary.main;
+
+  const chartTitle =
+    groupBy === "month"
+      ? `Aportes mensuales${periodLabel ? ` · ${periodLabel}` : ""}`
+      : `Aportes por año${periodLabel ? ` · ${periodLabel}` : ""}`;
+
+  const totalLabel =
+    typeof total === "number" && total > 0
+      ? `Total: $${total.toLocaleString("es-CO")}`
+      : undefined;
 
   // chart
   const optionscolumnchart: any = {
@@ -84,7 +106,8 @@ const SavingsTransactionsCard = ({ savingsTransactions = [], savingsLabels = [] 
 
   return (
     <DashboardCard
-      title="Ahorros por mes (últimos 6 con actividad)"
+      title={chartTitle}
+      subtitle={totalLabel}
       // action={
       //   <Select
       //     labelId="month-dd"

@@ -80,28 +80,39 @@ const formatCurrency = (amount?: number) => {
 const TransactionsHistory = ({
   sx,
   fullHeight,
+  year,
 }: {
   sx?: SxProps<Theme>;
   fullHeight?: boolean;
+  /** Año a filtrar. `null`/`undefined` = histórico completo. */
+  year?: number | null;
 }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let activo = true;
+    setLoading(true);
+
     const loadTransactions = async () => {
       try {
-        const data = await dashboardService.getRecentTransactions();
+        const data = await dashboardService.getRecentTransactions(year);
+        if (!activo) return;
         setTransactions(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error("Error loading transactions:", error);
-        setTransactions([]);
+        if (activo) setTransactions([]);
       } finally {
-        setLoading(false);
+        if (activo) setLoading(false);
       }
     };
 
     loadTransactions();
-  }, []);
+
+    return () => {
+      activo = false;
+    };
+  }, [year]);
 
   if (loading) {
     return (

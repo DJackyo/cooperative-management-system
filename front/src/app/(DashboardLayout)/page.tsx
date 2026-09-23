@@ -11,6 +11,7 @@ import PageContainer from "@/app/(DashboardLayout)/components/container/PageCont
 // components
 import { useEffect, useState } from "react";
 import AdminDashboard from "./components/dashboard/AdminDashboard";
+import YearSelector from "./components/dashboard/YearSelector";
 import TransactionsHistory from "./components/dashboard/TransactionsHistory";
 import PaymentSupportsCard from "./components/dashboard/PaymentSupportsCard";
 import SavingsProjectionCard from "./components/dashboard/SavingsProjectionCard";
@@ -21,6 +22,8 @@ import { authService } from "../authentication/services/authService";
 const Dashboard = () => {
   const router = useRouter();
   const [userRole, setUserRole] = useState<string | null>(null);
+  // Período del dashboard: año concreto o null = "Todos los años"
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
 
   useAuth();
 
@@ -69,15 +72,41 @@ const Dashboard = () => {
             Aquí tienes un resumen del estado de la cooperativa: usuarios, cartera
             de créditos y ahorros en tiempo real.
           </Typography>
-          <Box sx={{ position: "relative", zIndex: 1, mt: 2, display: "inline-flex", alignItems: "center", gap: 1, px: 1.25, py: 0.6, borderRadius: 5, backgroundColor: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.22)" }}>
-            <Box sx={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "#8ff4d6", boxShadow: "0 0 0 4px rgba(143,244,214,0.15)" }} />
-            <Typography variant="caption" sx={{ fontWeight: 600 }}>Vista operativa</Typography>
+          <Box
+            sx={{
+              position: "relative",
+              zIndex: 1,
+              mt: 2,
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 1.5,
+            }}
+          >
+            <Box
+              sx={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 1,
+                px: 1.25,
+                py: 0.6,
+                borderRadius: 5,
+                backgroundColor: "rgba(255,255,255,0.15)",
+                border: "1px solid rgba(255,255,255,0.22)",
+              }}
+            >
+              <Box sx={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: "#8ff4d6", boxShadow: "0 0 0 4px rgba(143,244,214,0.15)" }} />
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>Vista operativa</Typography>
+            </Box>
+
+            {/* Selector de período: un año específico o todo el histórico */}
+            <YearSelector value={selectedYear} onChange={setSelectedYear} />
           </Box>
         </Box>
 
         <Grid container spacing={2}>
           <Grid container size={{ xs: 12, md: 8 }} data-tour="dashboard-stats">
-            <AdminDashboard />
+            <AdminDashboard year={selectedYear} />
           </Grid>
           <Grid size={{ xs: 12, md: 4 }} sx={{ display: "flex" }}>
             <Stack
@@ -89,11 +118,12 @@ const Dashboard = () => {
                 sx={{ flexShrink: 0, alignSelf: "stretch" }}
               /> */}
               <Box data-tour="savings-projection" sx={{ flexShrink: 0, width: "100%" }}>
-                <SavingsProjectionCard />
+                <SavingsProjectionCard year={selectedYear} />
               </Box>
               <Box data-tour="recent-transactions" sx={{ flexGrow: 1, minHeight: 200, width: "100%" }}>
                 <TransactionsHistory
                   fullHeight
+                  year={selectedYear}
                 />
               </Box>
             </Stack>
