@@ -759,7 +759,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                       <Box
                         sx={{
                           fontWeight: 600,
-                          color: '#2e7d32',
+                          color: Number(row[column.field]) < 0 ? '#d32f2f' : '#2e7d32',
                           display: 'flex',
                           alignItems: 'center',
                           gap: 0.5,
