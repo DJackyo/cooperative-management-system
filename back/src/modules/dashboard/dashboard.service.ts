@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Asociados } from '../../entities/entities/Asociados';
@@ -26,37 +26,220 @@ export class DashboardService {
 
   ) {}
 
-  async getDashboardStats() {
+  /** Etiquetas cortas de los meses usadas por las series de ahorro. */
+  private static readonly MONTH_LABELS = [
+    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+  ];
+
+  /**
+   * Normaliza el parámetro `year` recibido por query string.
+   * Devuelve `null` cuando se solicita el histórico completo (sin filtro de año).
+   */
+  private static parseYear(year?: string | number | null): number | null {
+    if (year === null || year === undefined || `${year}`.trim() === '') {
+      return null;
+    }
+    const parsed = typeof year === 'number' ? year : parseInt(String(year), 10);
+    if (Number.isNaN(parsed) || parsed < 2000 || parsed > 2100) {
+      return null;
+    }
+    return parsed;
+  }
+
+  /** Etiqueta legible del período consultado. */
+  private static buildPeriod(year: number | null) {
+    return {
+      year,
+      isAllYears: year === null,
+      label: year === null ? 'Histórico completo' : `Año ${year}`,
+    };
+  }
+
+  /**
+   * Construye la serie y el resumen de ahorros del período.
+   * - Con un año seleccionado: 12 valores (Ene..Dic) del año.
+   * - Sin año (histórico completo): un valor por cada año con actividad.
+   */
+  private static buildSavingsSeries(year: number | null, rows: any[]) {
+    const safeRows = Array.isArray(rows) ? rows : [];
+
+    if (year !== null) {
+      const monthLabels = DashboardService.MONTH_LABELS;
+      const totals = new Array(12).fill(0);
+      let aportesCount = 0;
+
+      safeRows.forEach((row) => {
+        const monthIndex = Number(row.month) - 1;
+        if (monthIndex >= 0 && monthIndex < 12) {
+          totals[monthIndex] = Number(row.total) || 0;
+        }
+        aportesCount += Number(row.count) || 0;
+      });
+
+      const totalSaved = totals.reduce((acc, value) => acc + value, 0);
+      const periodsWithActivity = totals.filter((value) => value > 0).length;
+
+      let lastIndex = -1;
+      let bestIndex = -1;
+      totals.forEach((value, index) => {
+        if (value > 0) lastIndex = index;
+        if (bestIndex === -1 || value > totals[bestIndex]) bestIndex = index;
+      });
+
+      return {
+        labels: [...monthLabels],
+        values: totals,
+        groupBy: 'month' as const,
+        summary: {
+          totalSaved,
+          aportesCount,
+          periodsWithActivity,
+          totalPeriods: 12,
+          avgPerActivePeriod:
+            periodsWithActivity > 0 ? Math.round(totalSaved / periodsWithActivity) : 0,
+          lastPeriodLabel: lastIndex >= 0 ? monthLabels[lastIndex] : null,
+          lastPeriodTotal: lastIndex >= 0 ? totals[lastIndex] : 0,
+          bestPeriodLabel: bestIndex >= 0 && totals[bestIndex] > 0 ? monthLabels[bestIndex] : null,
+          bestPeriodTotal: bestIndex >= 0 ? totals[bestIndex] : 0,
+        },
+      };
+    }
+
+    // Histórico completo: se agrupa por año
+    const perYear = new Map<number, { total: number; count: number }>();
+    safeRows.forEach((row) => {
+      const rowYear = Number(row.year);
+      if (!rowYear) return;
+      const current = perYear.get(rowYear) || { total: 0, count: 0 };
+      current.total += Number(row.total) || 0;
+      current.count += Number(row.count) || 0;
+      perYear.set(rowYear, current);
+    });
+
+    const orderedYears = [...perYear.keys()].sort((a, b) => a - b);
+    const values = orderedYears.map((rowYear) => perYear.get(rowYear)?.total || 0);
+    const labels = orderedYears.map((rowYear) => String(rowYear));
+    const totalSaved = values.reduce((acc, value) => acc + value, 0);
+    const aportesCount = orderedYears.reduce(
+      (acc, rowYear) => acc + (perYear.get(rowYear)?.count || 0),
+      0,
+    );
+    const periodsWithActivity = orderedYears.length;
+
+    let bestIndex = -1;
+    values.forEach((value, index) => {
+      if (bestIndex === -1 || value > values[bestIndex]) bestIndex = index;
+    });
+    const lastIndex = values.length - 1;
+
+    return {
+      labels,
+      values,
+      groupBy: 'year' as const,
+      summary: {
+        totalSaved,
+        aportesCount,
+        periodsWithActivity,
+        totalPeriods: periodsWithActivity,
+        avgPerActivePeriod:
+          periodsWithActivity > 0 ? Math.round(totalSaved / periodsWithActivity) : 0,
+        lastPeriodLabel: lastIndex >= 0 ? labels[lastIndex] : null,
+        lastPeriodTotal: lastIndex >= 0 ? values[lastIndex] : 0,
+        bestPeriodLabel: bestIndex >= 0 ? labels[bestIndex] : null,
+        bestPeriodTotal: bestIndex >= 0 ? values[bestIndex] : 0,
+      },
+    };
+  }
+
+  /** Años con actividad (aportes, créditos o pagos) más el año en curso. */
+  async getAvailableYears(): Promise<number[]> {
+    const currentYear = new Date().getFullYear();
+    try {
+      const rows = await this.aportesRepository.query(`
+        SELECT DISTINCT EXTRACT(YEAR FROM fechas.fecha)::int AS year
+        FROM (
+          SELECT COALESCE(fecha_aporte, fecha_creacion) AS fecha
+          FROM public.asoc_aportes_asociados
+          WHERE monto > 0
+          UNION ALL
+          SELECT COALESCE(fecha_credito, fecha_desembolso, fecha_solicitud) AS fecha
+          FROM public.prestamos
+          UNION ALL
+          SELECT COALESCE(dia_de_pago, fecha_vencimiento) AS fecha
+          FROM public.pres_pagos
+        ) AS fechas
+        WHERE fechas.fecha IS NOT NULL
+        ORDER BY year DESC
+      `);
+
+      const years = new Set<number>([currentYear]);
+      (rows || []).forEach((row: { year: number | string }) => {
+        const parsed = Number(row.year);
+        if (!Number.isNaN(parsed) && parsed > 1900) {
+          years.add(parsed);
+        }
+      });
+
+      return [...years].sort((a, b) => b - a);
+    } catch (error) {
+      console.error('Error fetching available years:', error);
+      return [currentYear];
+    }
+  }
+
+  async getDashboardStats(yearParam?: string | number | null) {
+    const year = DashboardService.parseYear(yearParam);
+
     try {
       const [
         totalUsers,
-        creditCounts,
-        totalCreditAmount,
-        overdueCreditsResult,
+        creditCountsRows,
+        totalCreditAmountRows,
+        overdueCreditsRows,
         usersByStatus,
-        savingsData,
-        loanCollectionData,
+        savingsRows,
+        loanCollectionRows,
+        creditsInPeriodRows,
+        availableYears,
       ] = await Promise.all([
+        // Total de asociados (dato global, no depende del período)
         this.asociadosRepository.count(),
-        this.prestamosRepository
-          .createQueryBuilder('prestamo')
-          .select('prestamo.estado', 'status')
-          .addSelect('COUNT(prestamo.id)', 'count')
-          .groupBy('prestamo.estado')
-          .getRawMany(),
-        this.prestamosRepository
-          .createQueryBuilder('prestamo')
-          .select('SUM(prestamo.monto)', 'total')
-          .where('prestamo.estado IN (:...estados)', { estados: ['APROBADO', 'ACTIVO'] })
-          .getRawOne(),
-        this.prestamosRepository
-          .createQueryBuilder('prestamo')
-          .innerJoin('prestamo.presCuotas', 'cuota')
-          .where('prestamo.estado IN (:...estados)', { estados: ['APROBADO', 'ACTIVO', 'VENCIDO'] })
-          .andWhere('cuota.estado = :cuotaEstado', { cuotaEstado: 'PENDIENTE' })
-          .andWhere('cuota.fechaVencimiento < :today', { today: new Date() })
-          .select('COUNT(DISTINCT prestamo.id)', 'count')
-          .getRawOne(),
+
+        // Créditos agrupados por estado dentro del período
+        this.prestamosRepository.query(
+          `SELECT UPPER(COALESCE(estado, '')) AS status, COUNT(*)::int AS count
+             FROM public.prestamos
+            WHERE ($1::int IS NULL
+                   OR EXTRACT(YEAR FROM COALESCE(fecha_credito, fecha_desembolso, fecha_solicitud)) = $1)
+            GROUP BY 1`,
+          [year],
+        ),
+
+        // Capital colocado: monto de los créditos aprobados/activos del período
+        this.prestamosRepository.query(
+          `SELECT COALESCE(SUM(monto), 0) AS total
+             FROM public.prestamos
+            WHERE UPPER(COALESCE(estado, '')) IN ('APROBADO', 'ACTIVO')
+              AND ($1::int IS NULL
+                   OR EXTRACT(YEAR FROM COALESCE(fecha_credito, fecha_desembolso, fecha_solicitud)) = $1)`,
+          [year],
+        ),
+
+        // Créditos en mora: con cuotas pendientes ya vencidas dentro del período
+        this.prestamosRepository.query(
+          `SELECT COUNT(DISTINCT prestamo.id)::int AS count
+             FROM public.prestamos prestamo
+             INNER JOIN public.pres_cuotas cuota ON cuota.id_prestamo = prestamo.id
+            WHERE UPPER(COALESCE(prestamo.estado, '')) IN ('APROBADO', 'ACTIVO', 'VENCIDO')
+              AND cuota.estado = 'PENDIENTE'
+              AND cuota.fecha_vencimiento < NOW()
+              AND ($1::int IS NULL
+                   OR EXTRACT(YEAR FROM COALESCE(prestamo.fecha_credito, prestamo.fecha_desembolso, prestamo.fecha_solicitud)) = $1)`,
+          [year],
+        ),
+
+        // Asociados por estado (dato global)
         this.asociadosRepository
           .createQueryBuilder('asociado')
           .innerJoin('asociado.idEstado', 'estado')
@@ -64,30 +247,55 @@ export class DashboardService {
           .addSelect('COUNT(asociado.id)', 'count')
           .groupBy('estado.estado')
           .getRawMany(),
-        this.aportesRepository
-          .createQueryBuilder('aporte')
-          .select('EXTRACT(YEAR FROM aporte.fechaAporte)', 'year')
-          .addSelect('EXTRACT(MONTH FROM aporte.fechaAporte)', 'month')
-          .addSelect('SUM(aporte.monto)', 'total')
-          .where('aporte.monto > 0')
-          .groupBy('EXTRACT(YEAR FROM aporte.fechaAporte)')
-          .addGroupBy('EXTRACT(MONTH FROM aporte.fechaAporte)')
-          .orderBy('year', 'DESC')
-          .addOrderBy('month', 'DESC')
-          .limit(6)
-          .getRawMany(),
-        this.pagosRepository
-          .createQueryBuilder('pago')
-          .select('SUM(COALESCE(pago.total_pagado, pago.monto, 0))', 'totalCollected')
-          .addSelect('SUM(COALESCE(pago.abono_capital, 0) + COALESCE(pago.abono_extra, 0))', 'totalCapital')
-          .addSelect('SUM(COALESCE(pago.intereses, 0))', 'totalInterest')
-          .addSelect('SUM(COALESCE(pago.mora, 0))', 'totalMora')
-          .addSelect('COUNT(pago.id_pago)', 'totalPaymentsCount')
-          .getRawOne(),
+
+        // Aportes (ahorros) del período, agrupados por año y mes
+        this.aportesRepository.query(
+          `SELECT EXTRACT(YEAR FROM COALESCE(fecha_aporte, fecha_creacion))::int AS year,
+                  EXTRACT(MONTH FROM COALESCE(fecha_aporte, fecha_creacion))::int AS month,
+                  COALESCE(SUM(monto), 0) AS total,
+                  COUNT(*)::int AS count
+             FROM public.asoc_aportes_asociados
+            WHERE monto > 0
+              AND COALESCE(fecha_aporte, fecha_creacion) IS NOT NULL
+              AND ($1::int IS NULL
+                   OR EXTRACT(YEAR FROM COALESCE(fecha_aporte, fecha_creacion)) = $1)
+            GROUP BY 1, 2
+            ORDER BY 1 ASC, 2 ASC`,
+          [year],
+        ),
+
+        // Recaudo de créditos (pagos de cuotas) del período
+        this.pagosRepository.query(
+          `SELECT COALESCE(SUM(COALESCE(total_pagado, monto, 0)), 0) AS "totalCollected",
+                  COALESCE(SUM(COALESCE(abono_capital, 0) + COALESCE(abono_extra, 0)), 0) AS "totalCapital",
+                  COALESCE(SUM(COALESCE(intereses, 0)), 0) AS "totalInterest",
+                  COALESCE(SUM(COALESCE(mora, 0)), 0) AS "totalMora",
+                  COALESCE(SUM(COALESCE(proteccion_cartera, 0)), 0) AS "totalProteccion",
+                  COUNT(id_pago)::int AS "totalPaymentsCount"
+             FROM public.pres_pagos
+            WHERE ($1::int IS NULL
+                   OR EXTRACT(YEAR FROM COALESCE(dia_de_pago, fecha_vencimiento)) = $1)`,
+          [year],
+        ),
+
+        // Créditos registrados (cualquier estado) en el período
+        this.prestamosRepository.query(
+          `SELECT COUNT(*)::int AS count, COALESCE(SUM(monto), 0) AS amount
+             FROM public.prestamos
+            WHERE ($1::int IS NULL
+                   OR EXTRACT(YEAR FROM COALESCE(fecha_credito, fecha_desembolso, fecha_solicitud)) = $1)`,
+          [year],
+        ),
+
+        // Años con información para el selector de período del dashboard
+        this.getAvailableYears(),
       ]);
 
-      const counts = new Map(
-        creditCounts.map((row) => [String(row.status || '').toUpperCase(), Number(row.count) || 0]),
+      const counts = new Map<string, number>(
+        (creditCountsRows || []).map((row: { status: string; count: number }) => [
+          String(row.status || '').toUpperCase(),
+          Number(row.count) || 0,
+        ]),
       );
       const approvedCredits = (counts.get('APROBADO') || 0) + (counts.get('ACTIVO') || 0);
       const completedCredits = (counts.get('FINALIZADO') || 0) + (counts.get('CANCELADO') || 0);
@@ -95,74 +303,129 @@ export class DashboardService {
         (total, status) => total + (counts.get(status) || 0),
         0,
       );
-      const overdueCreditsCount = Number(overdueCreditsResult?.count) || 0;
+      const overdueCreditsCount = Number(overdueCreditsRows?.[0]?.count) || 0;
       const overdueCredits = Math.min(overdueCreditsCount, approvedCredits);
       const activeCredits = Math.max(approvedCredits - overdueCredits, 0);
-      const chronologicalSavings = [...savingsData].reverse();
+
+      // Ahorros: serie por mes (año seleccionado) o por año (histórico completo)
+      const savings = DashboardService.buildSavingsSeries(year, savingsRows);
+
+      const loanCollectionRow = loanCollectionRows?.[0] || {};
+      const totalCollected = Number(loanCollectionRow.totalCollected) || 0;
+      const totalPaymentsCount = Number(loanCollectionRow.totalPaymentsCount) || 0;
+
+      const creditsInPeriodRow = creditsInPeriodRows?.[0] || {};
 
       return {
+        period: DashboardService.buildPeriod(year),
+        availableYears,
+        // --- Sección de créditos ---
         totalUsers,
+        approvedCredits,
         activeCredits,
         completedCredits,
         pendingCredits,
-        totalCreditAmount: Number(totalCreditAmount?.total) || 0,
+        totalCreditAmount: Number(totalCreditAmountRows?.[0]?.total) || 0,
         overdueCredits,
-        savingsTransactions: chronologicalSavings.map((row) => Number(row.total) || 0),
-        savingsLabels: chronologicalSavings.map((row) => `${row.year}-${String(row.month).padStart(2, '0')}`),
-        pendingPaymentSupports: 0,
-        deactivationRequests: [],
-        usersByStatus: usersByStatus.map((row) => ({
+        creditCountsByStatus: [...counts.entries()].map(([status, count]) => ({
+          status,
+          count,
+        })),
+        creditsInPeriod: {
+          count: Number(creditsInPeriodRow.count) || 0,
+          amount: Number(creditsInPeriodRow.amount) || 0,
+        },
+        loanCollection: {
+          totalCollected,
+          totalCapital: Number(loanCollectionRow.totalCapital) || 0,
+          totalInterest: Number(loanCollectionRow.totalInterest) || 0,
+          totalMora: Number(loanCollectionRow.totalMora) || 0,
+          totalProteccion: Number(loanCollectionRow.totalProteccion) || 0,
+          totalPaymentsCount,
+          avgPayment:
+            totalPaymentsCount > 0 ? Math.round(totalCollected / totalPaymentsCount) : 0,
+        },
+        // --- Sección de ahorros ---
+        savingsTransactions: savings.values,
+        savingsLabels: savings.labels,
+        savingsGroupBy: savings.groupBy,
+        savingsSummary: savings.summary,
+        // --- Asociados y pendientes ---
+        usersByStatus: (usersByStatus || []).map((row: { status: string; count: number }) => ({
           status: row.status,
           count: Number(row.count) || 0,
         })),
-        loanCollection: {
-          totalCollected: Number(loanCollectionData?.totalCollected) || 0,
-          totalCapital: Number(loanCollectionData?.totalCapital) || 0,
-          totalInterest: Number(loanCollectionData?.totalInterest) || 0,
-          totalMora: Number(loanCollectionData?.totalMora) || 0,
-          totalPaymentsCount: Number(loanCollectionData?.totalPaymentsCount) || 0,
-        },
+        pendingPaymentSupports: 0,
+        deactivationRequests: [],
       };
     } catch (error) {
       console.error('Error in getDashboardStats:', error);
       return {
+        period: DashboardService.buildPeriod(year),
+        availableYears: [],
         totalUsers: 0,
+        approvedCredits: 0,
         activeCredits: 0,
+        completedCredits: 0,
         pendingCredits: 0,
         totalCreditAmount: 0,
         overdueCredits: 0,
+        creditCountsByStatus: [],
+        creditsInPeriod: { count: 0, amount: 0 },
+        loanCollection: {
+          totalCollected: 0,
+          totalCapital: 0,
+          totalInterest: 0,
+          totalMora: 0,
+          totalProteccion: 0,
+          totalPaymentsCount: 0,
+          avgPayment: 0,
+        },
         savingsTransactions: [],
         savingsLabels: [],
+        savingsGroupBy: year === null ? 'year' : 'month',
+        savingsSummary: {
+          totalSaved: 0,
+          aportesCount: 0,
+          periodsWithActivity: 0,
+          totalPeriods: 0,
+          avgPerActivePeriod: 0,
+          lastPeriodLabel: null,
+          lastPeriodTotal: 0,
+          bestPeriodLabel: null,
+          bestPeriodTotal: 0,
+        },
+        usersByStatus: [],
         pendingPaymentSupports: 0,
         deactivationRequests: [],
-        usersByStatus: [],
       };
     }
   }
 
-  async getRecentTransactions() {
+  async getRecentTransactions(yearParam?: string | number | null) {
+    const year = DashboardService.parseYear(yearParam);
     const transactions = [];
     try {
       
       // Obtener pagos recientes con JOIN manual
-      const recentPayments = await this.pagosRepository
-        .createQueryBuilder('pago')
-        .leftJoin('pago.idCuota', 'cuota')
-        .leftJoin('cuota.idPrestamo', 'prestamo')
-        .leftJoin('prestamo.idAsociado', 'asociado')
-        .select([
-          'pago.id_pago as id',
-          'pago.monto as monto',
-          'pago.dia_de_pago as fecha',
-          'asociado.nombre1 as nombre1',
-          'asociado.nombre2 as nombre2',
-          'asociado.apellido1 as apellido1',
-          'asociado.apellido2 as apellido2'
-        ])
-        .where('pago.dia_de_pago IS NOT NULL')
-        .orderBy('pago.dia_de_pago', 'DESC')
-        .limit(5)
-        .getRawMany();
+      const recentPayments = await this.pagosRepository.query(
+        `SELECT pago.id_pago AS id,
+                pago.monto AS monto,
+                pago.dia_de_pago AS fecha,
+                asociado.nombre1 AS nombre1,
+                asociado.nombre2 AS nombre2,
+                asociado.apellido1 AS apellido1,
+                asociado.apellido2 AS apellido2
+           FROM public.pres_pagos pago
+           LEFT JOIN public.pres_cuotas cuota ON cuota.id = pago.id_cuota
+           LEFT JOIN public.prestamos prestamo ON prestamo.id = cuota.id_prestamo
+           LEFT JOIN public.asociados asociado ON asociado.id = prestamo.id_asociado
+          WHERE pago.dia_de_pago IS NOT NULL
+            AND ($1::int IS NULL OR EXTRACT(YEAR FROM pago.dia_de_pago) = $1)
+          ORDER BY pago.dia_de_pago DESC
+          LIMIT 5`,
+        [year],
+      );
       
       // Agregar pagos a las transacciones
       recentPayments.forEach(pago => {
@@ -184,23 +447,24 @@ export class DashboardService {
 
     try {
       // Obtener créditos aprobados recientes
-      const recentCredits = await this.prestamosRepository
-        .createQueryBuilder('prestamo')
-        .leftJoin('prestamo.idAsociado', 'asociado')
-        .select([
-          'prestamo.id as id',
-          'prestamo.monto as monto',
-          'COALESCE(prestamo.fecha_desembolso, prestamo.fecha_credito, prestamo.fecha_solicitud) as fecha',
-          'asociado.nombre1 as nombre1',
-          'asociado.nombre2 as nombre2',
-          'asociado.apellido1 as apellido1',
-          'asociado.apellido2 as apellido2'
-        ])
-        .where('prestamo.estado IN (:...estados)', { estados: ['APROBADO', 'ACTIVO', 'SOLICITADO'] })
-        .andWhere('COALESCE(prestamo.fecha_desembolso, prestamo.fecha_credito, prestamo.fecha_solicitud) IS NOT NULL')
-        .orderBy('fecha', 'DESC')
-        .limit(5)
-        .getRawMany();
+      const recentCredits = await this.prestamosRepository.query(
+        `SELECT prestamo.id AS id,
+                prestamo.monto AS monto,
+                COALESCE(prestamo.fecha_desembolso, prestamo.fecha_credito, prestamo.fecha_solicitud) AS fecha,
+                asociado.nombre1 AS nombre1,
+                asociado.nombre2 AS nombre2,
+                asociado.apellido1 AS apellido1,
+                asociado.apellido2 AS apellido2
+           FROM public.prestamos prestamo
+           LEFT JOIN public.asociados asociado ON asociado.id = prestamo.id_asociado
+          WHERE UPPER(COALESCE(prestamo.estado, '')) IN ('APROBADO', 'ACTIVO', 'SOLICITADO')
+            AND COALESCE(prestamo.fecha_desembolso, prestamo.fecha_credito, prestamo.fecha_solicitud) IS NOT NULL
+            AND ($1::int IS NULL
+                 OR EXTRACT(YEAR FROM COALESCE(prestamo.fecha_desembolso, prestamo.fecha_credito, prestamo.fecha_solicitud)) = $1)
+          ORDER BY fecha DESC
+          LIMIT 5`,
+        [year],
+      );
       
       // Agregar créditos aprobados a las transacciones
       recentCredits.forEach(prestamo => {
@@ -235,9 +499,11 @@ export class DashboardService {
         LEFT JOIN public.asociados asociado ON asociado.id = aporte.id_asociado
         WHERE aporte.monto > 0
           AND COALESCE(aporte.fecha_creacion, aporte.fecha_aporte) IS NOT NULL
+          AND ($1::int IS NULL
+               OR EXTRACT(YEAR FROM COALESCE(aporte.fecha_creacion, aporte.fecha_aporte)) = $1)
         ORDER BY COALESCE(aporte.fecha_creacion, aporte.fecha_aporte) DESC
         LIMIT 5
-      `);
+      `, [year]);
       console.log('Recent savings:', recentSavings); 
       // Agregar ahorros a las transacciones
       recentSavings.forEach(aporte => {
@@ -425,25 +691,38 @@ export class DashboardService {
 
 
   /**
-   * Genera o modifica las metas de ahorro para el presente año.
+   * Genera o modifica las metas de ahorro de un año concreto.
+   * `year` opcional: sin él se usa el año en curso.
    *
-   * - Si un asociado activo aún no tiene meta para el año actual, se crea una nueva.
-   * - Si ya existe una meta para el año actual, se modifica recalculando el valor
+   * - Si un asociado activo aún no tiene meta para el año, se crea una nueva.
+   * - Si ya existe una meta para el año, se modifica recalculando el valor
    *   con el mismo criterio: meta del año anterior → promedio histórico de aportes → 50 000.
    *
    * Se utiliza una única sentencia INSERT … ON CONFLICT para garantizar atomicidad
    * e idempotencia tanto en la creación como en la actualización.
    */
-  async generateCurrentYearMetas() {
+  async generateCurrentYearMetas(yearParam?: string | number | null) {
     try {
-      const currentYear = new Date().getFullYear();
-      const previousYear = currentYear - 1;
-      console.log(`Generating/updating metas for current year ${currentYear}`);
+      // Si se envía un año explícito (p. ej. el seleccionado en el dashboard),
+      // se respeta; solo sin año se usa el año en curso. Un año no interpretable
+      // se rechaza para no generar silenciosamente las metas de otro año.
+      const hasExplicitYear =
+        yearParam !== null && yearParam !== undefined && `${yearParam}`.trim() !== '';
+      const parsedYear = DashboardService.parseYear(yearParam);
+      if (hasExplicitYear && parsedYear === null) {
+        throw new BadRequestException(
+          `Año inválido: "${yearParam}". Debe ser un número entre 2000 y 2100.`,
+        );
+      }
 
-      // Contar cuántas metas ya existen para el año actual (estas serán actualizadas)
+      const targetYear = parsedYear ?? new Date().getFullYear();
+      const previousYear = targetYear - 1;
+      console.log(`Generating/updating metas for year ${targetYear}`);
+
+      // Contar cuántas metas ya existen para el año (estas serán actualizadas)
       const existingMetas = await this.metasAhorroRepository.query(
         'SELECT COUNT(*) as count FROM asoc_metas_ahorro WHERE año = $1',
-        [currentYear],
+        [targetYear],
       );
       const updated = parseInt(existingMetas[0]?.count) || 0;
 
@@ -473,40 +752,41 @@ export class DashboardService {
               activa = true,
               fecha_actualizacion = CURRENT_TIMESTAMP
       `;
-      await this.metasAhorroRepository.query(upsertQuery, [currentYear, previousYear]);
+      await this.metasAhorroRepository.query(upsertQuery, [targetYear, previousYear]);
 
       // Contar cuántas metas hay después del upsert
       const totalCount = await this.metasAhorroRepository.query(
         'SELECT COUNT(*) as count FROM asoc_metas_ahorro WHERE año = $1',
-        [currentYear],
+        [targetYear],
       );
       const total = parseInt(totalCount[0]?.count) || 0;
       const created = Math.max(total - updated, 0);
 
       return {
-        message: `Metas del presente año (${currentYear}) generadas/modificadas. Actualizadas: ${updated}. Creadas: ${created}`,
+        message: `Metas del año ${targetYear} generadas/modificadas. Actualizadas: ${updated}. Creadas: ${created}`,
         created,
         updated,
       };
     } catch (error) {
-      console.error('Error generating current year metas:', error);
+      console.error('Error generating year metas:', error);
       throw error;
     }
   }
 
-  async getSavingsProjection() {
+  async getSavingsProjection(yearParam?: string | number | null) {
     try {
-      const currentYear = new Date().getFullYear();
-      console.log('Calculating savings projection for year:', currentYear);
+      // La proyección siempre requiere un año concreto (por defecto, el año en curso)
+      const year = DashboardService.parseYear(yearParam) ?? new Date().getFullYear();
+      console.log('Calculating savings projection for year:', year);
       
-      // Obtener el total de ahorros registrados en el año actual
+      // Obtener el total de ahorros registrados en el año solicitado
       const registeredSavingsResult = await this.aportesRepository.query(`
         SELECT COALESCE(SUM(monto), 0) AS total
         FROM public.asoc_aportes_asociados
         WHERE monto > 0
-          AND fecha_aporte IS NOT NULL
-          AND EXTRACT(YEAR FROM fecha_aporte) = $1
-      `, [currentYear]);
+          AND COALESCE(fecha_aporte, fecha_creacion) IS NOT NULL
+          AND EXTRACT(YEAR FROM COALESCE(fecha_aporte, fecha_creacion)) = $1
+      `, [year]);
       const registeredSavings = registeredSavingsResult[0];
       
       console.log('Registered savings raw result:', registeredSavings);
@@ -519,7 +799,7 @@ export class DashboardService {
           FROM public.asoc_metas_ahorro
           WHERE "año" = $1 AND activa = true
         `;
-        const savingsGoalsResult = await this.metasAhorroRepository.query(savingsGoalsQuery, [currentYear]);
+        const savingsGoalsResult = await this.metasAhorroRepository.query(savingsGoalsQuery, [year]);
         console.log('Savings goals raw result:', savingsGoalsResult);
         
         projected = parseFloat(savingsGoalsResult[0]?.total_anual) || 0;
@@ -535,6 +815,7 @@ export class DashboardService {
       console.log('Final calculation:', { projected, registered, percentage });
       
       return {
+        year,
         projected,
         registered,
         percentage
@@ -542,6 +823,7 @@ export class DashboardService {
     } catch (error) {
       console.error('Error calculating savings projection:', error);
       return {
+        year: DashboardService.parseYear(yearParam) ?? new Date().getFullYear(),
         projected: 0,
         registered: 0,
         percentage: 0
