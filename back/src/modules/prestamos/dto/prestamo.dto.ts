@@ -63,5 +63,15 @@ export class PrestamoDto {
   aplicaProteccionCartera?: boolean | null;
 
   @IsOptional()
+  @IsBoolean()
+  esRetanqueo?: boolean | null;
+
+  @IsOptional()
+  saldoRetanqueo?: number | null;
+
+  @IsOptional()
+  idPrestamoOrigen?: any;
+
+  @IsOptional()
   idTasa?: any;
 }

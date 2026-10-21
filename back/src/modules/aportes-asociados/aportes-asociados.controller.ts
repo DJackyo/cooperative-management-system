@@ -11,6 +11,9 @@ import {
   UploadedFile,
   Res,
   Req,
+  UseGuards,
+  UsePipes,
+  ValidationPipe,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -21,12 +24,17 @@ import { AsocAportesAsociadosService } from './aportes-asociados.service';
 import { CreateAsocAportesAsociadosDto } from './dto/create-aportes-asociado.dto';
 import { UpdateAsocAportesAsociadosDto } from './dto/update-aportes-asociado.dto';
 import { AsocAportesAsociados } from '../../entities/entities/AsocAportesAsociados';
+import { JwtAuthGuard } from '../../auth/jwt-auth.guard';
+import { AportesDepuracionGuard, SolicitudDepuracion } from './aportes-depuracion.guard';
+import { AportesDepuracionService } from './aportes-depuracion.service';
+import { ConsultarDuplicadosDto, DepurarAportesDto } from './dto/depurar-aportes.dto';
 
 const PATH_AHORROS = join(process.cwd(), 'uploads', 'comprobantes', 'ahorros');
 @Controller('aportes-asociados')
 export class AsocAportesAsociadosController {
   constructor(
     private readonly AsocAportesAsociadosService: AsocAportesAsociadosService,
+    private readonly depuracionService: AportesDepuracionService,
   ) {}
 
   // Crear un nuevo aporte
@@ -92,6 +100,20 @@ export class AsocAportesAsociadosController {
   @Get('users-summary')
   async getUsersSummary() {
     return this.AsocAportesAsociadosService.getUsersSummary();
+  }
+
+  @Get('duplicados')
+  @UseGuards(JwtAuthGuard, AportesDepuracionGuard)
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
+  duplicados(@Query() query: ConsultarDuplicadosDto) {
+    return this.depuracionService.listar(query.idAsociado);
+  }
+
+  @Post('depurar')
+  @UseGuards(JwtAuthGuard, AportesDepuracionGuard)
+  @UsePipes(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
+  depurar(@Body() dto: DepurarAportesDto, @Req() req: SolicitudDepuracion) {
+    return this.depuracionService.depurar(dto, req.user.user.id);
   }
 
   // Obtener un aporte por su ID

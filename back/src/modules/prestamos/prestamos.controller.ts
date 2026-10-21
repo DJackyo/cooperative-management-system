@@ -9,12 +9,20 @@ import {
   Put,
   UseGuards,
   Request,
+  Query,
+  Res,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { PrestamosService } from './prestamos.service';
 import { PrestamoDto } from './dto/prestamo.dto';
 import { UpdatePrestamoDto } from './dto/update-prestamo.dto';
+import { RetanqueoDto } from './dto/retanqueo.dto';
 import { TasasService } from './services/tasas.service';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import {
+  DatosReciboRetanqueo,
+  generarReciboRetanqueoPDF,
+} from './retanqueo-pdf.util';
 
 @Controller('prestamos')
 export class PrestamosController {
@@ -22,6 +30,47 @@ export class PrestamosController {
     private readonly prestamosService: PrestamosService,
     private readonly tasasService: TasasService,
   ) {}
+
+  /* Ruta para obtener el listado de trazas de retanqueo */
+  @UseGuards(JwtAuthGuard)
+  @Get('retanqueos')
+  async getRetanqueos(@Query('idAsociado') idAsociado?: string) {
+    return this.prestamosService.getRetanqueos(
+      idAsociado ? Number(idAsociado) : undefined,
+    );
+  }
+
+  /* Ruta para obtener una traza de retanqueo por id */
+  @UseGuards(JwtAuthGuard)
+  @Get('retanqueos/:id')
+  async getRetanqueo(@Param('id') id: number) {
+    return this.prestamosService.getRetanqueoById(id);
+  }
+
+  /* Ruta para obtener los retanqueos asociados a un crédito */
+  @UseGuards(JwtAuthGuard)
+  @Get('retanqueos-credito/:idPrestamo')
+  async getRetanqueosDePrestamo(@Param('idPrestamo') idPrestamo: number) {
+    return this.prestamosService.getRetanqueosDePrestamo(idPrestamo);
+  }
+
+  /* Ruta para descargar el recibo PDF del retanqueo */
+  @UseGuards(JwtAuthGuard)
+  @Get('retanqueos/:id/recibo-pdf')
+  async descargarReciboRetanqueo(
+    @Param('id') id: number,
+    @Res() res: Response,
+  ) {
+    const datos: DatosReciboRetanqueo =
+      await this.prestamosService.getDatosReciboRetanqueo(id);
+    const pdf = await generarReciboRetanqueoPDF(datos);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="recibo-retanqueo-${datos.numeroRecibo || id}.pdf"`,
+      'Content-Length': pdf.length.toString(),
+    });
+    res.end(pdf);
+  }
 
   /* Ruta para obtener todos los prestamos*/
   @UseGuards(JwtAuthGuard)
@@ -124,5 +173,23 @@ export class PrestamosController {
     @Body() filter: { userId?: number; creditId?: number },
   ) {
     return this.prestamosService.findWithFilters(filter);
+  }
+
+  /* Ruta para obtener créditos elegibles para retanqueo de un asociado */
+  @UseGuards(JwtAuthGuard)
+  @Get('retancuables/:userId')
+  async getCreditosRetanqueables(@Param('userId') userId: number) {
+    return this.prestamosService.getCreditosRetanqueables(userId);
+  }
+
+  /* Ruta para procesar un retanqueo de crédito */
+  @UseGuards(JwtAuthGuard)
+  @Post('retanqueo')
+  async procesarRetanqueo(
+    @Body() dto: RetanqueoDto,
+    @Request() req,
+  ) {
+    const usuario = req.user;
+    return this.prestamosService.procesarRetanqueo(dto, usuario);
   }
 }

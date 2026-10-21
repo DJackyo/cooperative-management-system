@@ -5,6 +5,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MulterModule } from '@nestjs/platform-express';
 import { AsocAportesAsociados } from 'src/entities/entities/AsocAportesAsociados';
 import { Asociados } from 'src/entities/entities/Asociados';
+import { AportesDepuracionService } from './aportes-depuracion.service';
+import { AportesDepuracionGuard } from './aportes-depuracion.guard';
 
 @Module({
   imports: [
@@ -14,6 +16,6 @@ import { Asociados } from 'src/entities/entities/Asociados';
     }),
   ],
   controllers: [AsocAportesAsociadosController],
-  providers: [AsocAportesAsociadosService],
+  providers: [AsocAportesAsociadosService, AportesDepuracionService, AportesDepuracionGuard],
 })
 export class AsocAportesAsociadosModule {}

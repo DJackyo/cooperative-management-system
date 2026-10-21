@@ -18,6 +18,7 @@ import { EstadosAsociado } from "./EstadosAsociado";
 import { TiposIdentificacion } from "./TiposIdentificacion";
 import { AsocUbicaciones } from "./AsocUbicaciones";
 import { Prestamos } from "./Prestamos";
+import { PresRetanqueos } from "./PresRetanqueos";
 import { Usuarios } from "./Usuarios";
 
 @Index("asociados_pkey", ["id"], { unique: true })
@@ -153,4 +154,7 @@ export class Asociados {
 
   @OneToMany(() => Usuarios, (usuarios) => usuarios.idAsociado)
   usuarios: Usuarios[];
+
+  @OneToMany(() => PresRetanqueos, (retanqueos) => retanqueos.idAsociado)
+  presRetanqueos: PresRetanqueos[];
 }

@@ -13,6 +13,7 @@ import { PresCuotas } from "./PresCuotas";
 import { PresHistorialPrestamos } from "./PresHistorialPrestamos";
 import { Asociados } from "./Asociados";
 import { PresTasasPrestamo } from "./PresTasasPrestamo";
+import { PresRetanqueos } from "./PresRetanqueos";
 
 @Index("prestamos_pkey", ["id"], { unique: true })
 @Entity("prestamos", { schema: "public" })
@@ -81,6 +82,20 @@ export class Prestamos {
   })
   aplicaProteccionCartera: boolean | null;
 
+  @Column("boolean", {
+    name: "es_retanqueo",
+    nullable: true,
+    default: () => "false",
+  })
+  esRetanqueo: boolean | null;
+
+  @Column("real", {
+    name: "saldo_retanqueo",
+    nullable: true,
+    default: () => "0",
+  })
+  saldoRetanqueo: number | null;
+
   @OneToMany(
     () => PresAprobacionPrestamos,
     (presAprobacionPrestamos) => presAprobacionPrestamos.idPrestamo
@@ -112,4 +127,19 @@ export class Prestamos {
   )
   @JoinColumn([{ name: "id_tasa", referencedColumnName: "id" }])
   idTasa: PresTasasPrestamo;
+
+  @ManyToOne(() => Prestamos, (prestamo) => prestamo.retanqueosHijos, {
+    nullable: true,
+  })
+  @JoinColumn([{ name: "id_prestamo_origen", referencedColumnName: "id" }])
+  idPrestamoOrigen: Prestamos | null;
+
+  @OneToMany(() => Prestamos, (prestamo) => prestamo.idPrestamoOrigen)
+  retanqueosHijos: Prestamos[];
+
+  @OneToMany(() => PresRetanqueos, (retanqueo) => retanqueo.idPrestamoOrigen)
+  retanqueosOrigen: PresRetanqueos[];
+
+  @OneToMany(() => PresRetanqueos, (retanqueo) => retanqueo.idPrestamoNuevo)
+  retanqueosNuevo: PresRetanqueos[];
 }

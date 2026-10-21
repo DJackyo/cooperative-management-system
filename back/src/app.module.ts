@@ -24,6 +24,7 @@ import { PresMetodosPago } from './entities/entities/PresMetodosPago';
 import { PresPagos } from './entities/entities/PresPagos';
 import { Prestamos } from './entities/entities/Prestamos';
 import { PresTasasPrestamo } from './entities/entities/PresTasasPrestamo';
+import { PresRetanqueos } from './entities/entities/PresRetanqueos';
 import { Roles } from './entities/entities/Roles';
 import { TiposIdentificacion } from './entities/entities/TiposIdentificacion';
 import { Usuarios } from './entities/entities/Usuarios';
@@ -80,6 +81,7 @@ import { RecibosMensualesModule } from './modules/recibos-mensuales/recibos-mens
           PresPagos,
           Prestamos,
           PresTasasPrestamo,
+          PresRetanqueos,
           Roles,
           TiposIdentificacion,
           Usuarios,
