@@ -2,6 +2,34 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 ## Getting Started
 
+## Depurar aportes duplicados
+
+Disponible para **ADMINISTRADOR** y **GESTOR DE OPERACIONES** en
+**Gestion de Ahorros > Depurar duplicados**, tanto en la lista general como en el
+historial de un asociado. Requiere el backend actualizado y la
+[migracion de auditoria](../back/database/migrations/create_asoc_aportes_depuraciones.sql).
+
+1. Buscar por asociado, identificacion o ID de aporte, y filtrar por mes/ano.
+2. Marcar los registros que se desean **eliminar**. No hay seleccion automatica
+   y siempre debe conservarse al menos uno por asociado y mes.
+3. Pulsar **Revisar seleccion**: muestra todos los grupos seleccionados, incluso
+   los de otras paginas o filtros, con lo que se elimina y lo que se conserva.
+4. Revisar importes, soportes, observaciones y metodos; indicar un motivo y escribir
+   `ELIMINAR` para confirmar el borrado real.
+
+La seleccion persiste al paginar o filtrar, pero se limpia al actualizar, cerrar
+o producirse un error de borrado. Ante un conflicto se exige actualizar y volver
+a seleccionar. Al completarse, se muestra el identificador de auditoria y se
+actualizan los saldos. No se consolidan pagos ni se trasladan soportes; la auditoria
+conserva la informacion original y los archivos no se eliminan.
+Cancelar una consulta al cerrar o actualizar el dialogo no genera una alerta ni
+un error de consola; los errores reales de la API siguen notificandose.
+
+La lista incluye todos los estados y tipos de aporte; un mes repetido no demuestra
+por si solo que un pago sea erroneo. Revisar y respaldar antes de confirmar.
+
+## Development server
+
 First, run the development server:
 
 ```bash

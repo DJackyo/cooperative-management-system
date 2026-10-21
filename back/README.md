@@ -28,6 +28,35 @@
 
 ## Project setup
 
+### Depuracion de ahorros duplicados
+
+Antes de utilizar **Depurar duplicados** en el frontend, ejecutar una vez
+[create_asoc_aportes_depuraciones.sql](database/migrations/create_asoc_aportes_depuraciones.sql)
+en la base de datos correspondiente y desplegar el backend actualizado.
+La migracion crea la auditoria; no elimina ni modifica aportes existentes.
+
+- `GET /aportes-asociados/duplicados?idAsociado=28`: grupos con mas de un aporte
+  por asociado y mes de `fecha_aporte`. Omitir el parametro para consultar todos.
+- `POST /aportes-asociados/depurar`: recibe `motivo` (10 a 500 caracteres) y
+  `grupos` con `idAsociado`, `periodo` (`YYYY-MM`), `version` e `ids` a eliminar.
+- Ambos endpoints requieren JWT y un rol vigente `ADMINISTRADOR` o
+  `GESTOR DE OPERACIONES`. Se incluyen todos los estados y tipos de aporte.
+- Cada operacion admite hasta 500 registros de 100 grupos y debe conservar al
+  menos un aporte por grupo. No se elige automaticamente el registro correcto.
+- La version comprueba todos los campos del grupo, incluidos comprobantes,
+  fechas y observaciones. Si cambiaron, devuelve HTTP 409 y exige volver a consultar.
+- El borrado y la auditoria son atomicos. Un bloqueo corto de la tabla de aportes
+  evita carreras con registros y ediciones existentes; si no puede adquirirse en
+  cinco segundos, se informa el conflicto. Dependencias entrantes o triggers/reglas
+  de la tabla requieren revision manual y bloquean esta herramienta.
+- `public.asoc_aportes_depuraciones` conserva usuario, fecha, motivo, importe y
+  snapshots JSON completos de los aportes eliminados y conservados. Los archivos
+  de comprobantes no se borran ni se trasladan. No hay restauracion automatica:
+  cualquier recuperacion debe revisarse con soporte.
+
+Realizar un respaldo externo antes de depurar datos financieros. Esta herramienta
+no impide futuros duplicados en los flujos de creacion/edicion existentes.
+
 ```bash
 $ pnpm install
 ```
