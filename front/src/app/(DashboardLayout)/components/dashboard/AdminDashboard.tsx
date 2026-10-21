@@ -26,6 +26,8 @@ const EMPTY_DASHBOARD: DashboardData = {
   overdueCredits: 0,
   savingsTransactions: [],
   savingsLabels: [],
+  savingsContributions: [],
+  savingsWithdrawals: [],
   pendingPaymentSupports: 0,
   deactivationRequests: [],
 };
@@ -183,6 +185,8 @@ const AdminDashboard = ({ year = null }: AdminDashboardProps) => {
               <SavingsTransactionsCard
                 savingsTransactions={dashboardData.savingsTransactions}
                 savingsLabels={dashboardData.savingsLabels}
+                savingsContributions={dashboardData.savingsContributions}
+                savingsWithdrawals={dashboardData.savingsWithdrawals}
                 groupBy={savingsGroupBy}
                 total={dashboardData.savingsSummary?.totalSaved}
                 periodLabel={periodLabel}

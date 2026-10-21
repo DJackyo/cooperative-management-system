@@ -1,6 +1,4 @@
 import React from "react";
-import { Select, MenuItem } from "@mui/material";
-import { useTheme } from "@mui/material/styles";
 import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
 import dynamic from "next/dynamic";
 const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
@@ -8,6 +6,8 @@ const Chart = dynamic(() => import("react-apexcharts"), { ssr: false });
 interface SavingsTransactionsCardProps {
   savingsTransactions?: number[];
   savingsLabels?: string[];
+  savingsContributions?: number[];
+  savingsWithdrawals?: number[];
   /** Agrupamiento de los datos: por mes (año seleccionado) o por año (histórico). */
   groupBy?: "month" | "year";
   /** Ahorro total del período (para el encabezado). */
@@ -19,25 +19,30 @@ interface SavingsTransactionsCardProps {
 const SavingsTransactionsCard = ({
   savingsTransactions = [],
   savingsLabels = [],
+  savingsContributions,
+  savingsWithdrawals = [],
   groupBy = "year",
   total,
   periodLabel,
 }: SavingsTransactionsCardProps) => {
-  // select
-  // chart color
-  const theme = useTheme();
-  const primary = theme.palette.primary.main;
-  const secondary = theme.palette.secondary.main;
-
   const chartTitle =
     groupBy === "month"
       ? `Aportes mensuales${periodLabel ? ` · ${periodLabel}` : ""}`
       : `Aportes por año${periodLabel ? ` · ${periodLabel}` : ""}`;
 
   const totalLabel =
-    typeof total === "number" && total > 0
-      ? `Total: $${total.toLocaleString("es-CO")}`
+    typeof total === "number"
+      ? `Saldo neto: $${total.toLocaleString("es-CO")}`
       : undefined;
+  const contributionValues =
+    savingsContributions ?? savingsTransactions.map((value) => Math.max(value, 0));
+  const withdrawalValues =
+    savingsWithdrawals.length > 0
+      ? savingsWithdrawals
+      : savingsContributions
+        ? []
+        : savingsTransactions.map((value) => Math.max(-value, 0));
+  const hasWithdrawals = withdrawalValues.some((value) => value > 0);
 
   // chart
   const optionscolumnchart: any = {
@@ -50,15 +55,13 @@ const SavingsTransactionsCard = ({
       },
       height: 270,
     },
-    colors: [primary, secondary],
+    colors: ["#13b8a6", "#ef6c5b"],
     plotOptions: {
       bar: {
         horizontal: false,
-        barHeight: "60%",
-        columnWidth: "42%",
+        columnWidth: "48%",
         borderRadius: [6],
         borderRadiusApplication: "end",
-        borderRadiusWhenStacked: "all",
       },
     },
     stroke: {
@@ -71,7 +74,12 @@ const SavingsTransactionsCard = ({
       enabled: false,
     },
     legend: {
-      show: false,
+      show: hasWithdrawals,
+      position: "top",
+      horizontalAlign: "right",
+      markers: {
+        radius: 12,
+      },
     },
     grid: {
       borderColor: "rgba(0,0,0,0.1)",
@@ -84,6 +92,10 @@ const SavingsTransactionsCard = ({
     },
     yaxis: {
       tickAmount: 4,
+      min: 0,
+      labels: {
+        formatter: (value: number) => `$${Math.round(value).toLocaleString("es-CO")}`,
+      },
     },
     xaxis: {
       categories: savingsLabels.length > 0 ? savingsLabels : ["Sin datos"],
@@ -94,33 +106,29 @@ const SavingsTransactionsCard = ({
     tooltip: {
       theme: "dark",
       fillSeriesColor: false,
+      y: {
+        formatter: (value: number) => `$${Math.round(value).toLocaleString("es-CO")}`,
+      },
     },
   };
 
-  const seriescolumnchart: any = [
+  const seriescolumnchart: { name: string; data: number[] }[] = [
     {
-      name: "Cuota de Ahorro",
-      data: savingsTransactions.length > 0 ? savingsTransactions : [0],
+      name: "Aportes",
+      data: contributionValues.length > 0 ? contributionValues : [0],
     },
   ];
+  if (hasWithdrawals) {
+    seriescolumnchart.push({
+      name: "Retiros",
+      data: withdrawalValues,
+    });
+  }
 
   return (
     <DashboardCard
       title={chartTitle}
       subtitle={totalLabel}
-      // action={
-      //   <Select
-      //     labelId="month-dd"
-      //     id="month-dd"
-      //     value={month}
-      //     size="small"
-      //     onChange={handleChange}
-      //   >
-      //     <MenuItem value={1}>Marzo 2023</MenuItem>
-      //     <MenuItem value={2}>Abril 2023</MenuItem>
-      //     <MenuItem value={3}>Mayo 2023</MenuItem>
-      //   </Select>
-      // }
     >
       <Chart
         options={optionscolumnchart}

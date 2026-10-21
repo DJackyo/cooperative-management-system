@@ -59,6 +59,9 @@ export interface DashboardData {
   savingsLabels?: string[];
   /** 'month' cuando hay un año seleccionado, 'year' para el histórico completo. */
   savingsGroupBy?: 'month' | 'year';
+  /** Aportes positivos y retiros (en valor absoluto), separados para la gráfica. */
+  savingsContributions?: number[];
+  savingsWithdrawals?: number[];
   savingsSummary?: SavingsSummary;
 
   // --- Asociados y pendientes ---

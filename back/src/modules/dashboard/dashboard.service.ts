@@ -67,29 +67,37 @@ export class DashboardService {
     if (year !== null) {
       const monthLabels = DashboardService.MONTH_LABELS;
       const totals = new Array(12).fill(0);
+      const contributions = new Array(12).fill(0);
+      const withdrawals = new Array(12).fill(0);
       let aportesCount = 0;
 
       safeRows.forEach((row) => {
         const monthIndex = Number(row.month) - 1;
         if (monthIndex >= 0 && monthIndex < 12) {
           totals[monthIndex] = Number(row.total) || 0;
+          contributions[monthIndex] = Number(row.contributions) || 0;
+          withdrawals[monthIndex] = Math.abs(Number(row.withdrawals) || 0);
         }
         aportesCount += Number(row.count) || 0;
       });
 
       const totalSaved = totals.reduce((acc, value) => acc + value, 0);
-      const periodsWithActivity = totals.filter((value) => value > 0).length;
+      const periodsWithActivity = totals.filter(
+        (_, index) => contributions[index] > 0 || withdrawals[index] > 0,
+      ).length;
 
       let lastIndex = -1;
       let bestIndex = -1;
       totals.forEach((value, index) => {
-        if (value > 0) lastIndex = index;
+        if (contributions[index] > 0 || withdrawals[index] > 0) lastIndex = index;
         if (bestIndex === -1 || value > totals[bestIndex]) bestIndex = index;
       });
 
       return {
         labels: [...monthLabels],
         values: totals,
+        contributions,
+        withdrawals,
         groupBy: 'month' as const,
         summary: {
           totalSaved,
@@ -107,35 +115,59 @@ export class DashboardService {
     }
 
     // Histórico completo: se agrupa por año
-    const perYear = new Map<number, { total: number; count: number }>();
+    const perYear = new Map<
+      number,
+      { total: number; count: number; contributions: number; withdrawals: number }
+    >();
     safeRows.forEach((row) => {
       const rowYear = Number(row.year);
       if (!rowYear) return;
-      const current = perYear.get(rowYear) || { total: 0, count: 0 };
+      const current = perYear.get(rowYear) || {
+        total: 0,
+        count: 0,
+        contributions: 0,
+        withdrawals: 0,
+      };
       current.total += Number(row.total) || 0;
       current.count += Number(row.count) || 0;
+      current.contributions += Number(row.contributions) || 0;
+      current.withdrawals += Math.abs(Number(row.withdrawals) || 0);
       perYear.set(rowYear, current);
     });
 
     const orderedYears = [...perYear.keys()].sort((a, b) => a - b);
     const values = orderedYears.map((rowYear) => perYear.get(rowYear)?.total || 0);
+    const contributions = orderedYears.map(
+      (rowYear) => perYear.get(rowYear)?.contributions || 0,
+    );
+    const withdrawals = orderedYears.map(
+      (rowYear) => perYear.get(rowYear)?.withdrawals || 0,
+    );
     const labels = orderedYears.map((rowYear) => String(rowYear));
     const totalSaved = values.reduce((acc, value) => acc + value, 0);
     const aportesCount = orderedYears.reduce(
       (acc, rowYear) => acc + (perYear.get(rowYear)?.count || 0),
       0,
     );
-    const periodsWithActivity = orderedYears.length;
+    const activeYears = orderedYears.filter((rowYear) => {
+      const yearData = perYear.get(rowYear);
+      return (yearData?.contributions || 0) > 0 || (yearData?.withdrawals || 0) > 0;
+    });
+    const periodsWithActivity = activeYears.length;
 
     let bestIndex = -1;
     values.forEach((value, index) => {
       if (bestIndex === -1 || value > values[bestIndex]) bestIndex = index;
     });
-    const lastIndex = values.length - 1;
+    const lastActiveYear = activeYears[activeYears.length - 1];
+    const lastIndex =
+      lastActiveYear === undefined ? -1 : orderedYears.indexOf(lastActiveYear);
 
     return {
       labels,
       values,
+      contributions,
+      withdrawals,
       groupBy: 'year' as const,
       summary: {
         totalSaved,
@@ -253,7 +285,9 @@ export class DashboardService {
           `SELECT EXTRACT(YEAR FROM COALESCE(fecha_aporte, fecha_creacion))::int AS year,
                   EXTRACT(MONTH FROM COALESCE(fecha_aporte, fecha_creacion))::int AS month,
                   COALESCE(SUM(monto), 0) AS total,
-                  COUNT(*)::int AS count
+          COALESCE(SUM(monto) FILTER (WHERE monto > 0), 0) AS contributions,
+          COALESCE(SUM(monto) FILTER (WHERE monto < 0), 0) AS withdrawals,
+          COUNT(*) FILTER (WHERE monto > 0)::int AS count
              FROM public.asoc_aportes_asociados
             WHERE ($1::int IS NULL
                    OR EXTRACT(YEAR FROM COALESCE(fecha_aporte, fecha_creacion)) = $1)
@@ -346,6 +380,8 @@ export class DashboardService {
         // --- Sección de ahorros ---
         savingsTransactions: savings.values,
         savingsLabels: savings.labels,
+        savingsContributions: savings.contributions,
+        savingsWithdrawals: savings.withdrawals,
         savingsGroupBy: savings.groupBy,
         savingsSummary: savings.summary,
         // --- Asociados y pendientes ---
