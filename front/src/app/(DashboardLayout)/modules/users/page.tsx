@@ -11,7 +11,7 @@ const UserManagementPage = () => {
     <Box sx={{ padding: 0 }}>
       <PageHeader
         dataTour="users-page-header"
-        title="Gestión de Usuarios"
+        title="Gestión de Asociados"
         subtitle="Administra los asociados y sus cuentas de acceso"
         icon={<IconUserCog size={22} />}
         gradient="linear-gradient(135deg, #5D87FF 0%, #49BEFF 120%)"

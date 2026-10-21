@@ -1,4 +1,5 @@
 import React, { Suspense, useCallback, useEffect, useState } from "react";
+import TableActionsMenu from "@/components/TableActionsMenu";
 import {
   Card,
   CardContent,
@@ -1659,157 +1660,103 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
             }}
             rowSx={(row) => getRowStyle(row)}
             actions={(row: any) => (
-              <Box data-tour="credit-table-actions" sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
-                {isUserAdmin && (
-                  <Tooltip title="Editar" arrow>
-                    <IconButton
-                      onClick={() => handleEditClick(row)}
-                      color="info"
-                      size="small"
-                      sx={{
-                        "&:hover": { backgroundColor: "#e1f5fe", transform: "scale(1.1)" },
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      <IconPencilDollar size={18} />
-                    </IconButton>
-                  </Tooltip>
-                )}
-                {isUserAdmin && row["estado"] === "SOLICITADO" && (
-                  <Tooltip title="Aprobar" arrow>
-                    <IconButton
-                      onClick={() => handleApproveClick(row)}
-                      color="success"
-                      size="small"
-                      sx={{
-                        "&:hover": { backgroundColor: "#e8f5e9", transform: "scale(1.1)" },
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      <IconChecks size={18} />
-                    </IconButton>
-                  </Tooltip>
-                )}
-                {isUserAdmin && row["estado"] !== "SOLICITADO" && (
-                  <Tooltip title="Ver préstamo" arrow>
-                    <IconButton
-                      onClick={() => handleOpenDetail(row)}
-                      color="warning"
-                      size="small"
-                      data-tour="open-credit-detail-btn"
-                      sx={{
-                        "&:hover": { backgroundColor: "#fff3e0", transform: "scale(1.1)" },
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      <IconEyeDollar size={18} />
-                    </IconButton>
-                  </Tooltip>
-                )}
-                {isUserAdmin &&
-                  row["estado"] !== "SOLICITADO" &&
-                  row.presCuotas &&
-                  row.presCuotas.length > 0 &&
-                  !row.presCuotas.some(
-                    (c: any) =>
-                      c.estado === "PAGADO" ||
-                      (c.presPagos && c.presPagos.length > 0),
-                  ) && (
-                    <Tooltip title="Recalcular cuotas" arrow>
-                      <IconButton
-                        onClick={() => handleRecalculateCuotas(row)}
-                        color="secondary"
-                        size="small"
-                        sx={{
-                          "&:hover": {
-                            backgroundColor: "#f3e5f5",
-                            transform: "scale(1.1)",
-                          },
-                          transition: "all 0.2s ease",
-                        }}
-                      >
-                        <IconCalculator size={18} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                {isUserAdmin &&
-                  row["estado"] === "APROBADO" && (
-                    <Tooltip title="Retanquear crédito" arrow>
-                      <IconButton
-                        onClick={() => handleRetanqueoClick(row)}
-                        color="warning"
-                        size="small"
-                        sx={{
-                          "&:hover": { backgroundColor: "#fff3e0", transform: "scale(1.1)" },
-                          transition: "all 0.2s ease",
-                        }}
-                      >
-                        <IconRefresh size={18} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                <Tooltip title="Ver trazas de retanqueo" arrow>
-                  <IconButton
-                    onClick={() => handleOpenTrazaModal(row.id)}
-                    color="info"
-                    size="small"
-                    sx={{
-                      "&:hover": { backgroundColor: "#e1f5fe", transform: "scale(1.1)" },
-                      transition: "all 0.2s ease",
-                    }}
-                  >
-                    <IconTimeline size={18} />
-                  </IconButton>
-                </Tooltip>
-                {isUserAdmin &&
-                  row["estado"] !== "SOLICITADO" &&
-                  row["estado"] !== "FINALIZADO" &&
-                  row.presCuotas &&
-                  row.presCuotas.length > 0 &&
-                  !row.presCuotas.some((c: any) => c.estado === "PENDIENTE") && (
-                    <Tooltip title="Finalizar crédito" arrow>
-                      <IconButton
-                        onClick={() => handleFinalizarCredito(row)}
-                        color="success"
-                        size="small"
-                        sx={{
-                          "&:hover": {
-                            backgroundColor: "#e8f5e9",
-                            transform: "scale(1.1)",
-                          },
-                          transition: "all 0.2s ease",
-                        }}
-                      >
-                        <IconCircleCheckFilled size={18} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                <Tooltip title="Imprimir crédito" arrow>
-                  <IconButton
-                    onClick={() => handlePrintCredit(row)}
-                    color="primary"
-                    size="small"
-                    sx={{ "&:hover": { backgroundColor: "#e3f2fd", transform: "scale(1.1)" }, transition: "all 0.2s ease" }}
-                  >
-                    <IconPrinter size={18} />
-                  </IconButton>
-                </Tooltip>
-                {isUserAdmin && (
-                  <Tooltip title="Eliminar" arrow>
-                    <IconButton
-                      onClick={() => handleDelete(row)}
-                      color="error"
-                      size="small"
-                      sx={{
-                        "&:hover": { backgroundColor: "#ffebee", transform: "scale(1.1)" },
-                        transition: "all 0.2s ease",
-                      }}
-                    >
-                      <IconTrash size={18} />
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </Box>
+              <TableActionsMenu
+                label={`Crédito #${row.id}`}
+                dataTour="credit-table-actions"
+                triggerTour={
+                  isUserAdmin && row.estado !== "SOLICITADO"
+                    ? "open-credit-detail-btn"
+                    : undefined
+                }
+                items={[
+                  {
+                    id: "detalle",
+                    section: "Consultas y documentos",
+                    label: "Ver préstamo",
+                    icon: <IconEyeDollar />,
+                    hidden: !isUserAdmin || row.estado === "SOLICITADO",
+                    onClick: () => handleOpenDetail(row),
+                  },
+                  {
+                    id: "trazas",
+                    section: "Consultas y documentos",
+                    label: "Ver trazas de retanqueo",
+                    icon: <IconTimeline />,
+                    onClick: () => handleOpenTrazaModal(row.id),
+                  },
+                  {
+                    id: "imprimir",
+                    section: "Consultas y documentos",
+                    label: "Imprimir crédito",
+                    icon: <IconPrinter />,
+                    onClick: () => handlePrintCredit(row),
+                  },
+                  {
+                    id: "editar",
+                    section: "Gestión del crédito",
+                    label: "Editar",
+                    icon: <IconPencilDollar />,
+                    hidden: !isUserAdmin,
+                    onClick: () => handleEditClick(row),
+                  },
+                  {
+                    id: "aprobar",
+                    section: "Gestión del crédito",
+                    label: "Aprobar",
+                    icon: <IconChecks />,
+                    hidden: !isUserAdmin || row.estado !== "SOLICITADO",
+                    onClick: () => handleApproveClick(row),
+                  },
+                  {
+                    id: "retanquear",
+                    section: "Gestión del crédito",
+                    label: "Retanquear crédito",
+                    icon: <IconRefresh />,
+                    hidden: !isUserAdmin || row.estado !== "APROBADO",
+                    onClick: () => handleRetanqueoClick(row),
+                  },
+                  {
+                    id: "recalcular",
+                    section: "Cuotas y cierre",
+                    label: "Recalcular cuotas",
+                    icon: <IconCalculator />,
+                    hidden: !(
+                      isUserAdmin &&
+                      row.estado !== "SOLICITADO" &&
+                      row.presCuotas?.length > 0 &&
+                      !row.presCuotas.some(
+                        (cuota: any) =>
+                          cuota.estado === "PAGADO" ||
+                          (cuota.presPagos && cuota.presPagos.length > 0),
+                      )
+                    ),
+                    onClick: () => handleRecalculateCuotas(row),
+                  },
+                  {
+                    id: "finalizar",
+                    section: "Cuotas y cierre",
+                    label: "Finalizar crédito",
+                    icon: <IconCircleCheckFilled />,
+                    hidden: !(
+                      isUserAdmin &&
+                      row.estado !== "SOLICITADO" &&
+                      row.estado !== "FINALIZADO" &&
+                      row.presCuotas?.length > 0 &&
+                      !row.presCuotas.some((cuota: any) => cuota.estado === "PENDIENTE")
+                    ),
+                    onClick: () => handleFinalizarCredito(row),
+                  },
+                  {
+                    id: "eliminar",
+                    section: "Acciones destructivas",
+                    label: "Eliminar",
+                    icon: <IconTrash />,
+                    hidden: !isUserAdmin,
+                    danger: true,
+                    onClick: () => handleDelete(row),
+                  },
+                ]}
+              />
             )}
           />
         </Suspense>

@@ -19,9 +19,6 @@ import {
   MenuItem,
   InputLabel,
   FormControl,
-  Menu,
-  Divider,
-  ListItemIcon,
   Dialog,
   DialogActions,
   DialogContent,
@@ -63,7 +60,6 @@ import {
   IconUserDollar,
   IconDeviceIpadHorizontalDollar,
   IconRefresh,
-  IconDotsVertical,
   IconSearch,
   IconX,
   IconUserPlus,
@@ -79,6 +75,7 @@ import { defaultLoggedUser } from "../../utilities/utils";
 import { Aporte } from "@/interfaces/Aporte";
 import AporteModal from "../savings/components/AporteModal";
 import StyledTable from "@/components/StyledTable";
+import TableActionsMenu from "@/components/TableActionsMenu";
 import { savingsService } from "@/services/savingsService";
 import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
 import { usePageLoading } from "@/hooks/usePageLoading";
@@ -126,8 +123,6 @@ const UserManagementModule = () => {
   const [orderBy, setOrderBy] = useState<string>("idAsociado.nombres");
   const [filterState, setFilterState] = useState<string>("ACTIVO");
 
-  const [actionsAnchor, setActionsAnchor] = useState<HTMLElement | null>(null);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedAsociado, setSelectedAsociado] = useState<any | null>(null);
   // Estado para el usuario actual
   const [currentUser, setCurrentUser] = useState<LoggedUser>(defaultLoggedUser);
@@ -440,16 +435,6 @@ const UserManagementModule = () => {
     } catch (error) {
       console.error("Error al eliminar el usuario:", error);
     }
-  };
-
-  const handleOpenActions = (event: React.MouseEvent<HTMLElement>, user: User) => {
-    setActionsAnchor(event.currentTarget);
-    setSelectedUser(user);
-  };
-
-  const handleClose = () => {
-    setActionsAnchor(null);
-    setSelectedUser(null);
   };
 
   const handleViewCredits = (user?: User) => {
@@ -781,25 +766,68 @@ const UserManagementModule = () => {
                     );
                   case "acciones":
                     return (
-                      <Box data-tour="users-table-actions" sx={{ display: "flex", justifyContent: "center", minWidth: 88 }}>
-                        <Tooltip title="Abrir acciones del usuario">
-                          <IconButton
-                          onClick={(event) => handleOpenActions(event, user)}
-                          aria-label={`Más acciones para ${user.idAsociado?.nombres || "usuario"}`}
-                          aria-haspopup="menu"
-                          color="primary"
-                          sx={{
-                            border: "1px solid",
-                            borderColor: "divider",
-                            borderRadius: 2,
-                            backgroundColor: "#f8fbff",
-                            "&:hover": { backgroundColor: "#eaf2ff" },
-                          }}
-                          >
-                            <IconDotsVertical size={20} />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
+                      <TableActionsMenu
+                        label={user.idAsociado?.nombres || `Usuario #${user.id}`}
+                        dataTour="users-table-actions"
+                        items={[
+                          {
+                            id: "editar",
+                            label: "Editar usuario",
+                            icon: <IconUserEdit />,
+                            onClick: () => handleOpenModal(user),
+                          },
+                          {
+                            id: "asociado",
+                            label: "Editar datos del asociado",
+                            icon: <IconEditCircle />,
+                            onClick: () => handleOpenAsociado(user),
+                          },
+                          {
+                            id: "asistencia",
+                            label: "Registrar asistencia a asamblea",
+                            icon: <IconEditCircle />,
+                            onClick: () => handleOpenAsistencia(user),
+                          },
+                          {
+                            id: "crear-prestamo",
+                            section: "Préstamos",
+                            label: "Crear préstamo",
+                            icon: <IconEditCircle />,
+                            onClick: () => handleCreateCredit(user),
+                          },
+                          {
+                            id: "ver-prestamos",
+                            label: "Ver préstamos",
+                            icon: <IconEyeDollar />,
+                            onClick: () => handleViewCredits(user),
+                            disabled: !(user.loansCount || 0),
+                            badge: user.loansCount ? (
+                              <Chip label={user.loansCount} size="small" color="primary" />
+                            ) : undefined,
+                          },
+                          {
+                            id: "ver-aportes",
+                            section: "Aportes",
+                            label: "Ver aportes",
+                            icon: <IconCoins />,
+                            onClick: () => handleSavingsAsociado(user),
+                          },
+                          {
+                            id: "crear-aporte",
+                            label: "Crear aporte",
+                            icon: <IconUserDollar />,
+                            onClick: () => handleCreateAporteClick(user),
+                          },
+                          {
+                            id: "inactivar",
+                            label: "Inactivar usuario",
+                            icon: <IconUserCancel />,
+                            danger: true,
+                            dividerBefore: true,
+                            onClick: () => handleDeactivate(user),
+                          },
+                        ]}
+                      />
                     );
                   default:
                     return user[column.field];
@@ -807,72 +835,6 @@ const UserManagementModule = () => {
               }}
             />
             </Box>
-
-            <Menu
-              anchorEl={actionsAnchor}
-              open={Boolean(actionsAnchor)}
-              onClose={handleClose}
-              MenuListProps={{ "aria-labelledby": "user-actions-button" }}
-              PaperProps={{ sx: { minWidth: 250, borderRadius: 2, mt: 1 } }}
-            >
-              <Box sx={{ px: 2, py: 1 }}>
-                <Typography variant="caption" color="text.secondary">
-                  Acciones para
-                </Typography>
-                <Typography variant="subtitle2" fontWeight={700} noWrap>
-                  {selectedUser?.idAsociado?.nombres || "Usuario seleccionado"}
-                </Typography>
-              </Box>
-              <Divider />
-              <MenuItem onClick={() => { handleOpenModal(selectedUser!); handleClose(); }}>
-                <ListItemIcon><IconUserEdit size={20} /></ListItemIcon>
-                Editar usuario
-              </MenuItem>
-              <MenuItem onClick={() => { handleOpenAsociado(selectedUser!); handleClose(); }}>
-                <ListItemIcon><IconEditCircle size={20} /></ListItemIcon>
-                Editar datos del asociado
-              </MenuItem>
-              <MenuItem onClick={() => { handleOpenAsistencia(selectedUser!); handleClose(); }}>
-                <ListItemIcon><IconEditCircle size={20} /></ListItemIcon>
-                Registrar asistencia a asamblea
-              </MenuItem>
-              <Divider />
-              <Typography variant="overline" color="text.secondary" sx={{ px: 2, lineHeight: 2.5 }}>
-                Préstamos
-              </Typography>
-              <MenuItem onClick={() => { handleCreateCredit(selectedUser!); handleClose(); }}>
-                <ListItemIcon><IconEditCircle size={20} /></ListItemIcon>
-                Crear préstamo
-              </MenuItem>
-              <MenuItem
-                onClick={() => { handleViewCredits(selectedUser!); handleClose(); }}
-                disabled={!(selectedUser?.loansCount || 0)}
-              >
-                <ListItemIcon><IconEyeDollar size={20} /></ListItemIcon>
-                Ver préstamos
-                {!!selectedUser?.loansCount && <Chip label={selectedUser.loansCount} size="small" color="primary" sx={{ ml: "auto" }} />}
-              </MenuItem>
-              <Divider />
-              <Typography variant="overline" color="text.secondary" sx={{ px: 2, lineHeight: 2.5 }}>
-                Ahorros
-              </Typography>
-              <MenuItem onClick={() => { handleSavingsAsociado(selectedUser!); handleClose(); }}>
-                <ListItemIcon><IconCoins size={20} /></ListItemIcon>
-                Ver aportes
-              </MenuItem>
-              <MenuItem onClick={() => { handleCreateAporteClick(selectedUser!); handleClose(); }}>
-                <ListItemIcon><IconUserDollar size={20} /></ListItemIcon>
-                Crear aporte
-              </MenuItem>
-              <Divider />
-              <MenuItem
-                onClick={() => { handleDeactivate(selectedUser!); handleClose(); }}
-                sx={{ color: "error.main" }}
-              >
-                <ListItemIcon><IconUserCancel size={20} color="currentColor" /></ListItemIcon>
-                Inactivar usuario
-              </MenuItem>
-            </Menu>
 
             {/* Paginación ahora manejada internamente por StyledTable */}
           </Box>

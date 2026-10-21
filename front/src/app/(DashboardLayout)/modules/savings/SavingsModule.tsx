@@ -12,7 +12,6 @@ import {
   TablePagination,
   Avatar,
   IconButton,
-  Tooltip,
   Table,
   TableBody,
   TableCell,
@@ -70,6 +69,7 @@ import UserCard from "../../utilities/UserCard";
 import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
 import { usePageLoading } from "@/hooks/usePageLoading";
 import StyledTable from "@/components/StyledTable";
+import TableActionsMenu from "@/components/TableActionsMenu";
 import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
 import ModuleStatCard from "@/app/(DashboardLayout)/components/shared/ModuleStatCard";
 import SavingsCleanupDialog from "./components/SavingsCleanupDialog";
@@ -226,12 +226,12 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     return matchesSearch && matchesEstado && matchesMetodo;
   });
 
-  // Calcular el total ahorrado (suma de montos)
+  // Calcular el total aportado (suma de montos)
   const totalAhorrado = filteredTransactions.reduce((total, transaction) => {
     return total + (transaction.monto * 1 || 0);
   }, 0);
 
-  // Formatear el total ahorrado con separadores de miles
+  // Formatear el total aportado con separadores de miles
   const formattedTotalAhorrado = formatCurrency(totalAhorrado);
   const activeAportes = filteredTransactions.filter((transaction) => transaction.estado === 'Activo' || transaction.estado === true).length;
   const lastAporte = filteredTransactions[0]?.fechaAporte;
@@ -278,11 +278,19 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
     setPage(0);
   };
 
-  const handleCreateAporteClick = () => {
-    defaultAporteValue.asociado = userInfo;
-    defaultAporteValue.idUsuarioRegistro = currentUser.userId;
-    console.log("defaultAporteValue", defaultAporteValue, currentUser);
-    setSelectedAporte(defaultAporteValue);
+  const handleCreateAporteClick = (
+    asociado: Pick<Asociado, "id" | "nombres" | "numeroDeIdentificacion"> = userInfo,
+  ) => {
+    setSelectedAporte({
+      ...defaultAporteValue,
+      asociado: {
+        id: asociado.id,
+        nombres: asociado.nombres,
+        numeroDeIdentificacion: asociado.numeroDeIdentificacion,
+      },
+      idAsociado: asociado.id,
+      idUsuarioRegistro: currentUser.userId,
+    });
     setOpenAporteModal(true);
   };
 
@@ -431,7 +439,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
         <Grid container size={{ xs: 12 }} spacing={3} data-tour="savings-stats">
           <Grid size={{ xs: 12, sm: 4 }}>
             <ModuleStatCard
-              label="Total ahorrado"
+              label="Total aportado"
               value={`$ ${formatCurrency(totalUsersSavings)}`}
               subtitle="Acumulado de todos los asociados"
               icon={<IconCoins size={20} />}
@@ -480,7 +488,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   onClick={() => setBulkSavingsModalOpen(true)}
                   startIcon={<IconCalendarMonth size={17} />}
                 >
-                  Ahorros por año
+                  Aportes por año
                 </Button>
                 {canCleanup && (
                   <Button variant="outlined" color="error" size="small" onClick={() => setCleanupOpen(true)}>
@@ -543,14 +551,14 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
           </DashboardCard>
         </Grid>
         <Grid size={{ xs: 12 }}>
-          <DashboardCard title="Ahorros de asociados" subtitle={`${filteredUsers.length} resultado${filteredUsers.length === 1 ? '' : 's'} encontrados`}>
+          <DashboardCard title="Aportes de asociados" subtitle={`${filteredUsers.length} resultado${filteredUsers.length === 1 ? '' : 's'} encontrados`}>
             <Box data-tour="savings-table">
               <StyledTable
                 columns={[
                   { field: "id", headerName: "ID", width: 70 },
-                  { field: "nombres", headerName: "Nombre", width: 150 },
+                  { field: "nombres", headerName: "Nombre", width: 250 },
                   { field: "numeroDeIdentificacion", headerName: "Identificación", width: 150 },
-                  { field: "totalAhorrado", headerName: "Total Ahorrado", width: 150 },
+                  { field: "totalAhorrado", headerName: "Total aportado", width: 150 },
                   { field: "ultimaFechaAporte", headerName: "Último Aporte", width: 130 },
                   { field: "idEstado.estado", headerName: "Estado", width: 120 },
                 ]}
@@ -597,16 +605,28 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   }
                 }}
                 actions={(user) => (
-                  <Box data-tour="savings-table-actions">
-                    <Button
-                      variant="outlined"
-                      size="small"
-                      data-tour="savings-detail-btn"
-                      onClick={() => window.location.href = `/modules/savings?id=${user.id}`}
-                    >
-                      Ver Detalles
-                    </Button>
-                  </Box>
+                  <TableActionsMenu
+                    label={user.nombres || `Asociado #${user.id}`}
+                    dataTour="savings-table-actions"
+                    triggerTour="savings-detail-btn"
+                    items={[
+                      {
+                        id: "detalles",
+                        label: "Ver Detalles",
+                        icon: <IconUserDollar />,
+                        onClick: () => {
+                          window.location.href = `/modules/savings?id=${user.id}`;
+                        },
+                      },
+                      {
+                        id: "crear-aporte",
+                        label: "Crear aporte",
+                        icon: <IconCoins />,
+                        hidden: !canCleanup,
+                        onClick: () => handleCreateAporteClick(user),
+                      },
+                    ]}
+                  />
                 )}
               />
             </Box>
@@ -624,7 +644,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
           }}
           allUsers={allUsers}
         />
-        {/* Modal de Ahorros por Año o Rango de Fechas */}
+        {/* Modal de Aportes por Año o Rango de Fechas */}
         <BulkSavingsModal
           open={bulkSavingsModalOpen}
           onClose={() => setBulkSavingsModalOpen(false)}
@@ -633,6 +653,12 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
           }}
           allUsers={allUsers}
           currentUserId={currentUser.userId}
+        />
+        <AporteModal
+          open={openAporteModal}
+          onClose={handleAporteModalClose}
+          onSubmit={handleAporteSubmit}
+          initialData={selectedAporte}
         />
       </Grid>
     );
@@ -650,7 +676,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <ModuleStatCard
-              label="Total ahorrado"
+              label="Total aportado"
               value={formattedTotalAhorrado}
               subtitle="Acumulado con los filtros actuales"
               icon={<IconCoins size={20} />}
@@ -745,13 +771,13 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   onClick={() => setBulkSavingsModalOpen(true)}
                   startIcon={<IconCalendarMonth size={17} />}
                 >
-                  Ahorros por año
+                  Aportes por año
                 </Button> */}
                 <Button
                   data-tour="new-aporte-btn"
                   variant="outlined"
                   color="secondary"
-                  onClick={handleCreateAporteClick}
+                  onClick={() => handleCreateAporteClick(userInfo)}
                   startIcon={<IconUserDollar />}
                 >
                   Registrar Aporte
@@ -805,54 +831,35 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                   }
                 }}
                 actions={(row: any) => (
-                  <Box data-tour="savings-table-actions" sx={{ display: 'flex', gap: 0.5, justifyContent: 'center' }}>
-                    {validateRoles(roleAdmin, currentUser?.role?.map((r: any) => r.nombre) || []) && (
-                      <Tooltip title="Editar" arrow>
-                        <IconButton
-                          onClick={() => handleEditClick(row)}
-                          color="primary"
-                          size="small"
-                          aria-label="Editar"
-                          sx={{
-                            '&:hover': { backgroundColor: '#e3f2fd', transform: 'scale(1.1)' },
-                            transition: 'all 0.2s ease',
-                          }}
-                        >
-                          <IconPencilDollar />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    <Tooltip title="Ver recibo" arrow>
-                      <IconButton
-                        onClick={() => handleOpenReceiptModal(row)}
-                        color="secondary"
-                        size="small"
-                        aria-label="Ver recibo"
-                        sx={{
-                          '&:hover': { backgroundColor: '#f3e5f5', transform: 'scale(1.1)' },
-                          transition: 'all 0.2s ease',
-                        }}
-                      >
-                        <IconReceipt />
-                      </IconButton>
-                    </Tooltip>
-                    {row.comprobante && (
-                      <Tooltip title="Ver comprobante" arrow>
-                        <IconButton
-                          onClick={() => handleViewComprobante(row.comprobante)}
-                          color="warning"
-                          size="small"
-                          aria-label="Ver comprobante"
-                          sx={{
-                            '&:hover': { backgroundColor: '#fff3e0', transform: 'scale(1.1)' },
-                            transition: 'all 0.2s ease',
-                          }}
-                        >
-                          <IconFileText />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                  </Box>
+                  <TableActionsMenu
+                    label={`Aporte #${row.id}`}
+                    dataTour="savings-table-actions"
+                    items={[
+                      {
+                        id: "editar",
+                        label: "Editar",
+                        icon: <IconPencilDollar />,
+                        hidden: !validateRoles(
+                          roleAdmin,
+                          currentUser?.role?.map((role: any) => role.nombre) || [],
+                        ),
+                        onClick: () => handleEditClick(row),
+                      },
+                      {
+                        id: "recibo",
+                        label: "Ver recibo",
+                        icon: <IconReceipt />,
+                        onClick: () => handleOpenReceiptModal(row),
+                      },
+                      {
+                        id: "comprobante",
+                        label: "Ver comprobante",
+                        icon: <IconFileText />,
+                        hidden: !row.comprobante,
+                        onClick: () => handleViewComprobante(row.comprobante),
+                      },
+                    ]}
+                  />
                 )}
               />
 
@@ -917,7 +924,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
         }}
         allUsers={allUsers}
       />
-      {/* Modal de Ahorros por Año o Rango de Fechas (asociado preseleccionado) */}
+      {/* Modal de Aportes por Año o Rango de Fechas (asociado preseleccionado) */}
       <BulkSavingsModal
         open={bulkSavingsModalOpen}
         onClose={() => setBulkSavingsModalOpen(false)}

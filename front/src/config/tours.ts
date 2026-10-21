@@ -204,7 +204,7 @@ export const PAGE_TOURS: Record<string, TourConfig> = {
         element: '[data-tour="savings-stats"]',
         popover: {
           title: "2. Métricas de Ahorro",
-          description: "Total ahorrado (acumulado de todos los asociados o del asociado seleccionado), asociados activos, aportes visibles y último aporte registrado.",
+          description: "Total aportado (acumulado de todos los asociados o del asociado seleccionado), asociados activos, aportes visibles y último aporte registrado.",
           side: "bottom",
           align: "center",
         },
@@ -221,8 +221,8 @@ export const PAGE_TOURS: Record<string, TourConfig> = {
       {
         element: '[data-tour="new-bulk-savings-btn"]',
         popover: {
-          title: "4. Crear Ahorro por Año (Masivo)",
-          description: "Paso a paso: ① Haz clic en «Ahorros por año». ② Selecciona uno o varios asociados. ③ Elige el año completo o un rango de fechas (los aportes se crean siempre el día 1 de cada mes). ④ Asigna un valor distinto a cada mes. ⑤ Guarda: los aportes aparecen en la tabla y actualizan el total ahorrado.",
+          title: "4. Crear Aportes por Año (Masivo)",
+          description: "Paso a paso: ① Haz clic en «Aportes por año». ② Selecciona uno o varios asociados. ③ Elige el año completo o un rango de fechas (los aportes se crean siempre el día 1 de cada mes). ④ Asigna un valor distinto a cada mes. ⑤ Guarda: los aportes aparecen en la tabla y actualizan el total aportado.",
           side: "bottom",
           align: "end",
         },

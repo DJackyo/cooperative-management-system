@@ -32,18 +32,18 @@ const Menuitems = [
   },
   {
     navlabel: true,
-    subheader: "Ahorro",
+    subheader: "Aportes",
   },
   {
     id: uniqueId(),
-    title: "Gestionar ahorros",
+    title: "Gestionar aportes",
     icon: IconAdjustmentsDollar,
     href: "/modules/savings?id=0",
     roles: roleAdmin,
   },
   {
     id: uniqueId(),
-    title: "Mis Ahorros",
+    title: "Mis aportes",
     icon: IconListDetails,
     href: "/modules/savings?id=",
     roles: [rolesList[0]],

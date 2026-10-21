@@ -39,8 +39,8 @@ const SavingsPage = () => {
     <div>
       <PageHeader
         dataTour="savings-page-header"
-        title="Gestión de Ahorros"
-        subtitle="Registra y consulta los ahorros de los asociados"
+        title="Gestión de Aportes"
+        subtitle="Registra y consulta los aportes de los asociados"
         icon={<IconCoins size={22} />}
         gradient="linear-gradient(135deg, #13DEB9 0%, #02b3a9 120%)"
       />
