@@ -9,6 +9,7 @@ const CertificadosPage = () => {
   return (
     <div>
       <PageHeader
+        dataTour="certificados-page-header"
         title="Certificados de Estado de Cuenta"
         subtitle="Genera certificados de ahorro y crédito de los asociados"
         icon={<IconCertificate size={22} />}

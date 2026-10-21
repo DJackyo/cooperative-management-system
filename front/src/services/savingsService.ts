@@ -1,10 +1,30 @@
 // src/services/savingsService.ts
 import { Aporte } from "@/interfaces/Aporte";
+import { DuplicateSavingsGroup, SavingsCleanupRequest, SavingsCleanupResult } from "@/interfaces/SavingsCleanup";
 
 import { axiosClient } from "@/services/axiosClient";
 const baseURL = "/aportes-asociados";
 
 export const savingsService = {
+  async fetchDuplicates(idAsociado?: number, signal?: AbortSignal): Promise<DuplicateSavingsGroup[]> {
+    const response = await axiosClient.get<{ data: DuplicateSavingsGroup[] }>(`${baseURL}/duplicados`, {
+      params: idAsociado ? { idAsociado } : undefined,
+      signal,
+    });
+    if (!Array.isArray(response.data.data)) {
+      throw new Error("La respuesta de aportes duplicados no es válida");
+    }
+    return response.data.data;
+  },
+  async cleanup(data: SavingsCleanupRequest): Promise<SavingsCleanupResult> {
+    const response = await axiosClient.post<{ data: SavingsCleanupResult }>(`${baseURL}/depurar`, data);
+    const result = response.data.data;
+    if (!result || typeof result.auditoriaId !== "string" || !Number.isInteger(result.cantidad) ||
+        !Number.isFinite(result.montoEliminado)) {
+      throw new Error("No se pudo verificar el resultado de la depuración. Actualice la lista antes de continuar.");
+    }
+    return result;
+  },
   async fetchByFilters(filter:any) {
     try {
       const response = await axiosClient.post(baseURL + '/findWithFilters', filter);

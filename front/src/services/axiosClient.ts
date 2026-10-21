@@ -34,6 +34,9 @@ export const setupAxiosInterceptors = (router: any) => {
     axiosClient.interceptors.response.use(
       (response) => response,
       (error) => {
+        if (axios.isCancel(error)) {
+          return Promise.reject(error);
+        }
         console.error(error);
         // show generic error toast for non-auth failures
         if (error.response) {

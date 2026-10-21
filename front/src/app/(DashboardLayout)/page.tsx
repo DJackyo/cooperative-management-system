@@ -22,8 +22,8 @@ import { authService } from "../authentication/services/authService";
 const Dashboard = () => {
   const router = useRouter();
   const [userRole, setUserRole] = useState<string | null>(null);
-  // Período del dashboard: año concreto o null = "Todos los años"
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  // Período inicial: año actual; null = "Todos los años".
+  const [selectedYear, setSelectedYear] = useState<number | null>(() => new Date().getFullYear());
 
   useAuth();
 

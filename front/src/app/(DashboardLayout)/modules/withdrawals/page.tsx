@@ -279,6 +279,7 @@ const WithdrawalsPage = () => {
   return (
     <Box>
       <PageHeader
+        dataTour="withdrawals-page-header"
         title="Retiros y liquidaciones"
         subtitle="Cruza aportes y créditos antes de finalizar el retiro de un asociado"
         icon={<IconCash size={22} />}
@@ -347,6 +348,7 @@ const WithdrawalsPage = () => {
               variant="scrollable"
               scrollButtons="auto"
               aria-label="Secciones de retiros"
+              data-tour="withdrawals-tabs"
             >
               <Tab label={`Solicitudes (${withdrawals.length})`} />
               <Tab label={`Asociados para retiro (${filteredAssociates.length})`} />

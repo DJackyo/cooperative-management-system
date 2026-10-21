@@ -698,7 +698,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       const tienePagoRegistrado = row.estado === "PAGADO" && row.presPagos && row.presPagos.length > 0;
 
       return (
-        <Box display="flex" gap={0.5} alignItems="center">
+        <Box display="flex" gap={0.5} alignItems="center" data-tour="cuota-actions">
           {isEnabled && row.estado === "PENDIENTE" ? (
             <Button
               variant="contained"
@@ -706,6 +706,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
               onClick={() => handleOpenModal(row)}
               size="small"
               sx={{ textTransform: 'none', minWidth: 70 }}
+              data-tour="pay-cuota-btn"
             >
               Pagar
             </Button>
@@ -742,7 +743,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
   return (
     <>
       {/* Stats en línea - mejor balance */}
-      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }}>
+      <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: 'wrap' }} data-tour="payments-stats">
         <MiniStatBox label="Pagadas" value={cuotasPagadas} icon={<CheckCircle sx={{ fontSize: 18 }} />} color="#22c55e" />
         <MiniStatBox label="Pendientes" value={cuotasPendientes} icon={<AccessTime sx={{ fontSize: 18 }} />} color="#eab308" />
         {cuotasCanceladas > 0 && (
@@ -754,7 +755,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       </Stack>
 
       {/* Buscador y acciones */}
-      <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center', flexWrap: 'wrap' }} data-tour="payments-toolbar">
         <TextField
           size="small"
           placeholder="Buscar cuota, estado, monto..."
@@ -773,6 +774,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
             startIcon={<Payment />}
             onClick={() => setBulkModalOpen(true)}
             sx={{ textTransform: "none", fontWeight: 600 }}
+            data-tour="bulk-payments-btn"
           >
             Pagos en masa ({cuotasPendientes})
           </Button>
@@ -800,7 +802,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       )}
 
       {/* Tabla */}
-      <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 2 }}>
+      <Paper sx={{ width: '100%', overflow: 'hidden', borderRadius: 2 }} data-tour="payments-table">
         <TableContainer sx={{ maxHeight: 550 }}>
           <Table stickyHeader>
             <TableHead>
@@ -924,7 +926,7 @@ const PaymentHistoryTable: React.FC<PaymentHistoryProps> = ({
       </Paper>
 
       {/* Modal de Pago / Edición */}
-      <Dialog open={open} onClose={handleCloseModal} maxWidth="md" fullScreen={isMobile}>
+      <Dialog open={open} onClose={handleCloseModal} maxWidth="md" fullScreen={isMobile} data-tour="payment-form-dialog">
         <DialogTitle sx={{ bgcolor: isEditMode ? 'warning.main' : 'primary.main', color: 'white', display: 'flex', alignItems: 'center', gap: 1 }}>
           {isEditMode ? <Edit /> : <Payment />} {isEditMode ? "Editar Pago Registrado" : "Registrar Pago"}
         </DialogTitle>

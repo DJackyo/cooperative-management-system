@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Button,
   IconButton,
@@ -21,11 +21,20 @@ import {
   IconSparkles,
   IconChevronDown,
   IconTimeline,
+  IconCash,
 } from "@tabler/icons-react";
 import { usePathname } from "next/navigation";
-import { driver, DriveStep } from "driver.js";
+import { driver } from "driver.js";
 import "driver.js/dist/driver.css";
-import { getTourForPath, GENERAL_TOUR, CREDIT_WORKFLOW_TOUR, PAGE_TOURS } from "@/config/tours";
+import Swal from "sweetalert2";
+import {
+  getTourForPath,
+  GENERAL_TOUR,
+  CREDIT_WORKFLOW_TOUR,
+  PAYMENTS_TOUR,
+  AUTO_START_TOURS,
+  TourConfig,
+} from "@/config/tours";
 
 interface GuideTourButtonProps {
   variant?: "icon" | "button" | "chip";
@@ -39,6 +48,7 @@ export const GuideTourButton: React.FC<GuideTourButtonProps> = ({
   const pathname = usePathname();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
+  const driverRef = useRef<ReturnType<typeof driver> | null>(null);
 
   const getActiveTourConfig = () => {
     const fullPath =
@@ -51,11 +61,11 @@ export const GuideTourButton: React.FC<GuideTourButtonProps> = ({
   const currentTourConfig = getActiveTourConfig();
 
   // Iniciar un tour específico
-  const startTour = (steps: DriveStep[]) => {
+  const startTour = (config: TourConfig) => {
     handleCloseMenu();
 
     // Filtrar pasos cuyos elementos no existan en el DOM actual
-    const validSteps = steps.filter((step) => {
+    const validSteps = config.steps.filter((step) => {
       if (!step.element) return true;
       if (typeof step.element === "string") {
         return document.querySelector(step.element) !== null;
@@ -63,11 +73,31 @@ export const GuideTourButton: React.FC<GuideTourButtonProps> = ({
       return true;
     });
 
+    // Si ningún paso aplica a la pantalla actual, avisar en lugar de abrir un tour vacío
     if (validSteps.length === 0) {
-      console.warn("No se encontraron elementos interactivos para este tour en la vista actual.");
+      Swal.fire({
+        icon: "info",
+        title: "Esta guía corresponde a otra pantalla",
+        html: `<p style="margin:0 0 8px">${config.description}</p>${
+          config.availablePath
+            ? `<p style="margin:0"><strong>Pantalla:</strong> <code>${config.availablePath}</code></p>`
+            : ""
+        }`,
+        confirmButtonText: "Entendido",
+        confirmButtonColor: "#2447a8",
+      });
+      return;
     }
 
-    const stepsToRun = validSteps.length > 0 ? validSteps : steps;
+    // Cerrar cualquier tour abierto antes de iniciar uno nuevo
+    if (driverRef.current) {
+      try {
+        driverRef.current.destroy();
+      } catch {
+        /* ya estaba destruido */
+      }
+      driverRef.current = null;
+    }
 
     const driverObj = driver({
       showProgress: true,
@@ -79,11 +109,12 @@ export const GuideTourButton: React.FC<GuideTourButtonProps> = ({
       doneBtnText: "¡Entendido!",
       progressText: "Paso {{current}} de {{total}}",
       popoverClass: "driverjs-theme-coopinsi",
-      steps: stepsToRun,
+      steps: validSteps,
       onDestroyStarted: () => {
         driverObj.destroy();
       },
     });
+    driverRef.current = driverObj;
 
     // Iniciar driver.js
     setTimeout(() => {
@@ -101,8 +132,66 @@ export const GuideTourButton: React.FC<GuideTourButtonProps> = ({
 
   // Click directo en el botón principal: arranca el tour de la pantalla actual
   const handleClickMain = () => {
-    startTour(getActiveTourConfig().steps);
+    startTour(getActiveTourConfig());
   };
+
+  // Auto-inicio: muestra la guía una sola vez por pantalla (primera visita)
+  useEffect(() => {
+    if (!AUTO_START_TOURS || typeof window === "undefined") return;
+
+    const config = getActiveTourConfig();
+    const storageKey = `coopinsi-tour-seen:${config.id}`;
+    try {
+      if (window.localStorage.getItem(storageKey)) return;
+    } catch {
+      return;
+    }
+
+    let cancelled = false;
+    let stableTicks = 0;
+    let lastValid = -1;
+    const startedAt = Date.now();
+
+    const countValidSteps = () =>
+      config.steps.filter((step) => {
+        if (!step.element) return false;
+        if (typeof step.element === "string") {
+          return document.querySelector(step.element) !== null;
+        }
+        return true;
+      }).length;
+
+    const finish = (shouldStart: boolean) => {
+      window.clearInterval(interval);
+      if (!shouldStart) return;
+      try {
+        window.localStorage.setItem(storageKey, "1");
+      } catch {
+        /* almacenamiento no disponible */
+      }
+      startTour(config);
+    };
+
+    // Espera a que la pantalla termine de renderizar (tablas y estadísticas)
+    // antes de lanzar la guía, con un tope de 9 segundos.
+    const interval = window.setInterval(() => {
+      if (cancelled) return;
+      const valid = countValidSteps();
+      if (valid > 0 && valid === lastValid) stableTicks += 1;
+      else stableTicks = 0;
+      lastValid = valid;
+
+      const elapsed = Date.now() - startedAt;
+      if (valid > 0 && stableTicks >= 3) finish(true);
+      else if (elapsed > 9000) finish(valid > 0);
+    }, 400);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   return (
     <>
@@ -204,7 +293,7 @@ export const GuideTourButton: React.FC<GuideTourButtonProps> = ({
 
         {/* Opción 1: Guía de la pantalla actual */}
         <MenuItem
-          onClick={() => startTour(getActiveTourConfig().steps)}
+          onClick={() => startTour(getActiveTourConfig())}
           sx={{ background: "rgba(36, 71, 168, 0.04)" }}
         >
           <ListItemIcon>
@@ -219,7 +308,7 @@ export const GuideTourButton: React.FC<GuideTourButtonProps> = ({
         </MenuItem>
 
         {/* Opción 2: Proceso del Crédito */}
-        <MenuItem onClick={() => startTour(CREDIT_WORKFLOW_TOUR.steps)}>
+        <MenuItem onClick={() => startTour(CREDIT_WORKFLOW_TOUR)}>
           <ListItemIcon>
             <IconTimeline size={20} color="#10b981" />
           </ListItemIcon>
@@ -231,8 +320,21 @@ export const GuideTourButton: React.FC<GuideTourButtonProps> = ({
           />
         </MenuItem>
 
-        {/* Opción 3: Guía General */}
-        <MenuItem onClick={() => startTour(GENERAL_TOUR.steps)}>
+        {/* Opción 3: Registro de Pagos */}
+        <MenuItem onClick={() => startTour(PAYMENTS_TOUR)}>
+          <ListItemIcon>
+            <IconCash size={20} color="#f59e0b" />
+          </ListItemIcon>
+          <ListItemText
+            primary="Registrar Pagos"
+            secondary="Paso a paso para pagar cuotas y usar pagos en masa"
+            primaryTypographyProps={{ fontWeight: 600, fontSize: "0.88rem" }}
+            secondaryTypographyProps={{ fontSize: "0.75rem" }}
+          />
+        </MenuItem>
+
+        {/* Opción 4: Guía General */}
+        <MenuItem onClick={() => startTour(GENERAL_TOUR)}>
           <ListItemIcon>
             <IconMap2 size={20} color="#3567d6" />
           </ListItemIcon>

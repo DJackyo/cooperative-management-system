@@ -8,7 +8,23 @@ interface PageHeaderProps {
   icon?: React.ReactNode;
   gradient?: string;
   dataTour?: string;
+  action?: React.ReactNode;
 }
+
+const PATH_LABELS: Record<string, string> = {
+  modules: "Módulos",
+  savings: "Ahorros",
+  credit: "Créditos",
+  users: "Asociados",
+  "recibos-mensuales": "Recibos Mensuales",
+  certificados: "Certificados",
+  withdrawals: "Retiros y Liquidaciones",
+  "assembly-attendance": "Asistencia a Asamblea",
+  parametros: "Parámetros",
+  admin: "Administración",
+  backups: "Copias de Seguridad",
+  user: "Detalle",
+};
 
 // Encabezado de página reutilizable con degradado y breadcrumb
 const PageHeader = ({
@@ -17,6 +33,7 @@ const PageHeader = ({
   icon,
   gradient,
   dataTour,
+  action,
 }: PageHeaderProps) => {
   const pathname = usePathname();
   const segments = pathname.split("/").filter(Boolean);
@@ -24,6 +41,8 @@ const PageHeader = ({
   // Determinar la clave de data-tour automáticamente según la ruta
   const autoTourKey = segments.length > 0 ? `${segments.slice(-2).join("-")}-header` : "page-header";
   const tourAttribute = dataTour || autoTourKey;
+
+  const nonRoutablePaths = new Set(["/modules", "/modules/admin"]);
 
   return (
     <Box
@@ -39,10 +58,10 @@ const PageHeader = ({
         justifyContent: "space-between",
         flexWrap: "wrap",
         gap: 2,
-        boxShadow: 2,
+        boxShadow: "0 8px 24px rgba(36, 71, 168, 0.15)",
       }}
     >
-      <Box>
+      <Box sx={{ minWidth: 0 }}>
         <Breadcrumbs
           aria-label="breadcrumb"
           sx={{
@@ -53,32 +72,50 @@ const PageHeader = ({
           <Link
             href="/"
             underline="hover"
-            sx={{ color: "rgba(255,255,255,0.8)", fontWeight: 500 }}
+            sx={{ color: "rgba(255,255,255,0.85)", fontWeight: 500, fontSize: "0.825rem" }}
           >
             Inicio
           </Link>
           {segments.map((segment, index) => {
             const isLast = index === segments.length - 1;
-            return isLast ? (
-              <Typography
-                key={segment}
-                sx={{ color: "inherit", fontWeight: 600, textTransform: "capitalize" }}
-              >
-                {segment.replace(/-/g, " ")}
-              </Typography>
-            ) : (
+            const targetPath = `/${segments.slice(0, index + 1).join("/")}`;
+            const label = PATH_LABELS[segment] || segment.replace(/-/g, " ");
+
+            if (isLast) {
+              return (
+                <Typography
+                  key={segment}
+                  sx={{ color: "#fff", fontWeight: 700, fontSize: "0.825rem", textTransform: "capitalize" }}
+                >
+                  {label}
+                </Typography>
+              );
+            }
+
+            if (nonRoutablePaths.has(targetPath)) {
+              return (
+                <Typography
+                  key={segment}
+                  sx={{ color: "rgba(255,255,255,0.75)", fontWeight: 500, fontSize: "0.825rem" }}
+                >
+                  {label}
+                </Typography>
+              );
+            }
+
+            return (
               <Link
                 key={segment}
                 underline="hover"
-                href={`/${segments.slice(0, index + 1).join("/")}`}
-                sx={{ color: "rgba(255,255,255,0.8)" }}
+                href={targetPath}
+                sx={{ color: "rgba(255,255,255,0.85)", fontWeight: 500, fontSize: "0.825rem" }}
               >
-                {segment.replace(/-/g, " ")}
+                {label}
               </Link>
             );
           })}
         </Breadcrumbs>
-        <Box display="flex" alignItems="center" gap={1.5}>
+        <Box display="flex" alignItems="center" gap={1.5} mt={0.5}>
           {icon && (
             <Box
               sx={{
@@ -90,23 +127,26 @@ const PageHeader = ({
                 borderRadius: 2,
                 background: "rgba(255,255,255,0.2)",
                 color: "#fff",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                flexShrink: 0,
               }}
             >
               {icon}
             </Box>
           )}
-          <Box>
-            <Typography variant="h5" fontWeight={700}>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="h5" fontWeight={700} sx={{ lineHeight: 1.25 }}>
               {title}
             </Typography>
             {subtitle && (
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
+              <Typography variant="body2" sx={{ opacity: 0.92, mt: 0.25 }}>
                 {subtitle}
               </Typography>
             )}
           </Box>
         </Box>
       </Box>
+      {action && <Box sx={{ flexShrink: 0 }}>{action}</Box>}
     </Box>
   );
 };

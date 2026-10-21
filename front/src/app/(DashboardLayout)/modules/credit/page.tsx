@@ -37,6 +37,7 @@ const CreditPage = () => {
   return (
     <div>
       <PageHeader
+        dataTour="credit-page-header"
         title="Gestión de Crédito"
         subtitle="Administra solicitudes, aprobaciones y pagos de créditos"
         icon={<IconAdjustmentsDollar size={22} />}

@@ -10,6 +10,7 @@ const AssemblyAttendancePage = () => {
   return (
     <Box sx={{ padding: 0 }}>
       <PageHeader
+        dataTour="assembly-page-header"
         title="Asistencia a asamblea"
         subtitle="Consulta, filtra y descarga el registro de asistencia de los asociados"
         icon={<IconCalendarEvent size={22} />}

@@ -734,6 +734,9 @@ const UserManagementModule = () => {
               rows={sortedUsers}
               withPagination={true}
               pageSizeOptions={[10, 25, 50]}
+              onResetFilters={clearFilters}
+              emptyTitle="No se encontraron asociados"
+              emptyMessage="No hay asociados o usuarios que coincidan con la búsqueda o el estado seleccionado."
               renderCell={(column, user) => {
                 switch (column.field) {
                   case "id":

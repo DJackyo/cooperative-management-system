@@ -72,6 +72,7 @@ import { usePageLoading } from "@/hooks/usePageLoading";
 import StyledTable from "@/components/StyledTable";
 import DashboardCard from "@/app/(DashboardLayout)/components/shared/DashboardCard";
 import ModuleStatCard from "@/app/(DashboardLayout)/components/shared/ModuleStatCard";
+import SavingsCleanupDialog from "./components/SavingsCleanupDialog";
 
 // Agregar el tipo de las props
 interface SavingsModuleProps {
@@ -119,6 +120,8 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
   const [receiptModalOpen, setModalOpen] = useState(false);
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
   const [bulkSavingsModalOpen, setBulkSavingsModalOpen] = useState(false);
+  const [cleanupOpen, setCleanupOpen] = useState(false);
+  const canCleanup = validateRoles(roleAdmin, currentUser.role?.map((role) => role.nombre) || []);
 
   // Reference to the loadSavings function so it can be called from callbacks
   const loadSavingsRef = useRef<() => Promise<void>>(async () => Promise.resolve());
@@ -479,6 +482,11 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                 >
                   Ahorros por año
                 </Button>
+                {canCleanup && (
+                  <Button variant="outlined" color="error" size="small" onClick={() => setCleanupOpen(true)}>
+                    Depurar duplicados
+                  </Button>
+                )}
                 <Button
                   data-tour="new-aporte-btn"
                   variant="contained"
@@ -549,6 +557,9 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                 rows={filteredUsers}
                 withPagination={true}
                 pageSizeOptions={[10, 25, 50]}
+                onResetFilters={() => { setUsersSearch(''); setEstadoFilter('ACTIVO'); }}
+                emptyTitle="No se encontraron asociados"
+                emptyMessage="No hay asociados que coincidan con los filtros de búsqueda o estado actuales."
                 renderCell={(column, user) => {
                   switch (column.field) {
                     case "id":
@@ -590,6 +601,7 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                     <Button
                       variant="outlined"
                       size="small"
+                      data-tour="savings-detail-btn"
                       onClick={() => window.location.href = `/modules/savings?id=${user.id}`}
                     >
                       Ver Detalles
@@ -601,6 +613,9 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
           </DashboardCard>
         </Grid>
         {/* Modal de Creación en Masa */}
+        {cleanupOpen && canCleanup && (
+          <SavingsCleanupDialog onClose={() => setCleanupOpen(false)} onChanged={loadSavings} />
+        )}
         <BulkAporteModal
           open={bulkModalOpen}
           onClose={() => setBulkModalOpen(false)}
@@ -625,6 +640,9 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
+      {cleanupOpen && canCleanup && (
+        <SavingsCleanupDialog key={id} idAsociado={id} onClose={() => setCleanupOpen(false)} onChanged={loadSavings} />
+      )}
       <Grid container spacing={3}>
         <Grid container size={{ xs: 12 }} spacing={3} data-tour="savings-stats">
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -716,6 +734,11 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
             subtitle={`${filteredTransactions.length} resultado${filteredTransactions.length === 1 ? '' : 's'} de ${savings.length}`}
             action={
               <Box display="flex" gap={1} flexWrap="wrap">
+                {canCleanup && (
+                  <Button variant="outlined" color="error" onClick={() => setCleanupOpen(true)}>
+                    Depurar duplicados
+                  </Button>
+                )}
                 {/* <Button
                   variant="outlined"
                   color="primary"
@@ -747,6 +770,9 @@ const SavingsModule: React.FC<SavingsModuleProps> = ({ id }) => {
                 sortField={orderBy}
                 sortDirection={order}
                 onRequestSort={handleRequestSort}
+                onResetFilters={clearAporteFilters}
+                emptyTitle="No se encontraron aportes"
+                emptyMessage="No hay aportes registrados para este asociado en el rango o filtros seleccionados."
                 renderCell={(column, row, index) => {
                   if (column.field === "fechaAporte") {
                     return (

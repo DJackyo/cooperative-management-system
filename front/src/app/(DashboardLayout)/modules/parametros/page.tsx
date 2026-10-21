@@ -124,6 +124,7 @@ const ParametrosPage = () => {
   return (
     <Box sx={{ padding: 0 }}>
       <PageHeader
+        dataTour="parametros-page-header"
         title="Parámetros del sistema"
         subtitle="Administra las tablas pequeñas de configuración"
         icon={<IconSettings size={22} />}

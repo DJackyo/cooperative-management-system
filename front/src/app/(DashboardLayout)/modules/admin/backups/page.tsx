@@ -9,6 +9,7 @@ export default function BackupsPage() {
   return (
     <Box sx={{ padding: 0 }}>
       <PageHeader
+        dataTour="backups-page-header"
         title="Gestión de Backups"
         subtitle="Crea y restaura copias de seguridad de la base de datos"
         icon={<IconDatabase size={22} />}

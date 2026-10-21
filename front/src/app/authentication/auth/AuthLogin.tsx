@@ -1,7 +1,17 @@
 "use client";
 
 import React, { JSX, useEffect, useState } from "react";
-import { Box, Typography, Button, Stack, Alert, CircularProgress } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Button,
+  Stack,
+  Alert,
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+} from "@mui/material";
+import { IconEye, IconEyeOff, IconMail, IconLock } from "@tabler/icons-react";
 import CustomTextField from "@/app/(DashboardLayout)/components/forms/theme-elements/CustomTextField";
 import { authService } from "../services/authService";
 import { User } from "@/interfaces/User";
@@ -16,6 +26,7 @@ interface loginType {
 const AuthLogin = ({ title, subtitle, subtext }: loginType) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -78,9 +89,16 @@ const AuthLogin = ({ title, subtitle, subtext }: loginType) => {
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setEmail(e.target.value)
               }
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <IconMail size={18} color="#7c8fac" />
+                  </InputAdornment>
+                ),
+              }}
             />
           </Box>
-          <Box mt="25px">
+          <Box mt="20px">
             <Typography
               variant="subtitle1"
               fontWeight={600}
@@ -93,14 +111,35 @@ const AuthLogin = ({ title, subtitle, subtext }: loginType) => {
             <CustomTextField
               id="password"
               name="password"
-              type="password"
+              type={showPassword ? "text" : "password"}
               variant="outlined"
               fullWidth
               autoComplete="current-password"
+              placeholder="••••••••"
               value={password}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                 setPassword(e.target.value)
               }
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <IconLock size={18} color="#7c8fac" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      edge="end"
+                      size="small"
+                      sx={{ color: "#7c8fac" }}
+                    >
+                      {showPassword ? <IconEyeOff size={18} /> : <IconEye size={18} />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
           </Box>
           <Stack

@@ -38,6 +38,7 @@ const SavingsPage = () => {
   return (
     <div>
       <PageHeader
+        dataTour="savings-page-header"
         title="Gestión de Ahorros"
         subtitle="Registra y consulta los ahorros de los asociados"
         icon={<IconCoins size={22} />}

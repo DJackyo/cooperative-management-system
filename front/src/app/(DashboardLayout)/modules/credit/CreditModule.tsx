@@ -82,6 +82,7 @@ import {
 import { driver } from "driver.js";
 import { CREDIT_WORKFLOW_TOUR } from "@/config/tours";
 import { creditsService } from "@/services/creditRequestService";
+import { CreditoRetanqueable } from "@/interfaces/Retanqueo";
 import { userService } from "@/services/userService";
 import { setupAxiosInterceptors } from "@/services/axiosClient";
 import GenericLoadingSkeleton from "@/components/GenericLoadingSkeleton";
@@ -94,6 +95,13 @@ import ModuleStatCard from "@/app/(DashboardLayout)/components/shared/ModuleStat
 const CreditForm = dynamic(() => import("./components/CreditForm"), {
   ssr: false,
 });
+const RetanqueoDialog = dynamic(() => import("./components/RetanqueoDialog"), {
+  ssr: false,
+});
+const RetanqueoTrazaDialog = dynamic(
+  () => import("./components/RetanqueoTrazaDialog"),
+  { ssr: false }
+);
 
 export const getCreditReportMetrics = (credit: Prestamo) => {
   const cuotas = credit.presCuotas || [];
@@ -180,6 +188,10 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const [openApproveModal, setOpenApproveModal] = useState(false);
   const [openReportModal, setOpenReportModal] = useState(false);
   const [openWorkflowModal, setOpenWorkflowModal] = useState(false);
+  const [openRetanqueoModal, setOpenRetanqueoModal] = useState(false);
+  const [creditoRetanqueo, setCreditoRetanqueo] = useState<CreditoRetanqueable | null>(null);
+  const [openTrazaModal, setOpenTrazaModal] = useState(false);
+  const [trazaPrestamoId, setTrazaPrestamoId] = useState<number | null>(null);
   const [userInfo, setUserInfo] = useState<Asociado>({
     id: 0,
     nombres: "",
@@ -197,6 +209,12 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const [paymentFilter, setPaymentFilter] = useState("TODOS");
   const [refreshing, setRefreshing] = useState(false);
   const [tasas, setTasas] = useState<any[]>([]);
+
+  const clearCreditFilters = () => {
+    setSearch("");
+    setStatusFilter("TODOS");
+    setPaymentFilter("TODOS");
+  };
 
   const sortedCredits = [...credits].sort((a, b) => {
     const fechaA = a.fechaCredito ? new Date(a.fechaCredito).getTime() : 0;
@@ -316,6 +334,66 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
   const handleCloseApproveModal = () => setOpenApproveModal(false);
   const handleOpenReportModal = () => setOpenReportModal(true);
   const handleCloseReportModal = () => setOpenReportModal(false);
+  const handleOpenRetanqueoModal = () => setOpenRetanqueoModal(true);
+  const handleCloseRetanqueoModal = () => {
+    setOpenRetanqueoModal(false);
+    setCreditoRetanqueo(null);
+  };
+
+  const handleRetanqueoClick = async (row: Prestamo) => {
+    try {
+      const idAsociado = row.idAsociado?.id;
+      if (!idAsociado) {
+        Swal.fire({
+          icon: "warning",
+          title: "No elegible",
+          text: "El credito no tiene un asociado asociado, por lo que no se puede retanquear.",
+          confirmButtonText: "Entendido",
+        });
+        return;
+      }
+
+      const creditosRetanqueables = await creditsService.getCreditosRetanqueables(idAsociado);
+      const lista = Array.isArray(creditosRetanqueables) ? creditosRetanqueables : [];
+      const credito = lista.find((c: any) => c.id === row.id);
+
+      if (credito) {
+        setCreditoRetanqueo(credito as CreditoRetanqueable);
+        setOpenRetanqueoModal(true);
+      } else {
+        Swal.fire({
+          icon: "warning",
+          title: "No elegible",
+          text: "Este credito no cumple los requisitos para retanqueo.",
+          confirmButtonText: "Entendido",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error al obtener creditos retanqueables:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: error?.message || "No se pudo verificar la elegibilidad para retanqueo.",
+        confirmButtonText: "Entendido",
+      });
+    }
+  };
+
+  const handleProcesarRetanqueo = async () => {
+    setOpenRetanqueoModal(false);
+    setCreditoRetanqueo(null);
+    await loadCredits();
+  };
+
+  const handleOpenTrazaModal = (idPrestamo?: number | null) => {
+    setTrazaPrestamoId(idPrestamo ?? null);
+    setOpenTrazaModal(true);
+  };
+
+  const handleCloseTrazaModal = () => {
+    setOpenTrazaModal(false);
+    setTrazaPrestamoId(null);
+  };
 
   const handleEditClick = (row: Prestamo) => {
     setSelectedPrestamo(row);
@@ -1524,13 +1602,20 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid size={{ xs: 12, md: 1 }} display="flex" alignItems="center" justifyContent="center">
+          <Grid size={{ xs: 12, md: 1 }} display="flex" alignItems="center" justifyContent="center" gap={0.5}>
             <Chip
               label={filteredTransactions.length}
               size="small"
               color="primary"
               variant="outlined"
             />
+            {(search || statusFilter !== "TODOS" || paymentFilter !== "TODOS") && (
+              <Tooltip title="Limpiar filtros" arrow>
+                <IconButton size="small" onClick={clearCreditFilters} color="inherit">
+                  <IconX size={16} />
+                </IconButton>
+              </Tooltip>
+            )}
           </Grid>
         </Grid>
       </Paper>
@@ -1566,6 +1651,9 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
             rows={filteredTransactions}
             withPagination={true}
             pageSizeOptions={[10, 25, 50]}
+            onResetFilters={clearCreditFilters}
+            emptyTitle="No se encontraron créditos"
+            emptyMessage="No hay créditos que coincidan con la búsqueda o el estado seleccionado."
             renderCell={(column, row) => {
               return formatRules[column.field] ? formatRules[column.field](row[column.field], row) : row[column.field];
             }}
@@ -1608,6 +1696,7 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                       onClick={() => handleOpenDetail(row)}
                       color="warning"
                       size="small"
+                      data-tour="open-credit-detail-btn"
                       sx={{
                         "&:hover": { backgroundColor: "#fff3e0", transform: "scale(1.1)" },
                         transition: "all 0.2s ease",
@@ -1643,6 +1732,35 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
                       </IconButton>
                     </Tooltip>
                   )}
+                {isUserAdmin &&
+                  row["estado"] === "APROBADO" && (
+                    <Tooltip title="Retanquear crédito" arrow>
+                      <IconButton
+                        onClick={() => handleRetanqueoClick(row)}
+                        color="warning"
+                        size="small"
+                        sx={{
+                          "&:hover": { backgroundColor: "#fff3e0", transform: "scale(1.1)" },
+                          transition: "all 0.2s ease",
+                        }}
+                      >
+                        <IconRefresh size={18} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                <Tooltip title="Ver trazas de retanqueo" arrow>
+                  <IconButton
+                    onClick={() => handleOpenTrazaModal(row.id)}
+                    color="info"
+                    size="small"
+                    sx={{
+                      "&:hover": { backgroundColor: "#e1f5fe", transform: "scale(1.1)" },
+                      transition: "all 0.2s ease",
+                    }}
+                  >
+                    <IconTimeline size={18} />
+                  </IconButton>
+                </Tooltip>
                 {isUserAdmin &&
                   row["estado"] !== "SOLICITADO" &&
                   row["estado"] !== "FINALIZADO" &&
@@ -1696,6 +1814,23 @@ const CreditModule: React.FC<CreditModuleProps> = ({ userId }) => {
           />
         </Suspense>
       </Paper>
+
+      {/* Modal para Retanqueo de Crédito */}
+      <RetanqueoDialog
+        open={openRetanqueoModal}
+        onClose={handleCloseRetanqueoModal}
+        creditoOrigen={creditoRetanqueo}
+        onSuccess={handleProcesarRetanqueo}
+        tasas={tasas}
+        userId={userId}
+      />
+
+      {/* Modal con las trazas de retanqueo y sus recibos PDF */}
+      <RetanqueoTrazaDialog
+        open={openTrazaModal}
+        onClose={handleCloseTrazaModal}
+        idPrestamo={trazaPrestamoId}
+      />
 
       {/* Modal para Solicitud de Préstamo */}
       <Dialog
